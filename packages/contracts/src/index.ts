@@ -122,3 +122,5 @@ export interface ProcessResult {
   readonly cancelled: boolean;
 }
 
+export type ProcessRunner = (request: ProcessRequest) => Promise<ProcessResult>;
+
