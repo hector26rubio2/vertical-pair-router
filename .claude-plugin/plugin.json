@@ -1,0 +1,11 @@
+{
+  "name": "vertical-pair-router",
+  "displayName": "Vertical Pair Router",
+  "version": "0.0.0",
+  "description": "Local-first engineering workflows with policy, evidence, limits, and recovery",
+  "author": {
+    "name": "Vertical Pair Router contributors"
+  },
+  "keywords": ["engineering", "workflow", "quality", "evidence", "local-first"]
+}
+

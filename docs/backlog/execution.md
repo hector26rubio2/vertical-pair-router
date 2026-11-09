@@ -31,7 +31,7 @@ file ownership must not overlap.
 | Phase | Status | Next gate |
 |---|---|---|
 | 0 Audit and ADRs | COMPLETE with owner blockers recorded | Commit baseline and prove worktree behavior |
-| 1 Open-source repo and contracts | IN PROGRESS | Core compiles/tests independently |
+| 1 Open-source repo and contracts | COMPLETE LOCALLY / RELEASE BLOCKED | Owner confirms license; directory profile becomes publishable |
 | 2-13 | PLANNED | Follow authoritative plan in order |
 | 14 Release/publication | BLOCKED on owner authorization | License/title/publication decision |
 

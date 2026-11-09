@@ -4,7 +4,9 @@
     { "path": "./packages/contracts" },
     { "path": "./packages/core" },
     { "path": "./packages/quality" },
-    { "path": "./packages/storage-sqlite" }
+    { "path": "./packages/storage-sqlite" },
+    { "path": "./packages/runtime" },
+    { "path": "./packages/cli" }
   ]
 }
 

@@ -29,7 +29,7 @@ smoke test.
 | Subagent model/effort | VERIFIED | Official current docs list `model` and `effort` frontmatter | Model names are host-specific. VPR records what the adapter reports and never claims an unconfirmed model. |
 | Native worktree isolation | VERIFIED / DEGRADED | Current docs define `isolation: worktree` | PowerShell receives working-directory enforcement but not Bash command-text checks. VPR must add path ownership and diff validation. |
 | Hooks on PowerShell | VERIFIED | Current docs support `shell: powershell`, auto-detect `pwsh`, fallback to 5.1 | Critical guards set explicit shell and failure semantics; hooks remain thin. |
-| Orca runtime | NOT_AVAILABLE | `orca status --json`: app not running, stale bootstrap, runtime unreachable | Do not start workers until Git/bootstrap and file ownership boundaries exist. Starting Orca is a visible external action and will use the normal approval path if required. |
+| Orca runtime | DEGRADED | Orca 1.4.243 became ready and registered the repository, but `run-create` returned `no_active_sender_terminal` | This Codex session was not launched inside an Orca terminal and has no authoritative `ORCA_TERMINAL_HANDLE`. Structured supervised workers are unavailable here; do not forge a handle. Work proceeds sequentially. |
 | Usage/tokens/cost | UNKNOWN | No safe local command proved complete provider usage fields | Store `unavailable` unless an adapter supplies measured/provider-reported data. |
 | Coordinator model | UNKNOWN | This Codex surface did not expose a reliable selected-model receipt | Do not claim GPT-5.6 Sol/Terra. Record active model as unavailable until the host reports it. |
 
@@ -52,4 +52,11 @@ smoke test.
 3. Never rely on hook success alone for a quality verdict.
 4. Do not transmit repository content to a different provider as part of local
    discovery. Provider-backed evals are a later, explicit Run.
+
+## Phase 0 outcome
+
+Gate passed for local implementation: the capability matrix is recorded, core
+build/install is feasible without Python or Docker, and base ADRs exist. Public
+release remains blocked on the owner confirming title and license. The audit did
+not stop implementation.
 

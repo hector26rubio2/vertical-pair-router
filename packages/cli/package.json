@@ -1,0 +1,16 @@
+{
+  "name": "@vpr/cli",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "vpr": "./dist/bin.js"
+  },
+  "dependencies": {
+    "@vpr/contracts": "workspace:*",
+    "@vpr/quality": "workspace:*",
+    "@vpr/runtime": "workspace:*",
+    "@vpr/storage-sqlite": "workspace:*"
+  }
+}
+

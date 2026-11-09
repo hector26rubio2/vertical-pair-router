@@ -15,6 +15,21 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/cli:
+    dependencies:
+      '@vpr/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@vpr/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@vpr/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@vpr/storage-sqlite':
+        specifier: workspace:*
+        version: link:../storage-sqlite
+
   packages/contracts: {}
 
   packages/core:
@@ -28,6 +43,15 @@ importers:
       '@vpr/contracts':
         specifier: workspace:*
         version: link:../contracts
+
+  packages/runtime:
+    dependencies:
+      '@vpr/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@vpr/core':
+        specifier: workspace:*
+        version: link:../core
 
   packages/storage-sqlite:
     dependencies:
