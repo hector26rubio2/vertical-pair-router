@@ -60,3 +60,11 @@ build/install is feasible without Python or Docker, and base ADRs exist. Public
 release remains blocked on the owner confirming title and license. The audit did
 not stop implementation.
 
+## Later runtime observation
+
+During Phase 2, a later Codex execution surface reported Node 24.18.0 and
+PowerShell 7.6.9. A deterministic shell-free probe initially exposed ambiguous
+pnpm shims (`pnpm` resolved to 9.0.0-alpha.4); after resolving the concrete
+Volta executable, the same probe reported the intended pnpm 11.1.2. This
+`DIFFERS` evidence led to exact executable references in capability records.
+

@@ -24,7 +24,7 @@ export type MeasurementSource =
 
 export interface Evidence {
   readonly evidenceId: EntityId;
-  readonly runId: EntityId;
+  readonly runId?: EntityId;
   readonly kind: "check" | "review" | "approval" | "capability";
   readonly name: string;
   readonly observedAt: string;
@@ -123,4 +123,37 @@ export interface ProcessResult {
 }
 
 export type ProcessRunner = (request: ProcessRequest) => Promise<ProcessResult>;
+
+export type PolicyLayerKind =
+  | "host"
+  | "protected-user"
+  | "global"
+  | "project"
+  | "task"
+  | "run";
+
+export interface PolicyRules {
+  readonly allowShell?: boolean;
+  readonly allowNetworkTelemetry?: boolean;
+  readonly allowedProviders?: readonly string[];
+  readonly maxOutputBytes?: number;
+}
+
+export interface PolicyLayer {
+  readonly id: string;
+  readonly kind: PolicyLayerKind;
+  readonly rules: PolicyRules;
+}
+
+export interface EffectivePolicy {
+  readonly allowShell: boolean;
+  readonly allowNetworkTelemetry: boolean;
+  readonly allowedProviders: readonly string[];
+  readonly maxOutputBytes: number;
+  readonly explanation: readonly {
+    readonly rule: keyof PolicyRules;
+    readonly value: unknown;
+    readonly sources: readonly string[];
+  }[];
+}
 

@@ -10,4 +10,7 @@ yet.
 - Added safe local process execution, SQLite event persistence, and a vertical
   CLI doctor Run with measured/redacted Evidence.
 - Added a minimal Claude Code plugin manifest and verification Skill.
+- Added versioned profile previews/applies, protected policy precedence,
+  expiring capability evidence, and deterministic shell-free executable
+  resolution.
 

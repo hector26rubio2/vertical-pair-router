@@ -6,6 +6,7 @@
     { "path": "./packages/quality" },
     { "path": "./packages/storage-sqlite" },
     { "path": "./packages/runtime" },
+    { "path": "./packages/config" },
     { "path": "./packages/cli" }
   ]
 }

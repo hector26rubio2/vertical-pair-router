@@ -3,6 +3,7 @@ dist/
 coverage/
 .turbo/
 .pnpm-store/
+.tmp/
 *.log
 *.sqlite
 *.sqlite-shm
@@ -11,4 +12,6 @@ coverage/
 .env.*
 !.env.example
 evals/results/
+.vpr/*.bak
+.vpr/*.tmp
 
