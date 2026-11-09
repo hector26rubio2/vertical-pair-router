@@ -71,6 +71,8 @@ importers:
         specifier: workspace:*
         version: link:../contracts
 
+  packages/workflow: {}
+
 packages:
 
   '@types/node@24.10.1':

@@ -1,18 +1,18 @@
 ---
 name: vpr-verify
-description: Verify the Vertical Pair Router repository after a change and report observed evidence without inventing green checks.
+description: Verifica el repositorio despues de un cambio y reporta evidencia observada sin inventar checks verdes.
 allowed-tools: Bash(pnpm check), PowerShell(pnpm check), Read, Grep, Glob
 ---
 
-# VPR verify
+# Verificar VPR
 
-Use this Skill only inside the trusted Vertical Pair Router repository.
+Usa esta Skill solo dentro de un repositorio confiable seleccionado por el usuario.
 
-1. Inspect the real Git status and diff relevant to the requested change.
-2. Run `pnpm check` from the repository root.
-3. Report the command, exit status, test totals, and any truncation or skipped
-   checks. A command that was not run is `NOT_RUN`, never passed.
-4. If files changed after the check, mark the evidence stale and run it again.
-5. Do not change settings, permissions, credentials, release state, or remote
-   resources. Do not publish or install the plugin.
+1. Inspecciona el estado Git y el diff real relevante.
+2. Resuelve checks desde el perfil; en este repo ejecuta `pnpm check` desde la raiz.
+3. Reporta comando, exit status, total de pruebas, truncacion, timeout y skips.
+   Un comando no ejecutado es `NOT_RUN`, nunca aprobado.
+4. Si hubo cambios posteriores, marca la evidencia obsoleta y repite el check.
+5. No cambies settings, permisos, credenciales, estado de release ni recursos
+   remotos. No publiques ni instales el plugin.
 

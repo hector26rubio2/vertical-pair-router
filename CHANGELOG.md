@@ -15,4 +15,6 @@ yet.
   resolution.
 - Added a bounded, privacy-preserving Claude Code `SessionStart` hook with
   host-schema validation and local tests.
+- Added nine Spanish VPR workflow Skills, deterministic routing, six eval
+  fixtures, and a commit/hash/license audit of the selected AI Hero methods.
 

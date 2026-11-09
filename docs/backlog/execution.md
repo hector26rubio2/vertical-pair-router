@@ -34,6 +34,7 @@ file ownership must not overlap.
 | 1 Open-source repo and contracts | COMPLETE LOCALLY / RELEASE BLOCKED | Owner confirms license; directory profile becomes publishable |
 | 2 Configuration/capabilities/policy | COMPLETE LOCALLY | Adapter consumes effective policy and capability evidence |
 | 3 Claude Code adapter/hooks | COMPLETE LOCALLY | Provider-backed smoke remains explicit/authorized |
-| 4-13 | PLANNED | Follow authoritative plan in order |
+| 4 Skills/AI Hero adaptation | COMPLETE LOCALLY | Provider-backed eval cases remain NOT_RUN |
+| 5-13 | PLANNED | Follow authoritative plan in order |
 | 14 Release/publication | BLOCKED on owner authorization | License/title/publication decision |
 
