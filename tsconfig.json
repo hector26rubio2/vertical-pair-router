@@ -8,6 +8,7 @@
     { "path": "./packages/runtime" },
     { "path": "./packages/config" },
     { "path": "./packages/workflow" },
+    { "path": "./packages/knowledge" },
     { "path": "./packages/cli" }
   ]
 }

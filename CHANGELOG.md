@@ -17,4 +17,7 @@ yet.
   host-schema validation and local tests.
 - Added nine Spanish VPR workflow Skills, deterministic routing, six eval
   fixtures, and a commit/hash/license audit of the selected AI Hero methods.
+- Added the canonical VPR glossary and technical dictionary, Story-linked term
+  proposals, validated ADRs, bounded reference-based context packs, SHA-256
+  invalidation, stale-source detection, and minimal handoffs.
 

@@ -50,6 +50,8 @@ importers:
         specifier: workspace:*
         version: link:../contracts
 
+  packages/knowledge: {}
+
   packages/quality:
     dependencies:
       '@vpr/contracts':

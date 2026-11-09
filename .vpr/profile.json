@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "projectId": "project_b8dc6c5ced5b66d51c28",
+  "name": "vertical-pair-router",
+  "packageManager": "pnpm",
+  "checks": {
+    "build": {
+      "program": "pnpm",
+      "args": [
+        "build"
+      ]
+    },
+    "test": {
+      "program": "pnpm",
+      "args": [
+        "test"
+      ]
+    },
+    "typecheck": {
+      "program": "pnpm",
+      "args": [
+        "typecheck"
+      ]
+    }
+  },
+  "glossaryPath": "GLOSSARY.md",
+  "policy": {
+    "allowShell": false,
+    "allowNetworkTelemetry": false,
+    "allowedProviders": [
+      "local"
+    ],
+    "maxOutputBytes": 1048576
+  }
+}
