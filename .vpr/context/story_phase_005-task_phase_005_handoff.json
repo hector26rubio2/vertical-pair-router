@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "storyId": "story_phase_005",
+  "taskId": "task_phase_005_handoff",
+  "commit": "935ddb7",
+  "createdAt": "2026-11-09T22:56:14.483Z",
+  "files": [
+    {
+      "path": "GLOSSARY.md",
+      "sha256": "1b4ddaade863a3d8ae4d22275bb704fa93fea6b5cd62226d8428300bbde47581",
+      "sizeBytes": 2544
+    },
+    {
+      "path": "docs/decisions/ADR-0007-reference-based-context-packs.md",
+      "sha256": "d37c9694dd84063099e45660e096ee2721b455edd49832c3f2f349d00d78f934",
+      "sizeBytes": 1607
+    },
+    {
+      "path": "docs/reports/phase-5.md",
+      "sha256": "62489a745cb9556e5c2ea664b1411590086eb399f6fb9d1cc3fb9b77eafb20eb",
+      "sizeBytes": 2589
+    },
+    {
+      "path": "packages/knowledge/src/context-pack.ts",
+      "sha256": "575c2c9cee1b98bb7f12c15769d661dc7c1261112470a956adbc732a9b6e9706",
+      "sizeBytes": 5768
+    },
+    {
+      "path": "docs/backlog/execution.md",
+      "sha256": "307d99b89f90627785d90020a7721237acbea088345d003414404a99a37bd87d",
+      "sizeBytes": 2029
+    }
+  ],
+  "pending": [
+    "Implement Phase 6 BacklogService and domain CRUD/transitions.",
+    "Keep provider-backed evals NOT_RUN until authorized.",
+    "Owner must decide license/title/publication before Phase 14."
+  ],
+  "totalBytes": 14537
+}
