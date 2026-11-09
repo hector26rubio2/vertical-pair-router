@@ -23,6 +23,18 @@ importers:
         specifier: workspace:*
         version: link:../contracts
 
+  packages/quality:
+    dependencies:
+      '@vpr/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
+  packages/storage-sqlite:
+    dependencies:
+      '@vpr/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
 packages:
 
   '@types/node@24.10.1':

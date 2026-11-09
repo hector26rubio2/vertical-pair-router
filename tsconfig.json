@@ -2,7 +2,9 @@
   "files": [],
   "references": [
     { "path": "./packages/contracts" },
-    { "path": "./packages/core" }
+    { "path": "./packages/core" },
+    { "path": "./packages/quality" },
+    { "path": "./packages/storage-sqlite" }
   ]
 }
 
