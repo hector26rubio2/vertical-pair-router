@@ -11,7 +11,7 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "tsc -b --clean",
-    "test": "pnpm build && node --test packages/core/dist/*.test.js packages/quality/dist/*.test.js packages/storage-sqlite/dist/*.test.js packages/runtime/dist/*.test.js packages/config/dist/*.test.js packages/cli/dist/*.test.js",
+    "test": "pnpm build && node --test packages/core/dist/*.test.js packages/quality/dist/*.test.js packages/storage-sqlite/dist/*.test.js packages/runtime/dist/*.test.js packages/config/dist/*.test.js packages/cli/dist/*.test.js tests/*.test.mjs",
     "typecheck": "tsc -b --pretty false",
     "check": "pnpm test"
   },

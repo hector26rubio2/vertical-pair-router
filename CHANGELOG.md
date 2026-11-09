@@ -13,4 +13,6 @@ yet.
 - Added versioned profile previews/applies, protected policy precedence,
   expiring capability evidence, and deterministic shell-free executable
   resolution.
+- Added a bounded, privacy-preserving Claude Code `SessionStart` hook with
+  host-schema validation and local tests.
 

@@ -33,6 +33,7 @@ file ownership must not overlap.
 | 0 Audit and ADRs | COMPLETE with owner blockers recorded | Commit baseline and prove worktree behavior |
 | 1 Open-source repo and contracts | COMPLETE LOCALLY / RELEASE BLOCKED | Owner confirms license; directory profile becomes publishable |
 | 2 Configuration/capabilities/policy | COMPLETE LOCALLY | Adapter consumes effective policy and capability evidence |
-| 3-13 | PLANNED | Follow authoritative plan in order |
+| 3 Claude Code adapter/hooks | COMPLETE LOCALLY | Provider-backed smoke remains explicit/authorized |
+| 4-13 | PLANNED | Follow authoritative plan in order |
 | 14 Release/publication | BLOCKED on owner authorization | License/title/publication decision |
 
