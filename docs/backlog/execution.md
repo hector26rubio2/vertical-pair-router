@@ -37,6 +37,7 @@ file ownership must not overlap.
 | 4 Skills/AI Hero adaptation | COMPLETE LOCALLY | Provider-backed eval cases remain NOT_RUN |
 | 5 Knowledge/context packs | COMPLETE LOCALLY | BacklogService consumes Story-linked proposals and handoffs |
 | 6 Story/Task/Run and planner | COMPLETE LOCALLY | Quality Guard consumes required checks and real diff state |
-| 7-13 | PLANNED | Follow authoritative plan in order |
+| 7 Quality Guard | COMPLETE LOCALLY | Execution engine persists fresh check/review evidence |
+| 8-13 | PLANNED | Follow authoritative plan in order |
 | 14 Release/publication | BLOCKED on owner authorization | License/title/publication decision |
 

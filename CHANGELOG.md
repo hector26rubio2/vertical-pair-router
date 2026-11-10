@@ -24,4 +24,7 @@ yet.
   deduplication and versions; seven vertical planning workflows; validated DAG
   and lifecycle transitions; recovery across SQLite reopen; risk-based human
   review; planning handoffs; and shared CLI Story creation.
+- Added typed quality checks, approved-scanner gating, measured TDD records,
+  regression-test assessment, full staged/unstaged/untracked diff snapshots,
+  dual review policy and snapshot-fresh final verification.
 
