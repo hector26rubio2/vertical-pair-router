@@ -33,4 +33,7 @@ yet.
 - Added bounded DAG scheduling, hierarchical path locks, recoverable worker/
   integration traceability, single-orchestrator enforcement, conservative
   conflict handling and non-destructive worktree cleanup decisions.
+- Added deterministic OmniRouter filtering/ranking and explanation, availability
+  evidence gates, opt-in provider fallback, public adapter/SecretResolver
+  contracts and credential-safe local/Claude native descriptors.
 

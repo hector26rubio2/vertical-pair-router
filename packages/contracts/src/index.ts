@@ -168,3 +168,83 @@ export interface EffectivePolicy {
   }[];
 }
 
+export type AdapterCapability = "checks" | "code" | "agent" | "worktree" | "browser";
+
+export interface AdapterDescriptor {
+  readonly id: string;
+  readonly provider: string;
+  readonly displayName: string;
+  readonly authentication: "none" | "host-session" | "secret-resolver";
+  readonly credentialHandling: "none" | "host-managed" | "secret-resolver-only";
+  readonly capabilities: readonly AdapterCapability[];
+  readonly availability: CapabilityState;
+  readonly availabilityEvidence?: string;
+  readonly quality: "standard" | "high";
+  readonly operatingSystems: readonly ("win32" | "linux" | "darwin")[];
+  readonly transmittedData: readonly string[];
+  readonly limits: Readonly<Record<string, number>>;
+  readonly cost: {
+    readonly source: "measured" | "estimated" | "unavailable";
+    readonly estimatedUsd?: number;
+  };
+  readonly latency: {
+    readonly source: "measured" | "estimated" | "unavailable";
+    readonly estimatedMs?: number;
+  };
+}
+
+export interface RouteRequest {
+  readonly requestId: string;
+  readonly requiredCapabilities: readonly AdapterCapability[];
+  readonly sensitivity: "local-only" | "provider-allowed";
+  readonly requiredQuality: "standard" | "high";
+  readonly operatingSystem: "win32" | "linux" | "darwin";
+  readonly preferredProvider: string | null;
+  readonly fallbackOptIn: boolean;
+  readonly optimizeFor: "cost" | "latency" | "balanced";
+}
+
+export interface RouteResult {
+  readonly requestId: string;
+  readonly status: "routed" | "unavailable" | "approval-required";
+  readonly adapterId?: string;
+  readonly provider?: string;
+  readonly pipeline: readonly {
+    readonly stage: "policy" | "capability" | "privacy" | "quality" | "cost-latency";
+    readonly eligibleAdapterIds: readonly string[];
+    readonly rejected: readonly { readonly adapterId: string; readonly reason: string }[];
+  }[];
+  readonly cost: AdapterDescriptor["cost"];
+  readonly latency: AdapterDescriptor["latency"];
+  readonly explanation: string;
+}
+
+export interface SecretResolver {
+  resolve(reference: { readonly provider: string; readonly name: string }): Promise<string | undefined>;
+}
+
+export interface AdapterExecutionRequest {
+  readonly runId: EntityId;
+  readonly taskId: EntityId;
+  readonly contextReferences: readonly string[];
+  readonly idempotencyKey: string;
+}
+
+export interface AdapterExecutionResult {
+  readonly status: "completed" | "failed" | "cancelled" | "needs-approval";
+  readonly summary: string;
+  readonly usage: {
+    readonly tokens?: number;
+    readonly costUsd?: number;
+    readonly source: MeasurementSource;
+  };
+}
+
+export interface ExecutionAdapter {
+  readonly descriptor: AdapterDescriptor;
+  execute(
+    request: AdapterExecutionRequest,
+    options: { readonly signal?: AbortSignal; readonly secretResolver?: SecretResolver }
+  ): Promise<AdapterExecutionResult>;
+}
+

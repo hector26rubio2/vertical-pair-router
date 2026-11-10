@@ -40,6 +40,7 @@ file ownership must not overlap.
 | 7 Quality Guard | COMPLETE LOCALLY | Execution engine persists fresh check/review evidence |
 | 8 Execution/recovery | COMPLETE LOCALLY | Orchestrator uses leases, checkpoints and approvals |
 | 9 Orchestration/isolation | COMPLETE LOCALLY | OmniRouter consumes capability and assignment boundaries |
-| 10-13 | PLANNED | Follow authoritative plan in order |
+| 10 OmniRouter/adapters | COMPLETE LOCALLY | Usage engine records route/adapter measurement sources |
+| 11-13 | PLANNED | Follow authoritative plan in order |
 | 14 Release/publication | BLOCKED on owner authorization | License/title/publication decision |
 
