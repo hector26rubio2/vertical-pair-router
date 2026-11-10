@@ -7,6 +7,7 @@
     "vpr": "./dist/bin.js"
   },
   "dependencies": {
+    "@vpr/backlog": "workspace:*",
     "@vpr/config": "workspace:*",
     "@vpr/contracts": "workspace:*",
     "@vpr/quality": "workspace:*",

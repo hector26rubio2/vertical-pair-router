@@ -20,4 +20,8 @@ yet.
 - Added the canonical VPR glossary and technical dictionary, Story-linked term
   proposals, validated ADRs, bounded reference-based context packs, SHA-256
   invalidation, stale-source detection, and minimal handoffs.
+- Added an event-sourced BacklogService with Story previews, confirmation,
+  deduplication and versions; seven vertical planning workflows; validated DAG
+  and lifecycle transitions; recovery across SQLite reopen; risk-based human
+  review; planning handoffs; and shared CLI Story creation.
 

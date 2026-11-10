@@ -15,8 +15,23 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/backlog:
+    dependencies:
+      '@vpr/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@vpr/core':
+        specifier: workspace:*
+        version: link:../core
+      '@vpr/storage-sqlite':
+        specifier: workspace:*
+        version: link:../storage-sqlite
+
   packages/cli:
     dependencies:
+      '@vpr/backlog':
+        specifier: workspace:*
+        version: link:../backlog
       '@vpr/config':
         specifier: workspace:*
         version: link:../config

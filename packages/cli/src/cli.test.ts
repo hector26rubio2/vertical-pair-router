@@ -61,3 +61,51 @@ test("previews init without writing and applies only with --apply", async (conte
   );
 });
 
+test("previews and applies a Story through the shared BacklogService", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "vpr-story-"));
+  context.after(async () => rm(root, { recursive: true, force: true }));
+  const input = join(root, "story.json");
+  const db = join(root, "backlog.sqlite");
+  await writeFile(input, JSON.stringify({
+    title: "CLI Story",
+    need: "Create backlog items without a dashboard.",
+    desiredOutcome: "A previewed and confirmed Story.",
+    acceptanceCriteria: ["A later invocation recovers it."],
+    exclusions: [],
+    openQuestions: [],
+    attachments: []
+  }));
+
+  const previewWrites: string[] = [];
+  assert.equal(await runCli([
+    "story", "--db", db, "--project-id", "project_cli", "--input", input
+  ], {
+    stdout: (value) => previewWrites.push(value),
+    stderr: (value) => previewWrites.push(value)
+  }), 0);
+  const preview = JSON.parse(previewWrites.join("")) as { action: string; applied: boolean };
+  assert.deepEqual(preview, { action: "create", applied: false });
+
+  const applyWrites: string[] = [];
+  assert.equal(await runCli([
+    "story", "--db", db, "--project-id", "project_cli", "--input", input, "--apply"
+  ], {
+    stdout: (value) => applyWrites.push(value),
+    stderr: (value) => applyWrites.push(value)
+  }), 0);
+  const applied = JSON.parse(applyWrites.join("")) as {
+    applied: boolean;
+    story: { revision: number; story: { status: string } };
+  };
+  assert.equal(applied.applied, true);
+  assert.equal(applied.story.revision, 1);
+  assert.equal(applied.story.story.status, "READY");
+
+  const duplicateWrites: string[] = [];
+  await runCli(["story", "--db", db, "--project-id", "project_cli", "--input", input], {
+    stdout: (value) => duplicateWrites.push(value),
+    stderr: (value) => duplicateWrites.push(value)
+  });
+  assert.equal((JSON.parse(duplicateWrites.join("")) as { action: string }).action, "duplicate");
+});
+

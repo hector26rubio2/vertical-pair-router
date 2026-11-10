@@ -9,6 +9,7 @@
     { "path": "./packages/config" },
     { "path": "./packages/workflow" },
     { "path": "./packages/knowledge" },
+    { "path": "./packages/backlog" },
     { "path": "./packages/cli" }
   ]
 }

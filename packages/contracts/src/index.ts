@@ -71,6 +71,7 @@ export interface Story {
   readonly acceptanceCriteria: readonly string[];
   readonly exclusions: readonly string[];
   readonly openQuestions: readonly string[];
+  readonly attachments: readonly string[];
   readonly status: "DRAFT" | "READY" | "IN_PROGRESS" | "COMPLETED" | "BLOCKED";
   readonly createdAt: string;
   readonly updatedAt: string;
@@ -84,6 +85,16 @@ export interface Task {
   readonly dependencies: readonly EntityId[];
   readonly allowedPaths: readonly string[];
   readonly requiredChecks: readonly string[];
+  readonly workflow:
+    | "feature"
+    | "bugfix-simple"
+    | "bugfix-complex"
+    | "refactor"
+    | "documentation"
+    | "infrastructure"
+    | "research";
+  readonly demoPath: string;
+  readonly requiresHumanReview: boolean;
   readonly status: "PENDING" | "READY" | "RUNNING" | "COMPLETED" | "BLOCKED";
 }
 
