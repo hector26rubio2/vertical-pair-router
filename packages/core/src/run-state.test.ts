@@ -3,7 +3,11 @@ import test from "node:test";
 
 import type { Run } from "@vpr/contracts";
 
-import { InvalidRunTransitionError, transitionRun } from "./run-state.js";
+import {
+  InvalidRunTransitionError,
+  transitionRun,
+  transitionRunIdempotent
+} from "./run-state.js";
 
 const baseRun: Run = {
   runId: "run_001" as const,
@@ -59,6 +63,14 @@ test("terminal states cannot transition", () => {
 
   assert.throws(() =>
     transitionRun(failed, "ANALYZING", "2026-11-09T12:02:00.000Z")
+  );
+});
+
+test("repeating an already-observed state is idempotent", () => {
+  const analyzing = transitionRun(baseRun, "ANALYZING", "2026-11-09T12:01:00.000Z");
+  assert.equal(
+    transitionRunIdempotent(analyzing, "ANALYZING", "2026-11-09T12:02:00.000Z"),
+    analyzing
   );
 });
 

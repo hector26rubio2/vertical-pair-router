@@ -27,4 +27,7 @@ yet.
 - Added typed quality checks, approved-scanner gating, measured TDD records,
   regression-test assessment, full staged/unstaged/untracked diff snapshots,
   dual review policy and snapshot-fresh final verification.
+- Added bounded execution budgets, progress-aware cycle detection, idempotent Run
+  transitions, event-sourced leases/checkpoints/cancellation/approvals, crash
+  resume, exactly-once effect keys and evidence-backed terminal states.
 

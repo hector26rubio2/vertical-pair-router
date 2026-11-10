@@ -8,7 +8,7 @@ import type {
   Story,
   Task
 } from "@vpr/contracts";
-import { transitionRun as applyRunTransition } from "@vpr/core";
+import { transitionRunIdempotent as applyRunTransition } from "@vpr/core";
 
 export type WorkflowKind = Task["workflow"];
 
@@ -328,6 +328,7 @@ export class BacklogService {
     const current = await this.getRun(runId);
     if (current === undefined) throw new RangeError(`Unknown Run: ${runId}`);
     const run = applyRunTransition(current, to, this.#options.now());
+    if (run === current) return current;
     await this.#append("backlog.run.transitioned", { run }, { taskId: run.taskId, runId });
     return run;
   }

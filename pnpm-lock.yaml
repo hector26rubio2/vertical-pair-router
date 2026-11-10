@@ -81,6 +81,10 @@ importers:
       '@vpr/core':
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      '@vpr/storage-sqlite':
+        specifier: workspace:*
+        version: link:../storage-sqlite
 
   packages/storage-sqlite:
     dependencies:

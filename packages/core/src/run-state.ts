@@ -45,3 +45,7 @@ export function transitionRun(run: Run, to: RunState, occurredAt: string): Run {
   };
 }
 
+export function transitionRunIdempotent(run: Run, to: RunState, occurredAt: string): Run {
+  return run.state === to ? run : transitionRun(run, to, occurredAt);
+}
+

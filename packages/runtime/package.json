@@ -10,6 +10,9 @@
   "dependencies": {
     "@vpr/contracts": "workspace:*",
     "@vpr/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@vpr/storage-sqlite": "workspace:*"
   }
 }
 
