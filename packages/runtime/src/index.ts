@@ -28,4 +28,16 @@ export {
   type RunCheckpoint,
   type TerminalObservation
 } from "./execution-engine.js";
+export {
+  CoordinationError,
+  OrchestrationRegistry,
+  PathLockManager,
+  assessCleanup,
+  assessIntegration,
+  selectRunnableTasks,
+  validateWorkerOutput,
+  type AssignmentRecord,
+  type WorkerAssignment,
+  type WorkerOutput
+} from "./orchestration.js";
 

@@ -30,4 +30,7 @@ yet.
 - Added bounded execution budgets, progress-aware cycle detection, idempotent Run
   transitions, event-sourced leases/checkpoints/cancellation/approvals, crash
   resume, exactly-once effect keys and evidence-backed terminal states.
+- Added bounded DAG scheduling, hierarchical path locks, recoverable worker/
+  integration traceability, single-orchestrator enforcement, conservative
+  conflict handling and non-destructive worktree cleanup decisions.
 
