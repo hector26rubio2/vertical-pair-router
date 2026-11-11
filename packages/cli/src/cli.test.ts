@@ -109,3 +109,50 @@ test("previews and applies a Story through the shared BacklogService", async (co
   assert.equal((JSON.parse(duplicateWrites.join("")) as { action: string }).action, "duplicate");
 });
 
+test("exports JSONL and deletes project data only with exact confirmation", async (context) => {
+  const root = await mkdtemp(join(tmpdir(), "vpr-data-"));
+  context.after(async () => rm(root, { recursive: true, force: true }));
+  const input = join(root, "story.json");
+  const db = join(root, "backlog.sqlite");
+  const output = join(root, "events.jsonl");
+  await writeFile(input, JSON.stringify({
+    title: "Exportable Story",
+    need: "Keep a portable local event history.",
+    desiredOutcome: "A JSONL export that can be inspected without SQLite.",
+    acceptanceCriteria: ["The export contains the Story event."],
+    exclusions: [],
+    openQuestions: [],
+    attachments: []
+  }));
+  const sink = { stdout: (_value: string) => undefined, stderr: (_value: string) => undefined };
+
+  assert.equal(await runCli([
+    "story", "--db", db, "--project-id", "project_data", "--input", input, "--apply"
+  ], sink), 0);
+  assert.equal(await runCli([
+    "data", "export", "--db", db, "--project-id", "project_data", "--out", output
+  ], sink), 0);
+  assert.match(await readFile(output, "utf8"), /backlog\.story\.created/);
+
+  const retentionWrites: string[] = [];
+  assert.equal(await runCli([
+    "data", "retention", "--db", db, "--project-id", "project_data",
+    "--before", "2099-01-01T00:00:00.000Z"
+  ], {
+    stdout: (value) => retentionWrites.push(value),
+    stderr: (value) => retentionWrites.push(value)
+  }), 0);
+  assert.equal((JSON.parse(retentionWrites.join("")) as { candidates: number; applied: boolean }).candidates, 1);
+  assert.equal((JSON.parse(retentionWrites.join("")) as { candidates: number; applied: boolean }).applied, false);
+
+  await assert.rejects(
+    runCli([
+      "data", "delete", "--db", db, "--project-id", "project_data", "--confirm", "project_other"
+    ], sink),
+    /exact project id/
+  );
+  assert.equal(await runCli([
+    "data", "delete", "--db", db, "--project-id", "project_data", "--confirm", "project_data"
+  ], sink), 0);
+});
+

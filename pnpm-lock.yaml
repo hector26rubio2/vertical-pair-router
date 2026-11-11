@@ -38,6 +38,9 @@ importers:
       '@vpr/contracts':
         specifier: workspace:*
         version: link:../contracts
+      '@vpr/dashboard':
+        specifier: workspace:*
+        version: link:../dashboard
       '@vpr/quality':
         specifier: workspace:*
         version: link:../quality
@@ -65,7 +68,32 @@ importers:
         specifier: workspace:*
         version: link:../contracts
 
+  packages/dashboard:
+    dependencies:
+      '@vpr/backlog':
+        specifier: workspace:*
+        version: link:../backlog
+      '@vpr/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@vpr/knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
+      '@vpr/observability':
+        specifier: workspace:*
+        version: link:../observability
+    devDependencies:
+      '@vpr/storage-sqlite':
+        specifier: workspace:*
+        version: link:../storage-sqlite
+
   packages/knowledge: {}
+
+  packages/observability:
+    dependencies:
+      '@vpr/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
   packages/quality:
     dependencies:

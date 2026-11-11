@@ -10,6 +10,8 @@
     { "path": "./packages/workflow" },
     { "path": "./packages/knowledge" },
     { "path": "./packages/backlog" },
+    { "path": "./packages/observability" },
+    { "path": "./packages/dashboard" },
     { "path": "./packages/cli" }
   ]
 }

@@ -1,6 +1,6 @@
 # ADR-0002: Persistence
 
-- Status: PROPOSED
+- Status: VERIFIED LOCALLY
 - Date: 2026-11-09
 
 ## Decision
@@ -15,10 +15,15 @@ An in-memory create/insert/select smoke test passed on Node 24.15.0. The built-i
 driver avoids Python, Docker, postinstall compilation, and third-party native
 binaries.
 
-## Risk and gate
+## Verification and remaining risk
 
-The API is release-candidate stability. Before this ADR becomes VERIFIED, tests
-must cover WAL/locking, multi-process contention, migrations, backup/restore,
-crash recovery, Unicode paths, and a replaceable adapter contract. If those
-fail, evaluate a pinned driver with compatible Windows prebuilds and license.
+The adapter enables WAL, full synchronous writes, foreign keys, a bounded busy
+timeout, and an explicit schema version. Tests cover reopen/crash recovery,
+idempotent events, lock contention, first-version bootstrap, rejection of a
+newer schema, non-overwriting backup/restore, Unicode paths and the replaceable
+`StorageAdapter` boundary. JSONL remains export-only.
+
+`node:sqlite` stability is still a portability risk outside the verified Node
+and Windows matrix. A later schema must add an ordered migration before raising
+the supported version; silently opening a future schema is forbidden.
 

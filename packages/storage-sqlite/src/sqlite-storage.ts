@@ -1,6 +1,6 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, open, rm } from "node:fs/promises";
 import { dirname } from "node:path";
-import { DatabaseSync } from "node:sqlite";
+import { backup, DatabaseSync } from "node:sqlite";
 
 import type { DomainEvent, EntityId, StorageAdapter } from "@vpr/contracts";
 
@@ -8,12 +8,16 @@ interface EventRow {
   readonly content_json: string;
 }
 
+const schemaVersion = 1;
+
 export class SqliteStorage implements StorageAdapter {
   readonly #path: string;
+  readonly #busyTimeoutMs: number;
   #database: DatabaseSync | undefined;
 
-  public constructor(path: string) {
+  public constructor(path: string, options: { readonly busyTimeoutMs?: number } = {}) {
     this.#path = path;
+    this.#busyTimeoutMs = options.busyTimeoutMs ?? 5_000;
   }
 
   public async initialize(): Promise<void> {
@@ -23,8 +27,21 @@ export class SqliteStorage implements StorageAdapter {
     await mkdir(dirname(this.#path), { recursive: true });
     const database = new DatabaseSync(this.#path, {
       enableForeignKeyConstraints: true,
-      timeout: 5_000
+      timeout: this.#busyTimeoutMs
     });
+    const tables = database.prepare(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+    ).all() as unknown as readonly { readonly name: string }[];
+    const hasMetadata = tables.some((table) => table.name === "vpr_metadata");
+    try {
+      if (!hasMetadata && tables.length > 0) {
+        throw new Error("SQLite storage contains an unversioned schema");
+      }
+      if (hasMetadata) assertSupportedSchema(database);
+    } catch (error) {
+      database.close();
+      throw error;
+    }
     database.exec(`
       PRAGMA journal_mode = WAL;
       PRAGMA synchronous = FULL;
@@ -45,10 +62,17 @@ export class SqliteStorage implements StorageAdapter {
       CREATE INDEX IF NOT EXISTS domain_events_project_sequence
       ON domain_events(project_id, sequence);
     `);
+    try {
+      assertSupportedSchema(database);
+    } catch (error) {
+      database.close();
+      throw error;
+    }
     this.#database = database;
   }
 
   public async appendEvent(event: DomainEvent): Promise<void> {
+    assertSafePayload(event.payload);
     const database = this.#requireDatabase();
     const content = JSON.stringify(event);
     const existing = database
@@ -84,11 +108,107 @@ export class SqliteStorage implements StorageAdapter {
     this.#database = undefined;
   }
 
+  public async exportJsonl(projectId: EntityId): Promise<string> {
+    const events = await this.readEvents(projectId);
+    return events.map((event) => JSON.stringify(event)).join("\n") + (events.length > 0 ? "\n" : "");
+  }
+
+  public async backupTo(target: string): Promise<number> {
+    await mkdir(dirname(target), { recursive: true });
+    const reservation = await open(target, "wx");
+    await reservation.close();
+    try {
+      return await backup(this.#requireDatabase(), target);
+    } catch (error) {
+      await rm(target, { force: true });
+      throw error;
+    }
+  }
+
+  public async deleteProjectData(projectId: EntityId, confirmation: string): Promise<number> {
+    if (confirmation !== projectId) {
+      throw new Error("Project data deletion requires the exact project id as confirmation");
+    }
+    const database = this.#requireDatabase();
+    database.exec("BEGIN IMMEDIATE");
+    try {
+      const result = database.prepare("DELETE FROM domain_events WHERE project_id = ?").run(projectId);
+      database.exec("COMMIT");
+      return Number(result.changes);
+    } catch (error) {
+      database.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
+  public async deleteEventsBefore(
+    projectId: EntityId,
+    cutoffIso: string,
+    confirmation: string
+  ): Promise<number> {
+    if (confirmation !== projectId) {
+      throw new Error("Event retention requires the exact project id as confirmation");
+    }
+    if (!Number.isFinite(Date.parse(cutoffIso))) throw new TypeError("Invalid retention cutoff");
+    const database = this.#requireDatabase();
+    database.exec("BEGIN IMMEDIATE");
+    try {
+      const result = database.prepare(
+        "DELETE FROM domain_events WHERE project_id = ? AND julianday(occurred_at) < julianday(?)"
+      ).run(projectId, cutoffIso);
+      database.exec("COMMIT");
+      return Number(result.changes);
+    } catch (error) {
+      database.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
   #requireDatabase(): DatabaseSync {
     if (this.#database === undefined) {
       throw new Error("SqliteStorage must be initialized before use");
     }
     return this.#database;
+  }
+}
+
+function assertSupportedSchema(database: DatabaseSync): void {
+  const metadata = database.prepare(
+    "SELECT value FROM vpr_metadata WHERE key = 'schema_version'"
+  ).get() as { readonly value: string } | undefined;
+  const storedVersion = Number(metadata?.value);
+  if (!Number.isSafeInteger(storedVersion) || storedVersion < 1) {
+    throw new Error("SQLite storage has an invalid schema version");
+  }
+  if (storedVersion > schemaVersion) {
+    throw new Error(`SQLite schema version ${storedVersion} is newer than supported ${schemaVersion}`);
+  }
+}
+
+const forbiddenPayloadKeys = new Set([
+  "apikey",
+  "cookie",
+  "credential",
+  "credentials",
+  "password",
+  "prompt",
+  "secret",
+  "sourcecode",
+  "stderr",
+  "stdout"
+]);
+
+function assertSafePayload(value: unknown, path = "payload"): void {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => assertSafePayload(item, `${path}[${index}]`));
+    return;
+  }
+  if (typeof value !== "object" || value === null) return;
+  for (const [key, item] of Object.entries(value)) {
+    if (forbiddenPayloadKeys.has(key.toLocaleLowerCase("en-US").replace(/[_-]/gu, ""))) {
+      throw new Error(`Forbidden persisted payload field: ${path}.${key}`);
+    }
+    assertSafePayload(item, `${path}.${key}`);
   }
 }
 

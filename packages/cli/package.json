@@ -10,6 +10,7 @@
     "@vpr/backlog": "workspace:*",
     "@vpr/config": "workspace:*",
     "@vpr/contracts": "workspace:*",
+    "@vpr/dashboard": "workspace:*",
     "@vpr/quality": "workspace:*",
     "@vpr/runtime": "workspace:*",
     "@vpr/storage-sqlite": "workspace:*"

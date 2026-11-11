@@ -9,6 +9,7 @@
     { "path": "../backlog" },
     { "path": "../config" },
     { "path": "../contracts" },
+    { "path": "../dashboard" },
     { "path": "../quality" },
     { "path": "../runtime" },
     { "path": "../storage-sqlite" }

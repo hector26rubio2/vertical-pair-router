@@ -36,4 +36,8 @@ yet.
 - Added deterministic OmniRouter filtering/ranking and explanation, availability
   evidence gates, opt-in provider fallback, public adapter/SecretResolver
   contracts and credential-safe local/Claude native descriptors.
+- Added an observed-only Usage Engine, source-labelled comparisons, local
+  authenticated dashboard, shared BacklogService and canonical glossary
+  previews/applies, payload allowlisting, JSONL export, retention/deletion,
+  non-overwriting SQLite backup, schema/lock checks and CLI controls.
 
