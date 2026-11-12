@@ -9,6 +9,9 @@ store. Explicit retention and full-project deletion are exceptional destructive
 operations: CLI previews retention first and requires the exact project ID to
 apply either operation.
 
+Retention rotates only `UsageObserved` and `UsageSampleRecorded` metrics.
+Story/Task/Run, evidence and recovery events are retained to preserve replay.
+
 `@vpr/observability` projects only values present in events. Durations are
 `measured`; tokens and cost retain their provider/measurement source. Missing
 values are `unavailable`, not zero. Baseline/plugin comparisons require the same

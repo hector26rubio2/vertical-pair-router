@@ -26,7 +26,7 @@ test("compares only equivalent samples and flags small samples", () => {
 });
 
 test("retention is a preview of old events", () => {
-  assert.deepEqual(retentionCandidates(events, "2026-11-03T00:00:00Z").map((event) => event.eventId), ["evt_1", "evt_2"]);
+  assert.deepEqual(retentionCandidates(events, "2026-11-04T00:00:00Z").map((event) => event.eventId), ["evt_3"]);
   assert.equal(events.length, 3);
 });
 

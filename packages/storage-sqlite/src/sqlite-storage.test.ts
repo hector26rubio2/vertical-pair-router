@@ -191,12 +191,21 @@ test("previews retention from events and applies only with exact project confirm
     storage.deleteEventsBefore("project_retention", "2026-06-01T00:00:00.000Z", "wrong"),
     /exact project id/
   );
+  await storage.appendEvent({
+    schemaVersion: 1,
+    eventId: "evt_durable_story",
+    occurredAt: "2026-01-01T00:00:00.000Z",
+    projectId: "project_retention",
+    actor: "test",
+    type: "backlog.story.created",
+    payload: { title: "Durable Story" }
+  });
   assert.equal(await storage.deleteEventsBefore(
     "project_retention",
     "2026-06-01T00:00:00.000Z",
     "project_retention"
   ), 1);
-  assert.deepEqual((await storage.readEvents("project_retention")).map((event) => event.eventId), ["evt_new"]);
+  assert.deepEqual((await storage.readEvents("project_retention")).map((event) => event.eventId), ["evt_new", "evt_durable_story"]);
   await storage.close();
 });
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { request } from "node:http";
 import test from "node:test";
 import { Script } from "node:vm";
 
@@ -35,6 +36,14 @@ test("serves an authenticated local snapshot and protects mutations", async (con
     await rm(root, { recursive: true, force: true });
   });
   const origin = new URL(server.url).origin;
+  const invalidHostStatus = await new Promise<number | undefined>((resolve, reject) => {
+    const probe = request(`${origin}/api/snapshot`, {
+      headers: { Host: "attacker.example", Authorization: `Bearer ${server.token}` }
+    }, (response) => { response.resume(); resolve(response.statusCode); });
+    probe.once("error", reject);
+    probe.end();
+  });
+  assert.equal(invalidHostStatus, 421);
   const browserScript = await (await fetch(`${origin}/app.js`)).text();
   assert.doesNotThrow(() => new Script(browserScript));
   assert.equal((await fetch(`${origin}/api/snapshot`)).status, 401);
@@ -78,6 +87,14 @@ test("serves an authenticated local snapshot and protects mutations", async (con
     Origin: origin,
     "X-VPR-CSRF": server.csrfToken
   };
+  assert.equal((await fetch(`${origin}/api/stories`, {
+    method: "POST",
+    headers: { ...mutationHeaders, Origin: "https://attacker.example" },
+    body: JSON.stringify(story)
+  })).status, 403);
+  assert.equal((await fetch(`${origin}/api/stories`, {
+    method: "POST", headers: mutationHeaders, body: "x".repeat(65_537)
+  })).status, 400);
   const proposed = await fetch(`${origin}/api/glossary/proposals`, {
     method: "POST",
     headers: mutationHeaders,

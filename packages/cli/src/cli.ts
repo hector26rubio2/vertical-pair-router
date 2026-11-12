@@ -149,7 +149,10 @@ async function runData(args: readonly string[], io: CliIo): Promise<number> {
         return 2;
       }
       const candidates = (await storage.readEvents(projectId as EntityId))
-        .filter((event) => Date.parse(event.occurredAt) < Date.parse(cutoff));
+        .filter((event) =>
+          (event.type === "UsageObserved" || event.type === "UsageSampleRecorded") &&
+          Date.parse(event.occurredAt) < Date.parse(cutoff)
+        );
       const apply = args.includes("--apply");
       const confirmation = flagValue(args, "--confirm");
       if (apply && confirmation === undefined) {

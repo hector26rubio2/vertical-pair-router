@@ -86,3 +86,16 @@ test("honors AbortSignal cancellation", async () => {
   assert.equal(result.timedOut, false);
 });
 
+test("preserves hostile shell metacharacters as literal arguments", async () => {
+  const payload = 'space value; & echo injected | $(whoami) `whoami` "quoted" %PATH%';
+  const result = await createSafeProcessRunner([execPath])({
+    program: execPath,
+    args: ["-e", "process.stdout.write(process.argv[1])", payload],
+    cwd,
+    timeoutMs: 1_000,
+    maxOutputBytes: 1_024
+  });
+  assert.equal(result.exitCode, 0);
+  assert.equal(result.stdout, payload);
+});
+

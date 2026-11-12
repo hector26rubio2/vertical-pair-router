@@ -132,7 +132,10 @@ export function retentionCandidates(
 ): readonly DomainEvent[] {
   const cutoff = Date.parse(cutoffIso);
   if (!Number.isFinite(cutoff)) throw new TypeError("Invalid retention cutoff");
-  return events.filter((event) => Date.parse(event.occurredAt) < cutoff);
+  return events.filter((event) =>
+    (event.type === "UsageObserved" || event.type === "UsageSampleRecorded") &&
+    Date.parse(event.occurredAt) < cutoff
+  );
 }
 
 function measurement(value: unknown): MeasurementSource {

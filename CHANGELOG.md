@@ -44,4 +44,6 @@ yet.
   support to verified Windows evidence, added sanitized personal/company profile
   examples, a clean-checkout verifier and reversible lifecycle/contribution
   documentation.
+- Restricted metric retention to preserve durable Story/Task/Run replay and
+  added adversarial shell-argument, HTTP Host/Origin and request-size checks.
 

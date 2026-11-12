@@ -142,7 +142,7 @@ test("exports JSONL and deletes project data only with exact confirmation", asyn
     stdout: (value) => retentionWrites.push(value),
     stderr: (value) => retentionWrites.push(value)
   }), 0);
-  assert.equal((JSON.parse(retentionWrites.join("")) as { candidates: number; applied: boolean }).candidates, 1);
+  assert.equal((JSON.parse(retentionWrites.join("")) as { candidates: number; applied: boolean }).candidates, 0);
   assert.equal((JSON.parse(retentionWrites.join("")) as { candidates: number; applied: boolean }).applied, false);
 
   await assert.rejects(

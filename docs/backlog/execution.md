@@ -43,6 +43,6 @@ file ownership must not overlap.
 | 10 OmniRouter/adapters | COMPLETE LOCALLY | Usage engine records route/adapter measurement sources |
 | 11 Usage/event log/dashboard | COMPLETE LOCALLY | Portability matrix consumes storage/dashboard evidence |
 | 12 Portability/compatibility | COMPLETE LOCALLY | Windows clean install passed; macOS/Linux experimental |
-| 13 | PLANNED | Follow authoritative plan in order |
+| 13 Evaluation/security/pilot | IN PROGRESS | Local security checkpoint passed; provider pilots NOT_RUN |
 | 14 Release/publication | BLOCKED on owner authorization | License/title/publication decision |
 

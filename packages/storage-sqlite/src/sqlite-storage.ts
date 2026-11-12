@@ -154,7 +154,7 @@ export class SqliteStorage implements StorageAdapter {
     database.exec("BEGIN IMMEDIATE");
     try {
       const result = database.prepare(
-        "DELETE FROM domain_events WHERE project_id = ? AND julianday(occurred_at) < julianday(?)"
+        "DELETE FROM domain_events WHERE project_id = ? AND julianday(occurred_at) < julianday(?) AND json_extract(content_json, '$.type') IN ('UsageObserved', 'UsageSampleRecorded')"
       ).run(projectId, cutoffIso);
       database.exec("COMMIT");
       return Number(result.changes);
