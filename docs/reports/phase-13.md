@@ -49,3 +49,17 @@ human intervention and quality. Their outcomes must be exploratory.
 
 Coordinator: gpt-6.1-sol (interface-confirmed). No subagents. Tokens/cost
 unavailable. No provider-backed inference calls were made.
+
+## Local functionality follow-up
+
+Added CLI Task plan/list/check/review integration over the existing
+BacklogService. A real-process test covers Story creation, Task planning,
+command preview, successful checks, recovered Run, explicit review and a failed
+check. The latest full suite passes 90/90 tests. Commands use the project's
+profile ID, shell-free executable resolution, bounded execution, cancellation
+and metadata-only persistence. This validates local checks, not autonomous
+provider implementation or the unexecuted provider pilot.
+
+Added a dependency SBOM/file inventory generator with exclusion tests and a
+pilot/onboarding runbook. License and publication are deferred at the owner's
+explicit request; local functionality proceeds independently.

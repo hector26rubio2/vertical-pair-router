@@ -337,6 +337,10 @@ export class BacklogService {
     return (await this.#readState()).runs.get(runId);
   }
 
+  public async listRuns(): Promise<readonly Run[]> {
+    return [...(await this.#readState()).runs.values()];
+  }
+
   async #promoteDependants(completedTaskId: EntityId): Promise<void> {
     const state = await this.#readState();
     for (const candidate of state.tasks.values()) {

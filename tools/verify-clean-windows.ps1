@@ -28,6 +28,12 @@ try {
 
   Push-Location $temporaryRoot
   try {
+    & git init --quiet
+    if ($LASTEXITCODE -ne 0) { throw "temporary git init failed" }
+    & git add .
+    if ($LASTEXITCODE -ne 0) { throw "temporary git add failed" }
+    & git -c user.name=VPR-Fixture -c user.email=fixture@example.invalid commit --quiet -m "Clean verification snapshot"
+    if ($LASTEXITCODE -ne 0) { throw "temporary git commit failed" }
     & pnpm install --frozen-lockfile
     if ($LASTEXITCODE -ne 0) { throw "clean pnpm install failed" }
     & pnpm check

@@ -1,10 +1,53 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
 import { runCli } from "./cli.js";
+
+test('plans a Task and persists real check evidence in the same backlog', async context => {
+  const root = await mkdtemp(join(tmpdir(), 'vpr-task-flow-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(join(root, '.vpr'));
+  await writeFile(join(root, '.vpr', 'profile.json'), JSON.stringify({ schemaVersion: 1, projectId: 'project_flow', name: 'fixture', packageManager: 'unknown', glossaryPath: 'GLOSSARY.md', checks: { test: { program: process.execPath, args: ['-e', 'process.exit(0)'] } }, policy: { allowShell: false } }));
+  const db = join(root, 'events.sqlite');
+  const storyFile = join(root, 'story.json');
+  await writeFile(storyFile, JSON.stringify({ title: 'Flow', need: 'Run checks', desiredOutcome: 'Persisted evidence', acceptanceCriteria: ['check passes'], exclusions: [], openQuestions: [], attachments: [] }));
+  let output = '';
+  const io = { stdout: (value: string) => { output += value; }, stderr: (value: string) => { output += value; } };
+  await runCli(['story', '--db', db, '--project-id', 'project_flow', '--input', storyFile, '--apply'], io);
+  const storyId = (JSON.parse(output) as { story: { story: { storyId: string } } }).story.story.storyId;
+  const planFile = join(root, 'plan.json');
+  await writeFile(planFile, JSON.stringify({ workflow: 'feature', slices: [{ outcome: 'Validate flow', acceptanceCriteria: ['test passes'], demoPath: 'test', allowedPaths: ['src'], requiredChecks: ['test'], risk: 'low', changesPublicApi: false, dependsOn: [] }] }));
+  output = '';
+  assert.equal(await runCli(['task', 'plan', '--project', root, '--db', db, '--story-id', storyId, '--input', planFile, '--apply'], io), 0);
+  const taskId = (JSON.parse(output) as { tasks: { taskId: string }[] }).tasks[0]!.taskId;
+  output = '';
+  assert.equal(await runCli(['task', 'check', '--project', root, '--db', db, '--task-id', taskId], io), 0);
+  assert.equal((JSON.parse(output) as { applied: boolean }).applied, false);
+  output = '';
+  assert.equal(await runCli(['task', 'check', '--project', root, '--db', db, '--task-id', taskId, '--approve-checks'], io), 0);
+  assert.equal((JSON.parse(output) as { run: { state: string } }).run.state, 'REVIEW');
+  output = '';
+  await runCli(['task', 'list', '--project', root, '--db', db], io);
+  assert.equal((JSON.parse(output) as { runs: unknown[] }).runs.length, 1);
+  const runId = (JSON.parse(output) as { runs: { runId: string }[] }).runs[0]!.runId;
+  const reviewFile = join(root, 'review.md');
+  await writeFile(reviewFile, 'Reviewed fixture diff and passing check evidence.');
+  output = '';
+  await runCli(['task', 'review', '--project', root, '--db', db, '--run-id', runId, '--approve-review', '--review-reference', reviewFile], io);
+  assert.equal((JSON.parse(output) as { run: { state: string } }).run.state, 'COMPLETED');
+  output = '';
+  await runCli(['task', 'plan', '--project', root, '--db', db, '--story-id', storyId, '--input', planFile, '--apply'], io);
+  const failingTaskId = (JSON.parse(output) as { tasks: { taskId: string }[] }).tasks[0]!.taskId;
+  const profile = JSON.parse(await readFile(join(root, '.vpr', 'profile.json'), 'utf8'));
+  profile.checks.test.args = ['-e', 'process.exit(7)'];
+  await writeFile(join(root, '.vpr', 'profile.json'), JSON.stringify(profile));
+  output = '';
+  assert.equal(await runCli(['task', 'check', '--project', root, '--db', db, '--task-id', failingTaskId, '--approve-checks'], io), 1);
+  assert.equal((JSON.parse(output) as { run: { state: string } }).run.state, 'FAILED');
+});
 
 test("runs a real local check and returns machine-readable completion", async (context) => {
   const directory = await mkdtemp(join(tmpdir(), "vpr-cli-"));

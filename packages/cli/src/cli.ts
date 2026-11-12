@@ -13,6 +13,7 @@ import {
   resolveExecutable
 } from "@vpr/runtime";
 import { SqliteStorage } from "@vpr/storage-sqlite";
+import { runTaskCommand } from './task-command.js';
 
 export interface CliIo {
   readonly stdout: (value: string) => void;
@@ -25,6 +26,7 @@ const defaultIo: CliIo = {
 };
 
 export async function runCli(args: readonly string[], io: CliIo = defaultIo): Promise<number> {
+  if (args[0] === 'task') return runTaskCommand(args.slice(1), io);
   if (args[0] === "init") return runInit(args.slice(1), io);
   if (args[0] === "story") return runStory(args.slice(1), io);
   if (args[0] === "data") return runData(args.slice(1), io);
@@ -300,7 +302,8 @@ function usage(io: CliIo): number {
       "vpr data export --db <path> --project-id <id> --out <jsonl> | " +
       "vpr data retention --db <path> --project-id <id> --before <iso> [--apply --confirm <id>] | " +
       "vpr data delete --db <path> --project-id <id> --confirm <id> | " +
-      "vpr dashboard --db <path> --project-id <id> --project <path>\n"
+      "vpr dashboard --db <path> --project-id <id> --project <path> | " +
+      "vpr task <list|plan|check|review> --project <path> --db <path> [options]\n"
   );
   return 2;
 }
