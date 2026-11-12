@@ -7,6 +7,7 @@ export interface AgentModel {
   readonly roles: readonly ('orchestrator' | 'inventory' | 'coding' | 'review')[];
 }
 export interface AgentRoutingPolicy {
+  readonly objective?: 'tokens' | 'reference-cost';
   readonly orchestratorId: string;
   readonly maxWorkers: number;
   readonly allowLightCoding: boolean;

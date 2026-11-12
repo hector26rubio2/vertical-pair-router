@@ -319,10 +319,12 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
       const standard = (await interview.question('Modelo para implementación normal/revisión: ')).trim();
       const high = (await interview.question('Modelo para tareas complejas o de alto riesgo: ')).trim();
       const allowLightCoding = await yes('¿Permitir modelo ligero en código simple de bajo riesgo con checks?');
+      const objective = (await interview.question('Objetivo (reference-cost/tokens) [reference-cost]: ')).trim() || 'reference-cost';
+      if (!['reference-cost', 'tokens'].includes(objective)) throw new TypeError('Invalid routing objective');
       const profile = parseProjectProfile({ ...proposal.profile,
         setup: { technologies, integrations },
         policy: { ...proposal.profile.policy, allowedProviders: ['local', provider] },
-        orchestration: { orchestratorId: 'coordinator', maxWorkers: 2, allowLightCoding, models: [
+        orchestration: { orchestratorId: 'coordinator', maxWorkers: 2, allowLightCoding, objective, models: [
           { id: 'coordinator', provider, model, tier: 'standard', roles: ['orchestrator'] },
           { id: 'light-worker', provider, model: light, tier: 'light', roles: ['inventory', 'coding'] },
           { id: 'standard-worker', provider, model: standard, tier: 'standard', roles: ['coding', 'review'] },

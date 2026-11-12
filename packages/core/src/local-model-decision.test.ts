@@ -41,3 +41,17 @@ test('does not retain an active model with repeated quality failures', () => {
   assert.equal(result.workerCount, 1);
   assert.equal(decideLocalExecution(policy, { currentModelId: 'coordinator', taskKind: 'bugfix', task, history: [...history('coordinator', 1, false), ...history('worker', 1, false)] }).status, 'unavailable');
 });
+
+test('reference-cost objective can prefer more tokens when the accepted result costs less', () => {
+  const rows = [
+    ...history('coordinator', 500).map(row => ({ ...row, apiReferenceCost: { usdMax: .02, expiresAt: '2026-12-12' } })),
+    ...history('worker', 1000).map(row => ({ ...row, apiReferenceCost: { usdMax: .004, expiresAt: '2026-12-12' } }))
+  ];
+  const request = { currentModelId: 'coordinator', taskKind: 'bugfix', task, history: rows, now: '2026-11-12' };
+  assert.equal(decideLocalExecution(policy, request).mode, 'direct');
+  const priced = decideLocalExecution({ ...policy, objective: 'reference-cost' }, request);
+  assert.equal(priced.selectedModelId, 'worker');
+  assert.equal(priced.estimatedReferenceUsdPerSuccess, .004);
+  assert.equal(priced.actualSubscriptionCharge, null);
+  assert.equal(decideLocalExecution({ ...policy, objective: 'reference-cost' }, { ...request, now: '2027-01-01' }).status, 'rule-based');
+});

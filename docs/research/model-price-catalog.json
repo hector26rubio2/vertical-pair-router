@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-12",
+  "expiresAt": "2026-12-12",
+  "currency": "USD",
+  "basis": "Official first-party Claude API standard rates; not subscription quota or actual subscription billing",
+  "cards": [
+    {
+      "model": "claude-haiku-5-5",
+      "source": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+      "tiers": [
+        { "maxPromptTokens": 100000, "input": 0.10, "output": 0.50, "cacheRead": 0.01, "cacheWrite5m": 0.125, "cacheWrite1h": 0.20 },
+        { "maxPromptTokens": null, "input": 0.50, "output": 2.50, "cacheRead": 0.05, "cacheWrite5m": 0.625, "cacheWrite1h": 1.00 }
+      ]
+    },
+    {
+      "model": "claude-sonnet-5-5",
+      "source": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+      "tiers": [
+        { "maxPromptTokens": null, "input": 2.00, "output": 10.00, "cacheRead": 0.10, "cacheWrite5m": 2.50, "cacheWrite1h": 4.00 }
+      ]
+    }
+  ]
+}

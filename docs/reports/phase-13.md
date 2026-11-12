@@ -151,3 +151,28 @@ en el checkout como en el bundle del paquete. El acceso a cuenta observado
 caduca a los cinco minutos; el historial sigue disponible sin presentarlo como
 acceso vigente. `pnpm check` final pasó 115/115 pruebas. El bundle se reconstruyó
 y la consulta empaquetada devolvió cero tokens de inferencia para decidir.
+
+## Comparación ponderada por tarifas oficiales — 2026-11-12
+
+Se añadió un catálogo fechado de tarifas oficiales Claude API y un estimador
+local que separa entrada, salida, lectura y escritura de caché. Para Haiku aplica
+el nivel de precio correspondiente al tamaño del prompt. Con TTL de escritura
+no expuesto se conserva un intervalo 5m/1h; no se inventa un valor exacto.
+
+En el caso complejo, ambos resultados aprobaron los mismos checks:
+
+| Modelo/esfuerzo | Tokens | Costo de referencia API, USD |
+|---|---:|---:|
+| Haiku 5.5 medium | 7.158 | 0,0032377–0,0033058 |
+| Haiku 5.5 high | 7.151 | 0,003174055–0,00320293 |
+| Sonnet 5.5 medium | 2.174 | 0,0150715–0,016402 |
+
+Más tokens no significan más costo. Se añadió el objetivo `reference-cost` al
+selector de casos locales: compara costo estimado por resultado aceptado,
+incluyendo intentos fallidos, y rechaza tarifas vencidas o desconocidas.
+Tokens, costo de referencia API y cuota de suscripción permanecen dimensiones
+distintas; estos valores no son facturas ni descuento medido de una suscripción.
+El cálculo usa los recibos ya obtenidos; no se hicieron nuevas inferencias.
+
+Fuentes: https://platform.claude.com/docs/en/models/haiku-5-5/overview y
+https://platform.claude.com/docs/en/models/sonnet-5-5/overview.
