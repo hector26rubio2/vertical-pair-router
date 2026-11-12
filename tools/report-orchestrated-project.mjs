@@ -17,7 +17,8 @@ for (const row of report.rows) {
   const latest = attempts.at(-1);
   const models = new Map();
   for (const attempt of attempts) for (const model of attempt.receipt.models) {
-    const role = row.arm === 'sonnet-solo' ? 'ejecutor único' : model.model === 'claude-haiku-5-5' ? 'ejecutor' : 'orquestador y revisión';
+    const role = row.arm === 'sonnet-solo' ? 'ejecutor único' : row.coordinatorModel === row.executorModel && row.coordinatorModel
+      ? 'roles combinados: modelo compartido' : model.model === (row.executorModel ?? 'claude-haiku-5-5') ? 'ejecutor' : 'orquestador y revisión';
     const cost = officialCostBreakdown(model, attempt.receipt.requests, catalog);
     const old = models.get(model.model);
     if (old) {
@@ -37,7 +38,9 @@ for (const row of report.rows) {
   const observedReads = attempts.flatMap(attempt => attempt.receipt.tools).filter(tool => tool.name === 'Read' && tool.endMs !== null);
   const complete = attempts.every(attempt => attempt.receipt.completeAccounting && attempt.receipt.terminalReceipt?.success);
   const modelIntegrity = row.arm !== 'sonnet-solo' || grouped.every(model => model.model === 'claude-sonnet-5-5');
-  rows.push({ arm: row.arm, accepted: latestChecksPassed && complete && modelIntegrity && row.delegationVerified && unchanged.every(Boolean),
+  rows.push({ arm: row.arm, coordinatorModel: row.coordinatorModel ?? (row.arm === 'sonnet-solo' ? null : 'claude-sonnet-5-5'),
+    executorModel: row.executorModel ?? (row.arm === 'sonnet-solo' ? 'claude-sonnet-5-5' : 'claude-haiku-5-5'),
+    accepted: latestChecksPassed && complete && modelIntegrity && row.delegationVerified && unchanged.every(Boolean),
     retries: attempts.length - 1, models: grouped, totals, costs,
     timings: { modelSessionsWallMs: attempts.reduce((sum, attempt) => sum + attempt.receipt.timings.wallMs, 0),
       localChecksMs: attempts.reduce((sum, attempt) => sum + (attempt.checks?.own.durationMs ?? 0) + (attempt.checks?.acceptance.durationMs ?? 0), 0),
@@ -53,11 +56,23 @@ for (const row of report.rows) {
 const baseline = rows.find(row => row.arm === 'sonnet-solo');
 const delegated = rows.find(row => row.arm !== 'sonnet-solo');
 const comparable = baseline?.accepted && delegated?.accepted && report.rows[0].baseTree === report.rows[1].baseTree;
+const comparisons = rows.filter(row => row.arm !== 'sonnet-solo').map(row => ({
+  arm: row.arm, comparable: !!baseline?.accepted && row.accepted && report.rows.find(source => source.arm === row.arm)?.baseTree === report.rows.find(source => source.arm === baseline.arm)?.baseTree,
+  extraTokensPercent: baseline?.accepted && row.accepted ? 100 * (row.totals.totalTokens / baseline.totals.totalTokens - 1) : null,
+  savedReferencePercent: baseline?.accepted && row.accepted && row.costs.totalUsd && baseline.costs.totalUsd ? {
+    min: 100 * (1 - row.costs.totalUsd.max / baseline.costs.totalUsd.min),
+    max: 100 * (1 - row.costs.totalUsd.min / baseline.costs.totalUsd.max)
+  } : null
+}));
 const summary = { sourceReport: path, at: new Date().toISOString(), sourcePrice: 'https://platform.claude.com/docs/es/about-claude/pricing',
+  task: { id: 'P01', title: 'Desarrollar reservas HTTP idempotentes con persistencia SQLite',
+    level: 'medio', levelSource: 'Clasificación manual del piloto por validación, transacciones, concurrencia y persistencia; no dificultad universal del modelo',
+    activities: ['Implementar transacción y persistencia de reservas', 'Implementar HTTP y validación', 'Añadir pruebas propias', 'Revisar cambios'],
+    externalAcceptance: ['Reserva y repetición sin doble descuento', 'Conflicto al reutilizar clave con otros datos', 'Validación sin mutación', 'Producto inexistente y stock insuficiente sin consumir clave', 'Peticiones simultáneas', 'Persistencia tras cerrar y reabrir SQLite'] },
   countsSource: 'Native result.modelUsage, whole tree by model. Session result.usage is NOT added. Independent repair sessions ARE added.',
   sameAcceptanceHash: report.acceptanceHash, comparable, repetitions: report.repetitions, fixedOrder: report.fixedOrder, cacheOrderConfound: report.cacheOrderConfound,
   warning: 'Controlled strategy trial, not proof of automatic optimal routing or general savings. Development chat and diagnostics outside these arms are excluded.',
-  rows, comparison: comparable ? {
+  rows, comparisons, comparison: comparable ? {
     extraTokensPercent: 100 * (delegated.totals.totalTokens / baseline.totals.totalTokens - 1),
     savedReferenceUsd: { min: baseline.costs.totalUsd.min - delegated.costs.totalUsd.max, max: baseline.costs.totalUsd.max - delegated.costs.totalUsd.min },
     savedReferencePercent: { min: 100 * (1 - delegated.costs.totalUsd.max / baseline.costs.totalUsd.min), max: 100 * (1 - delegated.costs.totalUsd.min / baseline.costs.totalUsd.max) }

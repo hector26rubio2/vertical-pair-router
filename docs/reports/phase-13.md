@@ -344,3 +344,37 @@ por el árbol del host. Los checks del producto pasan 133/133. Sin push.
 Fuentes: [subagentes nativos](https://code.claude.com/docs/en/sub-agents),
 [alcance de contadores](https://code.claude.com/docs/en/agent-sdk/cost-tracking),
 [tarifas oficiales](https://platform.claude.com/docs/es/about-claude/pricing).
+
+## Misma tarea, roles intercambiables y tabla por configuración — 2026-11-12
+
+Se hizo configurable el ensayo con `--coordinator-model` y `--executor-model`.
+`--resume` añade un brazo nuevo al mismo piloto, conserva los aceptados, verifica
+versiones y aceptación, y rechaza sobrescribir un intento incompleto. El owner
+pidió agrupar por tarea/nivel y subdividir cada configuración en sus dos modelos
+y total. El resumen ahora incluye la tarea P01 y clasificación manual de nivel
+medio, las actividades, la aceptación y comparaciones por cada configuración.
+
+Se ejecutó Haiku 5.5 orquestador/revisor → Sonnet 5.5 ejecutor, con una llamada
+Agent real y roles confirmados. El padre tuvo sólo Read/Agent; no editó archivos.
+La ruta aprobó 5/5 pruebas propias y las mismas 6/6 externas, sin correcciones
+adicionales y con cero denegaciones. Se conservó el mismo árbol base del piloto.
+
+| Rol | Entrada sin caché | Salida | Lectura caché | Escritura caché | Total tokens | USD de referencia |
+|---|---:|---:|---:|---:|---:|---:|
+| Haiku orquestador/revisor | 6 | 2.726 | 9.654 | 10.319 | 22.705 | 0,00352394 |
+| Sonnet ejecutor | 10 | 6.108 | 29.468 | 10.139 | 45.725 | 0,0893943–0,0906258 |
+| Total ruta inversa | 16 | 8.834 | 39.122 | 20.458 | 68.430 | 0,09291824–0,09414974 |
+
+La escritura de caché de 821 tokens Sonnet no tiene TTL observado y conserva
+el intervalo 5m/1h. Haiku tiene 10.319 tokens de escritura 1h observados. No se
+deduce el precio de un modelo desde otro. La ruta inversa ahorró 20,17–21,21%
+de valor de referencia respecto a Sonnet solo con su corrección incluida.
+Sesión: 53,964 s; checks: 0,605 s; suma medida: 54,569 s. El tramo del ejecutor
+fue 40,122 s y fuera de él 13,543 s hasta el recibo final; cierre 0,299 s.
+
+En esta tarea, Sonnet→Haiku fue la ruta de menor costo, Haiku→Sonnet la de menor
+tiempo medido de sesiones+checks, y Sonnet solo la de menos tokens. El total de
+los tres brazos, incluida la corrección de la línea base, es 248.351 tokens y
+USD 0,283047955–0,284379055 de referencia. Diagnósticos y ensayos anteriores
+siguen separados. Es una muestra por configuración, no elección adaptativa
+óptima demostrada. No se probó Opus en ninguna de estas tres rutas.

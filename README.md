@@ -112,6 +112,18 @@ node tools/benchmark-orchestrated-project.mjs --approve-provider
 node tools/report-orchestrated-project.mjs --report .tmp/delegation-pilot-<id>/report.json
 ```
 
+Los roles se pueden intercambiar o configurar con IDs completos. Por ejemplo,
+para añadir Haiku como orquestador y Sonnet como ejecutor al mismo piloto:
+
+```sh
+node tools/benchmark-orchestrated-project.mjs --approve-provider --resume .tmp/delegation-pilot-<id> --coordinator-model claude-haiku-5-5 --executor-model claude-sonnet-5-5
+```
+
+La reanudación conserva los brazos aceptados y rechaza sobrescribir intentos
+incompletos. Verifica los modelos realmente observados y mantiene separados
+los roles. Si ambos roles usan el mismo modelo, los contadores agregados se
+etiquetan como roles combinados; no se inventa un reparto por agente.
+
 Este comando consume la suscripción nativa de Claude Code. Conserva proyectos
 y recibos de consumo en `.tmp/delegation-pilot-*`; no publica ni usa API keys.
 Carga la copia empaquetada del plugin para que el proyecto no quede dentro de
