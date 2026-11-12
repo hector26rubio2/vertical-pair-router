@@ -104,3 +104,16 @@ delegación real; completar/verificar UI; probar modelos efectivos de cada cuent
 comparar una tarea representativa con criterios equivalentes. Copilot sólo tiene
 un shim local, no un CLI usable. No se hará otro push ni una release hasta el
 cierre acordado con el owner.
+
+## Corrección del criterio de delegación — 2026-11-12
+
+La decisión normal ya no supone varios trabajadores. `decideLocalExecution`
+consulta casos locales por tipo de tarea, complejidad y riesgo, sin embeddings
+ni inferencia. Puede recomendar ejecución directa (cero trabajadores) o un único
+trabajador; la división explícita sigue siendo una estrategia separada.
+
+Sólo compara historias con modelo confirmado y contabilidad completa, incluye
+intentos fallidos y exige evidencia de calidad. Sin historial suficiente,
+conserva el agente activo capaz para evitar nueva sobrecarga, sin afirmar ahorro.
+La decisión no consume tokens de inferencia. Aún debe conectarse al dispatcher
+automático y al historial producido por ejecuciones reales del producto.
