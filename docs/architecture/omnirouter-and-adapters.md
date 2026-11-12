@@ -41,7 +41,9 @@ attempt to declare host credential extraction.
 - `claude-code-native`: host-session authentication; checks/code/agent/worktree;
   selected context and prompts may be transmitted.
 
-Built-in descriptors start with availability `unknown`. The capability registry
+Built-in descriptors live in the runtime boundary rather than Core and start
+with availability `unknown`. They currently advertise only the locally verified
+`win32` path. The capability registry
 must hydrate an observed state before routing; a catalog entry is not evidence
 that the executable or account is usable. No alternative provider adapter is
 included until an ADR selects it and an authorized end-to-end test exists.

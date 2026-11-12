@@ -40,4 +40,8 @@ yet.
   authenticated dashboard, shared BacklogService and canonical glossary
   previews/applies, payload allowlisting, JSONL export, retention/deletion,
   non-overwriting SQLite backup, schema/lock checks and CLI controls.
+- Separated host adapter descriptors from Core, constrained advertised OS
+  support to verified Windows evidence, added sanitized personal/company profile
+  examples, a clean-checkout verifier and reversible lifecycle/contribution
+  documentation.
 

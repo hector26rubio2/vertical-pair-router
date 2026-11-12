@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "protectedPolicy": {
+    "allowShell": false,
+    "allowNetworkTelemetry": false,
+    "allowedProviders": ["local", "claude"],
+    "maxOutputBytes": 1048576
+  },
+  "defaults": {
+    "allowedProviders": ["local"],
+    "maxOutputBytes": 524288
+  }
+}

@@ -150,3 +150,4 @@ test("adapter catalog rejects credential extraction and invalid auth declaration
     credentialHandling: "extract-host-credentials" as never
   }), /credential/);
 });
+

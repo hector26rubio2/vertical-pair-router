@@ -13,7 +13,8 @@
     "clean": "tsc -b --clean",
     "test": "pnpm build && node --test packages/core/dist/*.test.js packages/quality/dist/*.test.js packages/storage-sqlite/dist/*.test.js packages/runtime/dist/*.test.js packages/config/dist/*.test.js packages/workflow/dist/*.test.js packages/knowledge/dist/*.test.js packages/backlog/dist/*.test.js packages/observability/dist/*.test.js packages/dashboard/dist/*.test.js packages/cli/dist/*.test.js tests/*.test.mjs",
     "typecheck": "tsc -b --pretty false",
-    "check": "pnpm test"
+    "check": "pnpm test",
+    "vpr": "node ./packages/cli/dist/bin.js"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

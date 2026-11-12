@@ -10,6 +10,7 @@ export {
 } from "./probe-capability.js";
 export { CapabilityRegistry } from "./capability-registry.js";
 export { resolveExecutable } from "./resolve-executable.js";
+export { builtInAdapterDescriptors } from "./adapter-descriptors.js";
 export {
   ExecutionBudget,
   ExecutionLimitError,
