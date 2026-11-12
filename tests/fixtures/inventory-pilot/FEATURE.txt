@@ -1,0 +1,6 @@
+Add POST /reservations to this inventory API. Preserve GET /stock/:sku.
+Body is JSON {sku, quantity}; require nonempty string sku, positive safe-integer quantity and a nonempty Idempotency-Key header (at most 128 characters). Invalid/malformed JSON => 400. Unknown SKU => 404. Insufficient stock => 409. Never allow negative stock.
+The first successful request returns 201 with {sku, quantity, key, replayed:false} and decrements stock exactly once.
+Same key with same sku/quantity returns 200 with {sku, quantity, key, replayed:true} without changing stock. Same key with a different request returns 409.
+Reservation history and stock survive closing/reopening the SQLite database. A failed reservation must not consume its key. Use parameterized SQL and an atomic transaction for each reservation. Two simultaneous HTTP requests with one key must not decrement twice.
+Implement within src/ and add behavioral tests under test/. Do not change package metadata, existing test/base.test.mjs or this specification. Do not add dependencies. Do not create commits. Run tests and review the actual diff after the final edit.

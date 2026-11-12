@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-12",
+  "expiresAt": "2026-12-12",
+  "currency": "USD",
+  "basis": "Public subscription list prices before taxes; not the user's invoice or an API-token conversion",
+  "plans": [
+    { "id": "claude-pro", "provider": "claude", "monthlyUsd": 20, "annualTotalUsd": 200, "quotaKind": "dynamic-shared", "windows": ["5h", "weekly"], "perModelQuotaRates": null, "source": "https://claude.com/pricing", "usageSource": "https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work" },
+    { "id": "claude-max", "provider": "claude", "monthlyUsd": 100, "relativeProAllowance": { "5h": 5, "weekly": 5 }, "quotaKind": "dynamic-shared", "perModelQuotaRates": null, "source": "https://claude.com/pricing" },
+    { "id": "claude-ultra", "provider": "claude", "monthlyUsd": 200, "relativeProAllowance": { "weekly": 10 }, "fiveHourExemption": "verified-accounts-only", "quotaKind": "dynamic-shared", "perModelQuotaRates": null, "source": "https://claude.com/pricing" },
+    { "id": "codex-business-standard", "provider": "codex", "monthlyUsdPerSeat": 25, "annualMonthlyUsdPerSeat": 20, "minimumSeats": 2, "quotaKind": "dynamic-shared", "perModelQuotaRates": null, "source": "https://learn.chatgpt.com/docs/pricing", "localMessagesPer5hEstimates": { "gpt-6.1-sol": [15, 160], "gpt-6.1-terra": [35, 285], "gpt-6-luna": [350, 3000], "gpt-6-astra": [5, 45] }, "speedUsageMultipliers": { "standard": 1, "fast": 2.5, "ultrafast-supported-models": 8 }, "warning": "Message ranges are task-dependent estimates, not fixed limits or per-token rates; credit prices do not determine included subscription usage" },
+    { "id": "copilot-pro", "provider": "copilot", "monthlyUsd": 10, "quotaKind": "ai-credits", "baseMonthlyCredits": 1000, "flexMonthlyCredits": 500, "source": "https://docs.github.com/en/copilot/get-started/plans", "usageSource": "https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing" },
+    { "id": "copilot-pro-plus", "provider": "copilot", "monthlyUsd": 39, "quotaKind": "ai-credits", "baseMonthlyCredits": 3900, "flexMonthlyCredits": 3100, "source": "https://docs.github.com/en/copilot/get-started/plans" },
+    { "id": "copilot-max", "provider": "copilot", "monthlyUsd": 100, "quotaKind": "ai-credits", "baseMonthlyCredits": 10000, "flexMonthlyCredits": 10000, "source": "https://docs.github.com/en/copilot/get-started/plans" }
+  ],
+  "warnings": [
+    "Existing plans may be detected from public host status; no subscription purchase, plan change or paid overage is enabled",
+    "Claude Platform API credits are separate from Claude Code subscription allowance",
+    "Copilot legacy annual plans may still use premium requests; do not apply AI-credit rules to them",
+    "Monthly subscription price is a fixed payment, not a marginal charge per execution",
+    "Measure quota before/after in the same window with other activity excluded; token savings alone do not prove subscription savings"
+  ]
+}

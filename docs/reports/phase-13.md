@@ -176,3 +176,89 @@ El cálculo usa los recibos ya obtenidos; no se hicieron nuevas inferencias.
 
 Fuentes: https://platform.claude.com/docs/en/models/haiku-5-5/overview y
 https://platform.claude.com/docs/en/models/sonnet-5-5/overview.
+
+## Suscripciones y proyecto piloto real — 2026-11-12
+
+Se añadió un catálogo independiente de suscripciones con fuentes oficiales,
+fecha y vencimiento: Claude Pro/Max/Ultra, Codex Business Standard y Copilot
+Pro/Pro+/Max. Separa mensualidad, anualidad, créditos y límites. El estado público
+de `claude auth status` confirmó Claude Pro en esta máquina. No se almacenaron
+identidad, correo ni credenciales. Otros planes se seleccionan por usuario;
+los desconocidos no reciben tarifas inventadas. `init --interactive` detecta
+Claude cuando lo informa el host y permite cambiar la selección.
+
+Claude Pro publica USD 20/mes o USD 200/año, pero no una conversión fija de
+tokens de Haiku/Sonnet a cuota. Codex tampoco permite deducir cuota incluida
+desde sus precios de créditos. Copilot tiene créditos y una excepción para
+planes anuales antiguos; no se aplican multiplicadores antiguos universalmente.
+
+El objetivo `subscription-quota` del selector local compara cuota observada por
+resultado aceptado, con intentos fallidos incluidos. Exige tres casos por
+modelo, mismo plan/límite, fuente, aislamiento y vigencia; sin datos conserva
+la ruta por reglas y no sustituye cuota por costo API. La lectura y decisión
+usan cero tokens de inferencia. El contexto enviado al agente sí consume.
+El CLI permite consultar planes y procesar pares antes/después. El dashboard
+persiste y muestra observaciones por Run mediante una ruta autenticada con
+protección CSRF. Se rechazan reinicios, actividad concurrente y cero por redondeo.
+No hay aún captura automática universal de porcentaje restante por proveedor.
+
+Se creó una API de inventario HTTP/SQLite separada, en
+`.tmp/inventory-pilot-1794491936055`, con seis pruebas externas para reservas
+idempotentes, validación, falta de stock, concurrencia y cierre/reapertura.
+Todos los brazos partieron del árbol Git
+`bcceedd91d6d4a3bdf481fea01186ecd56233730`; la prueba existente pasó y las seis
+nuevas fallaron antes de la implementación. Se ejecutaron modelos nativos con
+suscripción y configuración aislada, sin API keys. La asignación de modelos
+fue experimental y explícita; no prueba despacho automático del orquestador.
+
+| Brazo | Tokens reportados, con caché | Pruebas externas | Limitación |
+|---|---:|---:|---|
+| Sonnet sin VPR | 70.919 | 6/6 | Una muestra |
+| Sonnet con copia empaquetada VPR | 164.266 | 6/6 | Proceso cancelado a 300 s; hubo recibo terminal y siete pruebas propias aprobadas |
+| Haiku con copia empaquetada VPR | No disponible | 6/6 | Timeout a 300 s, pruebas propias bloqueadas; no llegó recibo terminal |
+
+Sonnet con VPR consumió 131,6% más tokens observados en este ensayo, incluyendo
+lecturas/escrituras de caché acumuladas. No es ahorro. Tampoco es una comparación
+válida de latencia final debido al cierre del proceso. Tres intentos anteriores
+fallaron porque el proyecto estaba dentro de la carpeta del plugin y el host
+lo consideró contenido sensible. Se conservaron sus 339.124 tokens en el informe;
+se corrigió cargando el plugin empaquetado fuera del proyecto. No se desactivaron
+las protecciones del host. Una sonda diagnóstica adicional consumió 3.728 tokens.
+El informe del piloto suma 574.309 tokens conocidos, más un brazo de consumo
+desconocido; no presenta ese consumo desconocido como cero. La sonda se registra
+separadamente. No se midió delta de cuota real ni extensión de la suscripción.
+Estas cifras corresponden a las sesiones Claude del experimento. El consumo
+del chat de desarrollo/coordinación Codex no está instrumentado en ese total.
+
+El resumen derivado en `summary.json` sustituye estimaciones antiguas de costos
+por contexto para las sesiones Haiku: los contadores acumulados de múltiples
+peticiones no permiten determinar un nivel de contexto por petición. Sin ese
+dato, el costo queda no disponible. La carga del plugin está confirmada; la
+activación interna del skill pedido no tiene recibo independiente.
+
+La API generada con Sonnet funciona localmente: GET stock devolvió 10; reservar
+una unidad y repetir la clave devolvió `replayed:false` y `replayed:true`, con
+stock final 9. Arranque reproducible:
+`node tools/serve-pilot.mjs --project .tmp/inventory-pilot-1794491936055/vpr-packaged`.
+
+Se probó instalación npm local y sin red del `.tgz`, seguida de detección de
+Claude Pro desde el CLI instalado. No se publicó ni se hizo push. No se ejecutó
+instalación global/permanente del plugin, ni pruebas reales macOS/Linux.
+Los checks del producto pasan 126/126; el piloto Haiku no está verde.
+Modelo del coordinador: GPT-6.1 Sol según la interfaz. Modelos de pruebas:
+Claude Sonnet 5.5 y Haiku 5.5 confirmados en recibos/mensajes; esfuerzo medium
+solicitado, no confirmado independientemente. Cuota disponible: no disponible.
+
+Fuentes de suscripciones:
+[Claude](https://claude.com/pricing),
+[límites Claude](https://support.claude.com/en/articles/11647753-how-do-usage-and-length-limits-work),
+[Codex](https://learn.chatgpt.com/docs/pricing),
+[planes Copilot](https://docs.github.com/en/copilot/get-started/plans) y
+[consumo por modelo Copilot](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing).
+
+La aclaración final del owner prioriza conteo y valor por la tabla oficial,
+sin medir cuota. Por ello la entrevista conserva `reference-cost` como objetivo
+predeterminado; `subscription-quota` queda opcional. El catálogo de precios se
+amplió con Fable 5.2 y Opus 5.5 y se verificó contra el enlace aportado por el
+owner: https://platform.claude.com/docs/es/about-claude/pricing. No se hicieron
+ejecuciones de esos dos modelos ni se presume acceso de cuenta.

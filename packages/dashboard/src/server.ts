@@ -14,7 +14,7 @@ import {
   type GlossaryProposal,
   type GlossaryTerm
 } from "@vpr/knowledge";
-import { projectUsage, projectUsageComparisons } from "@vpr/observability";
+import { projectUsage, projectUsageComparisons, measureSubscriptionQuota, type SubscriptionSnapshot } from "@vpr/observability";
 
 export interface DashboardServerOptions {
   readonly root: string;
@@ -22,6 +22,7 @@ export interface DashboardServerOptions {
   readonly glossaryPath: string;
   readonly backlog: BacklogService;
   readonly storage: StorageAdapter;
+  readonly subscriptions?: readonly { readonly provider: string; readonly planId: string; readonly source: string }[];
 }
 
 export interface DashboardServer {
@@ -67,24 +68,42 @@ export async function createDashboardServer(
           stories,
           tasks,
           runs: await options.backlog.listRuns(),
+          subscriptions: options.subscriptions ?? [],
+          subscriptionQuota: events.filter(event => event.type === 'SubscriptionQuotaObserved').map(event => ({ at: event.occurredAt, runId: event.runId ?? null, ...event.payload })),
           traces: events.filter(event => ['AgentUsageObserved', 'EvidenceRecorded', 'backlog.run.transitioned'].includes(event.type)).map(event => ({
             at: event.occurredAt,
             type: event.type,
             runId: event.runId ?? null,
             agentId: typeof event.payload.agentId === 'string' ? event.payload.agentId : null,
+            model: typeof event.payload.model === 'string' ? event.payload.model : null,
+            role: typeof event.payload.role === 'string' ? event.payload.role : null,
             provider: typeof event.payload.provider === 'string' ? event.payload.provider : null,
             scope: typeof event.payload.scope === 'string' ? event.payload.scope : null,
             inputTokens: typeof event.payload.inputTokens === 'number' ? event.payload.inputTokens : null,
             outputTokens: typeof event.payload.outputTokens === 'number' ? event.payload.outputTokens : null,
-            cachedInputTokens: typeof event.payload.cachedInputTokens === 'number' ? event.payload.cachedInputTokens : null,
+            cachedInputTokens: typeof event.payload.cachedInputTokens === 'number' ? event.payload.cachedInputTokens : typeof event.payload.cacheReadTokens === 'number' ? event.payload.cacheReadTokens : null,
+            cacheWriteTokens: typeof event.payload.cacheWriteTokens === 'number' ? event.payload.cacheWriteTokens : null,
             state: isRecord(event.payload.run) ? event.payload.run.state : null,
             check: typeof event.payload.name === 'string' ? event.payload.name : null,
             exitCode: typeof event.payload.exitCode === 'number' ? event.payload.exitCode : null
           })),
           usage: projectUsage(events),
           comparisons: projectUsageComparisons(events),
-          glossary: parseGlossary(await readFile(glossaryTarget, "utf8"), stories, tasks)
+          glossary: parseGlossary(await readFile(glossaryTarget, "utf8").catch(error => {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') return '';
+            throw error;
+          }), stories, tasks)
         });
+      }
+      if (request.method === 'POST' && request.url === '/api/subscription-quota') {
+        const body = await readJsonBody(request);
+        if (!isRecord(body) || !isRecord(body.before) || !isRecord(body.after) || typeof body.isolated !== 'boolean' || typeof body.runId !== 'string' ||
+          ![body.before.source, body.after.source].every(source => ['provider_reported', 'user_reported'].includes(String(source)))) throw new TypeError('Invalid subscription quota observations');
+        const run = await options.backlog.getRun(body.runId as EntityId);
+        if (!run) throw new RangeError('Unknown Run');
+        const result = measureSubscriptionQuota({ before: body.before as unknown as SubscriptionSnapshot, after: body.after as unknown as SubscriptionSnapshot, isolated: body.isolated });
+        if (result.status === 'observed') await options.storage.appendEvent({ schemaVersion: 1, eventId: `evt_${randomUUID()}`, projectId: options.projectId, runId: run.runId, taskId: run.taskId, actor: 'dashboard', type: 'SubscriptionQuotaObserved', occurredAt: new Date().toISOString(), payload: result });
+        return json(response, 200, result);
       }
       if (request.method === "POST" && request.url === "/api/stories") {
         const body = await readJsonBody(request);
@@ -287,15 +306,29 @@ fetch('/api/snapshot', { headers: authHeaders }).then((response) => {
   return response.json();
 }).then((snapshot) => {
   statusEl.textContent = 'Local · datos verificados';
+  const subscription = document.createElement('section');
+  const subscriptionTitle = document.createElement('h2');
+  subscriptionTitle.textContent = 'Suscripción y cuota';
+  subscription.append(subscriptionTitle);
+  const subscriptionInfo = document.createElement('p');
+  subscriptionInfo.textContent = snapshot.subscriptions.length ? snapshot.subscriptions.map(plan => plan.provider + ': ' + plan.planId + ' (' + plan.source + ')').join(' · ') : 'Plan sin configurar. No se deduce a partir del precio API.';
+  subscription.append(subscriptionInfo);
+  for (const quota of snapshot.subscriptionQuota) {
+    const row = document.createElement('p');
+    row.textContent = quota.planId + ' · ' + quota.bucketId + ' · ' + quota.usedPercentagePoints + ' puntos de cuota · ' + quota.source;
+    subscription.append(row);
+  }
+  if (!snapshot.subscriptionQuota.length) subscription.append('Consumo de cuota por ejecución: no disponible. Los tokens no equivalen a un porcentaje de suscripción.');
+  document.querySelector('main').append(subscription);
   const traces = document.createElement('section');
   const traceTitle = document.createElement('h2');
   traceTitle.textContent = 'Trazas de ejecución';
   traces.append(traceTitle);
   for (const trace of snapshot.traces) {
     const row = document.createElement('article');
-    row.textContent = [trace.at, trace.type, trace.runId, trace.provider, trace.agentId, trace.scope,
+    row.textContent = [trace.at, trace.type, trace.runId, trace.provider, trace.agentId, trace.model, trace.role, trace.scope,
       'Entrada: ' + (trace.inputTokens ?? 'unavailable'), 'Salida: ' + (trace.outputTokens ?? 'unavailable'),
-      'Caché: ' + (trace.cachedInputTokens ?? 'unavailable'), trace.state, trace.check,
+      'Lectura caché: ' + (trace.cachedInputTokens ?? 'unavailable'), 'Escritura caché: ' + (trace.cacheWriteTokens ?? 'unavailable'), trace.state, trace.check,
       trace.exitCode === null ? null : 'Exit: ' + trace.exitCode].filter(value => value !== null).join(' · ');
     traces.append(row);
   }

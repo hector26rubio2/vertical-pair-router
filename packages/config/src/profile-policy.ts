@@ -56,6 +56,10 @@ export function parseProjectProfile(value: unknown): ProjectProfileV1 {
     !['husky', 'graphify', 'archify'].every(key => typeof (record.setup as { integrations: Record<string, unknown> }).integrations[key] === 'boolean')
   )) throw new TypeError('Invalid project setup');
   if (record.orchestration !== undefined) validateOrchestration(record.orchestration);
+  if (record.subscriptions !== undefined && (!Array.isArray(record.subscriptions) || record.subscriptions.some(item =>
+    !isRecord(item) || !['claude', 'codex', 'copilot'].includes(String(item.provider)) ||
+    typeof item.planId !== 'string' || !/^[a-z0-9-]{1,80}$/u.test(item.planId) ||
+    !['user_reported', 'provider_reported'].includes(String(item.source))))) throw new TypeError('Invalid subscription configuration');
   return {
     schemaVersion: 1,
     projectId: record.projectId as ProjectProfileV1["projectId"],
@@ -64,6 +68,7 @@ export function parseProjectProfile(value: unknown): ProjectProfileV1 {
     checks: record.checks as ProjectProfileV1["checks"],
     glossaryPath: record.glossaryPath,
     policy: parsePolicy(record.policy),
+    ...(record.subscriptions === undefined ? {} : { subscriptions: record.subscriptions as NonNullable<ProjectProfileV1['subscriptions']> }),
     ...(record.orchestration === undefined ? {} : { orchestration: record.orchestration as unknown as NonNullable<ProjectProfileV1['orchestration']> }),
     ...(record.setup === undefined ? {} : { setup: record.setup as unknown as NonNullable<ProjectProfileV1['setup']> })
   };
@@ -73,7 +78,7 @@ function validateOrchestration(value: unknown): void {
   if (!isRecord(value) || typeof value.orchestratorId !== 'string' ||
       !Number.isInteger(value.maxWorkers) || (value.maxWorkers as number) < 1 || (value.maxWorkers as number) > 2 ||
       typeof value.allowLightCoding !== 'boolean' || !Array.isArray(value.models)) throw new TypeError('Invalid orchestration profile');
-  if (value.objective !== undefined && !['tokens', 'reference-cost'].includes(String(value.objective))) throw new TypeError('Invalid routing objective');
+  if (value.objective !== undefined && !['tokens', 'reference-cost', 'subscription-quota'].includes(String(value.objective))) throw new TypeError('Invalid routing objective');
   const ids = new Set<string>();
   for (const model of value.models) {
     if (!isRecord(model) || typeof model.id !== 'string' || ids.has(model.id) ||

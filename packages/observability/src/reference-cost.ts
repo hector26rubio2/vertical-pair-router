@@ -20,12 +20,15 @@ export function estimateApiReferenceCost(input: {
   readonly cacheReadTokens: number;
   readonly cacheWriteTokens: number;
   readonly cacheWriteTtl?: '5m' | '1h';
+  /** Aggregate multi-request counters cannot establish a per-request context tier. */
+  readonly requestCount?: number;
   readonly now: string;
 }, catalog: ModelPriceCatalog) {
   const now = Date.parse(input.now), expiry = Date.parse(catalog.expiresAt);
   if (!Number.isFinite(now)) throw new TypeError('Invalid cost estimate timestamp');
   const card = catalog.cards.find(row => row.model === input.observedModel);
   if (!input.modelConfirmed || !card || !Number.isFinite(expiry) || expiry < now) return null;
+  if (card.tiers.length > 1 && input.requestCount !== undefined && input.requestCount > 1) return null;
   if ([input.inputTokens, input.outputTokens, input.cacheReadTokens, input.cacheWriteTokens].some(value => !Number.isSafeInteger(value) || value < 0)) throw new TypeError('Invalid token counters');
   const promptTokens = input.inputTokens + input.cacheReadTokens + input.cacheWriteTokens;
   const tier = card.tiers.find(row => row.maxPromptTokens === null || promptTokens <= row.maxPromptTokens);

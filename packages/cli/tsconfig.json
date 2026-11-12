@@ -11,6 +11,7 @@
     { "path": "../contracts" },
     { "path": "../dashboard" },
     { "path": "../knowledge" },
+    { "path": "../observability" },
     { "path": "../quality" },
     { "path": "../runtime" },
     { "path": "../storage-sqlite" }

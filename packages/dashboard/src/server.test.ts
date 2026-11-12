@@ -87,6 +87,23 @@ test("serves an authenticated local snapshot and protects mutations", async (con
     Origin: origin,
     "X-VPR-CSRF": server.csrfToken
   };
+  const [record] = await backlog.listStories();
+  const [task] = await backlog.planTasks(record!.story.storyId, 'feature', [{ outcome: 'Measure subscription', acceptanceCriteria: ['Observed quota'], demoPath: 'local', allowedPaths: ['src/'], requiredChecks: ['test'], risk: 'low', changesPublicApi: false, dependsOn: [] }]);
+  const run = await backlog.createRun(task!.taskId);
+  const before = { bucketId: 'weekly', planId: 'claude-pro', resetAt: '2026-11-19T00:00:00Z', observedAt: '2026-11-12T00:00:00Z', usedPercent: 5, source: 'user_reported' };
+  const quota = { runId: run.runId, isolated: true, before, after: { ...before, observedAt: '2026-11-12T00:05:00Z', usedPercent: 6 } };
+  assert.equal((await fetch(`${origin}/api/subscription-quota`, { method: 'POST', headers: auth, body: JSON.stringify(quota) })).status, 403);
+  const observedQuota = await fetch(`${origin}/api/subscription-quota`, { method: 'POST', headers: mutationHeaders, body: JSON.stringify(quota) });
+  assert.equal(observedQuota.status, 200);
+  assert.equal(((await observedQuota.json()) as { usedPercentagePoints: number }).usedPercentagePoints, 1);
+  const withQuota = await (await fetch(`${origin}/api/snapshot`, { headers: auth })).json() as { subscriptionQuota: { planId: string; source: string }[] };
+  assert.equal(withQuota.subscriptionQuota[0]?.planId, 'claude-pro');
+  assert.equal(withQuota.subscriptionQuota[0]?.source, 'user_reported');
+  await rm(join(root, 'GLOSSARY.md'));
+  const emptyGlossary = await fetch(`${origin}/api/snapshot`, { headers: auth });
+  assert.equal(emptyGlossary.status, 200);
+  assert.deepEqual(((await emptyGlossary.json()) as { glossary: unknown[] }).glossary, []);
+  await writeFile(join(root, 'GLOSSARY.md'), '# Glosario\n');
   assert.equal((await fetch(`${origin}/api/stories`, {
     method: "POST",
     headers: { ...mutationHeaders, Origin: "https://attacker.example" },

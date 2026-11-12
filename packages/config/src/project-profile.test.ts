@@ -22,6 +22,18 @@ test('preserves reviewed technology and integration choices through parsing', as
   assert.throws(() => parseProjectProfile({ ...profile, setup: { technologies: [], integrations: { husky: 'yes' } } }), /setup/);
 });
 
+test('preserves user-specific subscription selection and rejects identity data as a plan', async context => {
+  const root = await mkdtemp(join(tmpdir(), 'vpr-subscription-profile-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(join(root, 'package.json'), '{}');
+  const proposal = await proposeProjectProfile(root);
+  const subscriptions = [{ provider: 'claude', planId: 'claude-max', source: 'provider_reported' }];
+  const profile = parseProjectProfile({ ...proposal.profile, subscriptions });
+  await applyProjectProfile({ ...proposal, profile, content: JSON.stringify(profile, null, 2) + '\n' });
+  assert.deepEqual((await proposeProjectProfile(root)).profile.subscriptions, subscriptions);
+  assert.throws(() => parseProjectProfile({ ...profile, subscriptions: [{ ...subscriptions[0], planId: 'email@example.com' }] }), /subscription/);
+});
+
 test("detects pnpm scripts and proposes a versioned profile", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vpr-profile-"));
   context.after(async () => rm(root, { recursive: true, force: true }));

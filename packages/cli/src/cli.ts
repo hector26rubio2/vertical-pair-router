@@ -19,6 +19,7 @@ import { SqliteStorage } from "@vpr/storage-sqlite";
 import { runTaskCommand } from './task-command.js';
 import { provisionProject } from './provision-project.js';
 import { runModelEvidenceCommand } from './model-evidence-command.js';
+import { detectSubscriptionPlan } from './subscription-detection.js';
 
 export interface CliIo {
   readonly stdout: (value: string) => void;
@@ -233,6 +234,7 @@ async function runDashboard(args: readonly string[], io: CliIo): Promise<number>
     root,
     projectId: projectId as EntityId,
     glossaryPath: profile.glossaryPath,
+    ...(profile.subscriptions ? { subscriptions: profile.subscriptions } : {}),
     backlog,
     storage
   });
@@ -314,15 +316,19 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
       };
       const provider = (await interview.question('Proveedor orquestador (claude/codex/copilot): ')).trim();
       if (!['claude', 'codex', 'copilot'].includes(provider)) throw new TypeError('Unknown orchestrator provider');
+      const detectedPlan = await detectSubscriptionPlan(provider);
+      const planAnswer = (await interview.question(`Plan de suscripción (ej. claude-pro, codex-business-standard, copilot-pro) [${detectedPlan ?? 'desconocido'}]: `)).trim();
+      const planId = planAnswer || detectedPlan;
       const model = (await interview.question('Modelo del orquestador (alias o ID de tu cuenta): ')).trim();
       const light = (await interview.question('Modelo ligero para inventario y tareas simples: ')).trim();
       const standard = (await interview.question('Modelo para implementación normal/revisión: ')).trim();
       const high = (await interview.question('Modelo para tareas complejas o de alto riesgo: ')).trim();
       const allowLightCoding = await yes('¿Permitir modelo ligero en código simple de bajo riesgo con checks?');
-      const objective = (await interview.question('Objetivo (reference-cost/tokens) [reference-cost]: ')).trim() || 'reference-cost';
-      if (!['reference-cost', 'tokens'].includes(objective)) throw new TypeError('Invalid routing objective');
+      const objective = (await interview.question('Objetivo (reference-cost/tokens/subscription-quota) [reference-cost]: ')).trim() || 'reference-cost';
+      if (!['subscription-quota', 'reference-cost', 'tokens'].includes(objective)) throw new TypeError('Invalid routing objective');
       const profile = parseProjectProfile({ ...proposal.profile,
         setup: { technologies, integrations },
+        ...(planId ? { subscriptions: [{ provider, planId, source: planAnswer ? 'user_reported' : 'provider_reported' }] } : {}),
         policy: { ...proposal.profile.policy, allowedProviders: ['local', provider] },
         orchestration: { orchestratorId: 'coordinator', maxWorkers: 2, allowLightCoding, objective, models: [
           { id: 'coordinator', provider, model, tier: 'standard', roles: ['orchestrator'] },

@@ -25,3 +25,8 @@ test('unknown, substituted and stale model prices remain unavailable', () => {
   assert.equal(estimateApiReferenceCost({ ...input, modelConfirmed: false }, catalog), null);
   assert.equal(estimateApiReferenceCost({ ...input, now: '2027-01-01' }, catalog), null);
 });
+
+test('does not apply a long-context tier to cumulative multi-request counters', () => {
+  assert.equal(estimateApiReferenceCost({ ...input, requestCount: 10, cacheReadTokens: 200000 }, catalog), null);
+  assert.notEqual(estimateApiReferenceCost({ ...input, observedModel: 'sonnet', requestCount: 10 }, catalog), null);
+});

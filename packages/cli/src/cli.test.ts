@@ -6,6 +6,25 @@ import test from "node:test";
 
 import { runCli } from "./cli.js";
 
+test('shows subscription plan prices separately and measures only observed quota deltas', async context => {
+  let output = '';
+  const io = { stdout: (value: string) => { output += value; }, stderr: (value: string) => { output += value; } };
+  assert.equal(await runCli(['models', 'subscriptions', '--plan', 'claude-pro'], io), 0);
+  const catalog = JSON.parse(output) as { selectedPlan: { monthlyUsd: number; perModelQuotaRates: null }; subscriptionQuotaDelta: null; actualAccountPlanDetected: boolean };
+  assert.equal(catalog.selectedPlan.monthlyUsd, 20);
+  assert.equal(catalog.selectedPlan.perModelQuotaRates, null);
+  assert.equal(catalog.subscriptionQuotaDelta, null);
+  assert.equal(catalog.actualAccountPlanDetected, false);
+  const root = await mkdtemp(join(tmpdir(), 'vpr-subscription-input-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const before = { bucketId: 'weekly', planId: 'claude-pro', resetAt: '2026-11-19T00:00:00Z', observedAt: '2026-11-12T00:00:00Z', usedPercent: 5, source: 'user_reported' };
+  const input = join(root, 'snapshots.json');
+  await writeFile(input, JSON.stringify({ before, after: { ...before, observedAt: '2026-11-12T00:05:00Z', usedPercent: 7 }, isolated: true }));
+  output = '';
+  assert.equal(await runCli(['models', 'quota', '--input', input], io), 0);
+  assert.equal((JSON.parse(output) as { usedPercentagePoints: number }).usedPercentagePoints, 2);
+});
+
 test('queries sourced model evidence locally without inference', async context => {
   const root = await mkdtemp(join(tmpdir(), 'vpr-local-model-query-'));
   context.after(() => rm(root, { recursive: true, force: true }));

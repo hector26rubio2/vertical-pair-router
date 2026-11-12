@@ -6,8 +6,22 @@
   "basis": "Official first-party Claude API standard rates; not subscription quota or actual subscription billing",
   "cards": [
     {
+      "model": "claude-fable-5-2",
+      "source": "https://platform.claude.com/docs/es/about-claude/pricing",
+      "tiers": [
+        { "maxPromptTokens": null, "input": 8.00, "output": 40.00, "cacheRead": 0.20, "cacheWrite5m": 10.00, "cacheWrite1h": 16.00 }
+      ]
+    },
+    {
+      "model": "claude-opus-5-5",
+      "source": "https://platform.claude.com/docs/es/about-claude/pricing",
+      "tiers": [
+        { "maxPromptTokens": null, "input": 4.00, "output": 20.00, "cacheRead": 0.20, "cacheWrite5m": 5.00, "cacheWrite1h": 8.00 }
+      ]
+    },
+    {
       "model": "claude-haiku-5-5",
-      "source": "https://platform.claude.com/docs/en/models/haiku-5-5/overview",
+      "source": "https://platform.claude.com/docs/es/about-claude/pricing",
       "tiers": [
         { "maxPromptTokens": 100000, "input": 0.10, "output": 0.50, "cacheRead": 0.01, "cacheWrite5m": 0.125, "cacheWrite1h": 0.20 },
         { "maxPromptTokens": null, "input": 0.50, "output": 2.50, "cacheRead": 0.05, "cacheWrite5m": 0.625, "cacheWrite1h": 1.00 }
@@ -15,7 +29,7 @@
     },
     {
       "model": "claude-sonnet-5-5",
-      "source": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+      "source": "https://platform.claude.com/docs/es/about-claude/pricing",
       "tiers": [
         { "maxPromptTokens": null, "input": 2.00, "output": 10.00, "cacheRead": 0.10, "cacheWrite5m": 2.50, "cacheWrite1h": 4.00 }
       ]

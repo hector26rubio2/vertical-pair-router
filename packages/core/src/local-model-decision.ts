@@ -12,6 +12,7 @@ export interface RoutingCase {
   /** Total includes context, coordination, review and retry attempts. */
   readonly totalTokens: number;
   readonly apiReferenceCost?: { readonly usdMax: number; readonly expiresAt: string };
+  readonly subscriptionQuota?: { readonly bucketId: string; readonly planId: string; readonly percentagePoints: number; readonly isolated: boolean; readonly source: 'provider_reported' | 'user_reported'; readonly expiresAt: string };
 }
 export interface LocalDecisionRequest {
   readonly currentModelId: string;
@@ -19,6 +20,8 @@ export interface LocalDecisionRequest {
   readonly task: AgentRouteInput;
   readonly history: readonly RoutingCase[];
   readonly now?: string;
+  readonly subscriptionBucketId?: string;
+  readonly subscriptionPlanId?: string;
 }
 
 /** Case-based retrieval and deterministic rules. No model/embedding/API calls. */
@@ -46,13 +49,22 @@ export function decideLocalExecution(policy: AgentRoutingPolicy, request: LocalD
       Date.parse(row.apiReferenceCost.expiresAt) >= now);
     const estimatedReferenceUsdPerSuccess = allCostsKnown && successes
       ? matched.reduce((total, row) => total + row.apiReferenceCost!.usdMax, 0) / successes : null;
+    const allQuotasKnown = matched.length > 0 && Number.isFinite(now) && !!request.subscriptionBucketId && !!request.subscriptionPlanId && matched.every(row =>
+      row.subscriptionQuota && row.subscriptionQuota.isolated &&
+      ['provider_reported', 'user_reported'].includes(row.subscriptionQuota.source) &&
+      row.subscriptionQuota.bucketId === request.subscriptionBucketId && row.subscriptionQuota.planId === request.subscriptionPlanId &&
+      Number.isFinite(row.subscriptionQuota.percentagePoints) && row.subscriptionQuota.percentagePoints > 0 && row.subscriptionQuota.percentagePoints <= 100 &&
+      Date.parse(row.subscriptionQuota.expiresAt) >= now);
+    const estimatedQuotaPercentagePointsPerSuccess = allQuotasKnown && successes
+      ? matched.reduce((total, row) => total + row.subscriptionQuota!.percentagePoints, 0) / successes : null;
     return { model, evidenceIds: matched.map(row => row.caseId), sampleSize: matched.length,
       qualityRate: matched.length ? successes / matched.length : null,
       estimatedReferenceUsdPerSuccess,
+      estimatedQuotaPercentagePointsPerSuccess,
       estimatedTokensPerSuccess: successes ? matched.reduce((total, row) => total + row.totalTokens, 0) / successes : null };
   });
   // Compare only adequately sampled, quality-accepted histories, including failures.
-  const value = (row: typeof candidates[number]): number | null => objective === 'reference-cost' ? row.estimatedReferenceUsdPerSuccess : row.estimatedTokensPerSuccess;
+  const value = (row: typeof candidates[number]): number | null => objective === 'reference-cost' ? row.estimatedReferenceUsdPerSuccess : objective === 'subscription-quota' ? row.estimatedQuotaPercentagePointsPerSuccess : row.estimatedTokensPerSuccess;
   const ranked = candidates.filter(row => row.sampleSize >= 3 && row.qualityRate! >= 0.8 && value(row) !== null)
     .sort((a, b) => value(a)! - value(b)! ||
       Number(b.model.id === request.currentModelId) - Number(a.model.id === request.currentModelId) || a.model.id.localeCompare(b.model.id));
@@ -69,6 +81,8 @@ export function decideLocalExecution(policy: AgentRoutingPolicy, request: LocalD
     decisionInferenceTokens: 0,
     objective,
     estimatedReferenceUsdPerSuccess: historicalComparison ? selected?.estimatedReferenceUsdPerSuccess ?? null : null,
+    estimatedQuotaPercentagePointsPerSuccess: historicalComparison ? selected?.estimatedQuotaPercentagePointsPerSuccess ?? null : null,
+    subscriptionEvidenceAvailable: historicalComparison && objective === 'subscription-quota',
     actualSubscriptionCharge: null,
     estimatedTokensPerSuccess: historicalComparison ? selected?.estimatedTokensPerSuccess ?? null : null,
     reason: !selected ? 'No allowed verified model meets the task requirements' : historicalComparison

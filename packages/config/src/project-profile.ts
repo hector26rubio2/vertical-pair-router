@@ -28,6 +28,7 @@ export interface ProjectProfileV1 {
   readonly glossaryPath: string;
   readonly policy: PolicyRules;
   readonly orchestration?: AgentRoutingPolicy;
+  readonly subscriptions?: readonly { readonly provider: 'claude' | 'codex' | 'copilot'; readonly planId: string; readonly source: 'user_reported' | 'provider_reported' }[];
   readonly setup?: {
     readonly technologies: readonly string[];
     readonly integrations: { readonly husky: boolean; readonly graphify: boolean; readonly archify: boolean };

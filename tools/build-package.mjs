@@ -12,6 +12,7 @@ for (const file of ['README.md', 'THIRD-PARTY-NOTICES.md']) await cp(resolve(fil
 await mkdir(join(output, 'data'), { recursive: true });
 await cp(resolve('docs/research/model-capability-catalog.json'), join(output, 'data/model-capabilities.json'));
 await cp(resolve('docs/research/model-price-catalog.json'), join(output, 'data/model-prices.json'));
+await cp(resolve('docs/research/subscription-catalog.json'), join(output, 'data/subscriptions.json'));
 await mkdir(join(output, '.claude-plugin'), { recursive: true });
 await writeFile(join(output, '.claude-plugin', 'marketplace.json'), JSON.stringify({ name: 'vpr-local', description: 'Registro local de Vertical Pair Router distribuido desde GitHub', owner: { name: 'Vertical Pair Router contributors' }, plugins: [{ name: 'vertical-pair-router', source: './plugin', description: 'Flujos locales con evidencias y límites' }] }, null, 2) + '\n');
 const source = JSON.parse(await readFile('package.json', 'utf8'));

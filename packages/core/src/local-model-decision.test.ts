@@ -55,3 +55,21 @@ test('reference-cost objective can prefer more tokens when the accepted result c
   assert.equal(priced.actualSubscriptionCharge, null);
   assert.equal(decideLocalExecution({ ...policy, objective: 'reference-cost' }, { ...request, now: '2027-01-01' }).status, 'rule-based');
 });
+
+test('subscription routing uses observed quota even when API cost and tokens favor another model', () => {
+  const rows = [
+    ...history('coordinator', 100).map(row => ({ ...row, subscriptionQuota: { bucketId: 'weekly', planId: 'claude-pro', percentagePoints: 4, isolated: true, source: 'provider_reported' as const, expiresAt: '2026-12-12' } })),
+    ...history('worker', 1000).map(row => ({ ...row, subscriptionQuota: { bucketId: 'weekly', planId: 'claude-pro', percentagePoints: 1, isolated: true, source: 'user_reported' as const, expiresAt: '2026-12-12' } }))
+  ];
+  const subscriptionPolicy = { ...policy, objective: 'subscription-quota' as const };
+  const request = { currentModelId: 'coordinator', taskKind: 'bugfix', task, history: rows, now: '2026-11-12', subscriptionBucketId: 'weekly', subscriptionPlanId: 'claude-pro' };
+  const result = decideLocalExecution(subscriptionPolicy, request);
+  assert.equal(result.selectedModelId, 'worker');
+  assert.equal(result.estimatedQuotaPercentagePointsPerSuccess, 1);
+  for (const changed of [{ subscriptionBucketId: '5h' }, { subscriptionPlanId: 'claude-max' }, { now: '2027-01-01' }]) {
+    const unknown = decideLocalExecution(subscriptionPolicy, { ...request, ...changed });
+    assert.equal(unknown.mode, 'direct');
+    assert.equal(unknown.subscriptionEvidenceAvailable, false);
+    assert.equal(unknown.estimatedQuotaPercentagePointsPerSuccess, null);
+  }
+});

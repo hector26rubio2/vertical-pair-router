@@ -50,6 +50,9 @@ importers:
       '@vpr/knowledge':
         specifier: workspace:*
         version: link:../knowledge
+      '@vpr/observability':
+        specifier: workspace:*
+        version: link:../observability
       '@vpr/quality':
         specifier: workspace:*
         version: link:../quality
