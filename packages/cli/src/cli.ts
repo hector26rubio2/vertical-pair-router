@@ -18,6 +18,7 @@ import {
 import { SqliteStorage } from "@vpr/storage-sqlite";
 import { runTaskCommand } from './task-command.js';
 import { provisionProject } from './provision-project.js';
+import { runModelEvidenceCommand } from './model-evidence-command.js';
 
 export interface CliIo {
   readonly stdout: (value: string) => void;
@@ -30,6 +31,7 @@ const defaultIo: CliIo = {
 };
 
 export async function runCli(args: readonly string[], io: CliIo = defaultIo): Promise<number> {
+  if (args[0] === 'models') return runModelEvidenceCommand(args.slice(1), io);
   if (args[0] === 'plugin') {
     const packageRoot = fileURLToPath(new URL('../', import.meta.url));
     if (args[1] === 'path') { io.stdout(resolve(packageRoot, 'plugin') + '\n'); return 0; }

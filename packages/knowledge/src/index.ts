@@ -20,3 +20,4 @@ export {
   type ContextPackValidation
 } from "./context-pack.js";
 export { createHandoff, type HandoffInput } from "./handoff.js";
+export { retrieveCapabilities, type CapabilityCard, type EmpiricalCapability } from './capability-retrieval.js';

@@ -117,3 +117,37 @@ intentos fallidos y exige evidencia de calidad. Sin historial suficiente,
 conserva el agente activo capaz para evitar nueva sobrecarga, sin afirmar ahorro.
 La decisión no consume tokens de inferencia. Aún debe conectarse al dispatcher
 automático y al historial producido por ejecuciones reales del producto.
+
+## Nueve pruebas reales por tarea y esfuerzo — 2026-11-12
+
+Se repitió la medición con identificadores completos, configuración aislada y
+sin herramientas, skills o MCP. Esta vez los recibos confirmaron las familias
+solicitadas. No se modificó la configuración del usuario ni se usaron API keys.
+Cada ejecución tuvo un único trabajador. Son pruebas aisladas de funciones
+puras; no una demostración del ahorro del workflow completo de VPR.
+
+| Tarea | Haiku medium | Haiku high | Sonnet medium |
+|---|---:|---:|---:|
+| Normalizar SKU | 1.093 / PASS | 1.246 / FAIL | 816 / PASS |
+| Ordenar dependencias | 1.955 / PASS | 2.864 / PASS | 1.139 / FAIL |
+| Planificar DAG con límites y conflictos de rutas | 7.158 / PASS | 7.151 / PASS | 2.174 / PASS |
+
+Las cifras son tokens reportados incluyendo entrada, salida y caché: 25.596 en
+las nueve ejecuciones. La instrumentación sólo procesa JSON localmente. El nivel
+de esfuerzo es el solicitado al CLI; el recibo no lo confirma independientemente.
+Hay una muestra por combinación. Se conservan fallos de formato/aceptación; no
+se eliminan para favorecer ningún modelo. No se deriva ahorro monetario ni una
+clasificación general a partir de esta muestra.
+
+Se amplió el retrieval local con fichas versionadas de capacidades, URLs
+oficiales, vencimiento, búsqueda léxica ponderada, términos en español y métricas
+por esfuerzo. Distingue documentación de disponibilidad de cuenta y evidencia
+empírica. Filtra nivel de complejidad y modelos sustituidos; no usa embeddings
+ni inferencia para consultar. El catálogo es una base inicial para ampliar y
+validar, no un modelo universal de calidad.
+
+La consulta está expuesta como `vpr models query --query "codigo simple"` tanto
+en el checkout como en el bundle del paquete. El acceso a cuenta observado
+caduca a los cinco minutos; el historial sigue disponible sin presentarlo como
+acceso vigente. `pnpm check` final pasó 115/115 pruebas. El bundle se reconstruyó
+y la consulta empaquetada devolvió cero tokens de inferencia para decidir.

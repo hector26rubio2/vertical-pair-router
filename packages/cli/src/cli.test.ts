@@ -6,6 +6,19 @@ import test from "node:test";
 
 import { runCli } from "./cli.js";
 
+test('queries sourced model evidence locally without inference', async context => {
+  const root = await mkdtemp(join(tmpdir(), 'vpr-local-model-query-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  let output = '';
+  assert.equal(await runCli(['models', 'query', '--project', root, '--query', 'codigo simple'], {
+    stdout: value => { output += value; }, stderr: value => { output += value; }
+  }), 0);
+  const result = JSON.parse(output) as { decisionInferenceTokens: number; results: { card: { id: string }; sampleSize: number; accountVerified: boolean }[] };
+  assert.equal(result.decisionInferenceTokens, 0);
+  assert.equal(result.results[0]?.card.id, 'claude-haiku-5-5');
+  assert.ok(result.results.every(row => row.sampleSize === 0 && !row.accountVerified));
+});
+
 test('plans a Task and persists real check evidence in the same backlog', async context => {
   const root = await mkdtemp(join(tmpdir(), 'vpr-task-flow-'));
   context.after(() => rm(root, { recursive: true, force: true }));

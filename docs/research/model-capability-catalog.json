@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-11-12",
+  "notes": "Documented capabilities are not account availability or measured local quality. Retrieve locally without model calls. Revalidate after expiry.",
+  "cards": [
+    {
+      "id": "claude-haiku-5-5",
+      "provider": "claude",
+      "model": "claude-haiku-5-5",
+      "tags": ["classification", "extraction", "inventory", "focused-coding", "simple", "agentic-coding"],
+      "efforts": ["low", "medium", "high", "xhigh", "max"],
+      "claims": "Haiku targets latency-sensitive classification, extraction and subagent work. Its effort setting can be increased for coding; local quality must be tested.",
+      "sources": ["https://platform.claude.com/docs/en/models/haiku-5-5/overview", "https://platform.claude.com/docs/en/build-with-claude/effort"],
+      "expiresAt": "2026-12-12",
+      "availability": "requires-account-probe"
+    },
+    {
+      "id": "claude-sonnet-5-5",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "tags": ["coding", "debugging", "reasoning", "general-purpose", "normal", "complex"],
+      "efforts": ["low", "medium", "high", "xhigh", "max"],
+      "claims": "Sonnet supports coding and agent workflows; effort trades response thoroughness against usage. It is a candidate, not an automatic winner.",
+      "sources": ["https://platform.claude.com/docs/en/build-with-claude/effort", "https://docs.github.com/en/copilot/reference/ai-models/model-comparison"],
+      "expiresAt": "2026-12-12",
+      "availability": "requires-account-probe"
+    },
+    {
+      "id": "codex-gpt-6.1-sol",
+      "provider": "codex",
+      "model": "gpt-6.1-sol",
+      "tags": ["coding", "complex", "long-running", "reasoning", "debugging"],
+      "efforts": [],
+      "claims": "OpenAI recommends Sol for complex and repeated long-running work. Effort availability must be checked in the installed client and account.",
+      "sources": ["https://learn.chatgpt.com/docs/models"],
+      "expiresAt": "2026-12-12",
+      "availability": "requires-account-probe"
+    },
+    {
+      "id": "codex-gpt-6-luna",
+      "provider": "codex",
+      "model": "gpt-6-luna",
+      "tags": ["focused-coding", "simple", "classification", "extraction", "inventory", "repeatable"],
+      "efforts": [],
+      "claims": "OpenAI positions Luna for focused repeatable work, including extraction, classification and focused coding. No local quality or access is implied.",
+      "sources": ["https://learn.chatgpt.com/docs/models"],
+      "expiresAt": "2026-12-12",
+      "availability": "requires-account-probe"
+    },
+    {
+      "id": "copilot-haiku-5-5",
+      "provider": "copilot",
+      "model": "claude-haiku-5.5",
+      "tags": ["simple", "focused-coding", "repetitive"],
+      "efforts": [],
+      "claims": "GitHub lists Haiku for lightweight coding. Copilot access and accepted CLI model identifiers must be verified separately from Claude Code.",
+      "sources": ["https://docs.github.com/en/copilot/reference/ai-models/model-comparison", "https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-programmatic-reference"],
+      "expiresAt": "2026-12-12",
+      "availability": "requires-account-probe"
+    }
+  ]
+}

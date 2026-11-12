@@ -11,6 +11,7 @@
     "@vpr/config": "workspace:*",
     "@vpr/contracts": "workspace:*",
     "@vpr/dashboard": "workspace:*",
+    "@vpr/knowledge": "workspace:*",
     "@vpr/quality": "workspace:*",
     "@vpr/runtime": "workspace:*",
     "@vpr/storage-sqlite": "workspace:*"

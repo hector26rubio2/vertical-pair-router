@@ -47,6 +47,9 @@ importers:
       '@vpr/dashboard':
         specifier: workspace:*
         version: link:../dashboard
+      '@vpr/knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
       '@vpr/quality':
         specifier: workspace:*
         version: link:../quality
