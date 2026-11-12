@@ -55,9 +55,13 @@ desde especificaciones validadas; usa el skill local o `VPR_ARCHIFY_HOME`.
 
 Recolectar y mostrar contadores es procesamiento local sin inferencia. Ejecutar
 agentes sí consume tokens. Las métricas conservan su fuente; lo no observado
-es `unavailable`. La comparación debe usar la misma tarea/commit/modelo y checks
-equivalentes e incluir preparación de contexto, orquestación y subtareas.
-Todavía no hay un porcentaje de ahorro demostrado ni una factura calculada.
+es `unavailable`. La comparación usa la misma tarea, commit y aceptación. Para
+comparar estrategias se declaran sus modelos y roles y se contabiliza todo el
+árbol, incluyendo preparación de contexto, orquestación, subtareas y reintentos.
+Un control del efecto del contexto mantiene el mismo modelo en ambos brazos.
+Un ensayo controlado Sonnet solo frente a Sonnet coordinador + un Haiku logró
+menor costo de referencia, con más tokens y mayor tiempo. No demuestra ahorro
+general ni facturación de una suscripción.
 
 El objetivo predeterminado de la entrevista es `reference-cost`: compara el
 valor de referencia por tarea aprobada según la
@@ -98,19 +102,37 @@ rechaza reinicios, actividad concurrente y cero visible por redondeo. El panel
 muestra las observaciones ligadas a cada Run; no tiene aún lectura automática
 universal del porcentaje restante de todos los proveedores.
 
-Para un piloto real separado, con la misma API HTTP/SQLite y pruebas externas:
+Desde el repositorio, para un piloto real separado de la misma API HTTP/SQLite,
+con Sonnet solo frente a Sonnet que delega en un único Haiku:
 
 ```sh
 pnpm build
 pnpm package:local
-node tools/benchmark-project.mjs --approve-provider --include-haiku
+node tools/benchmark-orchestrated-project.mjs --approve-provider
+node tools/report-orchestrated-project.mjs --report .tmp/delegation-pilot-<id>/report.json
 ```
 
 Este comando consume la suscripción nativa de Claude Code. Conserva proyectos
-y recibos de consumo en `.tmp/inventory-pilot-*`; no publica ni usa API keys.
+y recibos de consumo en `.tmp/delegation-pilot-*`; no publica ni usa API keys.
 Carga la copia empaquetada del plugin para que el proyecto no quede dentro de
 la carpeta protegida del propio plugin. Una ejecución por variante es exploratoria:
 no demuestra ahorro general ni cuánto más durará una suscripción.
+
+El coordinador tiene sólo lectura y delegación; el ejecutor tiene lectura y
+edición. El informe verifica una llamada `Agent` real a Haiku y ausencia de
+ediciones del coordinador. Usa `result.modelUsage` para incluir a los subagentes;
+`result.usage` contiene sólo el bucle principal y no se suma otra vez.
+Desglosa conteos y dólares por entrada, salida, lectura/escritura de caché,
+modelo, rol y total. Registra tiempos de API, trabajo del subagente, cierre y
+checks por separado. No atribuye tokens exactos a archivos cuando el host no
+expone ese dato.
+
+Si las pruebas propias de la línea base fallan por la limpieza del SQLite,
+`node tools/repair-pilot-baseline.mjs --approve-provider --report <report.json>`
+permite una corrección con el mismo Sonnet. Sus tokens y costos quedan añadidos
+al informe; volver a ejecutar el generador de resumen recalcula los totales.
+El antiguo `benchmark-project.mjs` es un control con el mismo modelo, sin
+delegación; no debe presentarse como prueba del orquestador.
 
 ## Paquete y distribución
 

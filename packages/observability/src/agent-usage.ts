@@ -8,7 +8,7 @@ export interface AgentUsage {
   readonly cacheWriteInputTokens: number;
   readonly outputTokens: number;
   readonly source: 'provider_reported';
-  readonly scope: 'turn' | 'message' | 'session';
+  readonly scope: 'turn' | 'message' | 'session' | 'model-tree';
 }
 
 export function compareAgentTokens(
@@ -27,7 +27,25 @@ export function compareAgentTokens(
   return { baselineTokens, optimizedTokens, savedTokens, savedPercent: baselineTokens === 0 ? null : savedTokens / baselineTokens * 100 };
 }
 
+/** Whole-tree model aggregates include subagents. They are not individual agent identities. */
+export function parseClaudeModelUsage(value: unknown): readonly AgentUsage[] | null {
+  if (!record(value) || value.type !== 'result' || !record(value.modelUsage) || Object.keys(value.modelUsage).length === 0) return null;
+  const rows: AgentUsage[] = [];
+  for (const [model, observed] of Object.entries(value.modelUsage)) {
+    if (!/^[\w./:\[\]-]{1,100}$/u.test(model) || !record(observed)) return null;
+    const input = count(observed.inputTokens), output = count(observed.outputTokens);
+    const read = count(observed.cacheReadInputTokens), write = count(observed.cacheCreationInputTokens);
+    if (input === null || output === null || read === null || write === null) return null;
+    rows.push({ provider: 'claude', agentId: `model:${model}`, parentAgentId: null, model,
+      inputTokens: input, outputTokens: output, cachedInputTokens: read, cacheWriteInputTokens: write,
+      source: 'provider_reported', scope: 'model-tree' });
+  }
+  return rows;
+}
+
 // Parse only observed counters; never retain text, prompts, thinking or tool output.
+// Claude result.usage counts the main loop only. Use parseClaudeModelUsage for
+// full-tree totals; never add those aggregates to message/session counters.
 export function parseAgentUsage(provider: 'codex' | 'claude', value: unknown): AgentUsage | null {
   if (!record(value)) return null;
   const codex = provider === 'codex' && value.type === 'turn.completed';

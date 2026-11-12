@@ -262,3 +262,85 @@ predeterminado; `subscription-quota` queda opcional. El catálogo de precios se
 amplió con Fable 5.2 y Opus 5.5 y se verificó contra el enlace aportado por el
 owner: https://platform.claude.com/docs/es/about-claude/pricing. No se hicieron
 ejecuciones de esos dos modelos ni se presume acceso de cuenta.
+
+## Ensayo corregido con subagente nativo real — 2026-11-12
+
+El owner señaló correctamente que el control anterior no probaba delegación:
+ambos modelos trabajaban directamente. Se añadió un ensayo distinto con
+`--agents` y `--agent` de Claude Code. Sonnet 5.5 tiene sólo Read y
+Agent(vpr-executor); Haiku 5.5 tiene Read/Write/Edit. No se habilitó shell en
+ninguno. Se observó exactamente una llamada Agent al ejecutor, sin override
+de modelo, retorno correcto y ninguna edición del padre. Los dos IDs reales
+aparecen en `result.modelUsage`. El plugin empaquetado, perfil, Story, Task,
+Run y context pack se cargan en el brazo delegado.
+
+La elección Sonnet→Haiku es experimental y explícita para comparar esa ruta;
+no prueba que el selector adaptativo ya encuentre siempre la combinación óptima.
+Los dos brazos usan el mismo árbol Git y las mismas seis pruebas externas.
+Un arnés local ejecuta las pruebas para ambos; los modelos no simulan ejecución.
+
+La documentación oficial aclara que `result.usage` excluye subagentes y que
+`result.modelUsage` sí incluye el árbol completo. Se añadieron un parser público
+`parseClaudeModelUsage`, un medidor de metadatos de streaming y pruebas para no
+omitir hijos ni sumar dos veces resultados acumulados. No se guardan prompts,
+fuentes, thinking ni salidas de herramientas en los recibos. Los mensajes
+sintéticos de arranque no se aceptan como ejecuciones reales de costo cero.
+
+Recibos en `.tmp/delegation-pilot-1794512364031/report.json` y resumen derivado
+en `summary.json`. Sonnet solo necesitó una corrección adicional de su prueba:
+se intentaba borrar el directorio SQLite antes de cerrar la segunda conexión,
+provocando EPERM en Windows y dejando un servidor abierto. La corrección fue
+hecha por el mismo Sonnet en otra sesión, con 13.577 tokens adicionales incluidos
+en los totales. Haiku aprobó sin esa corrección. Los conteos finales son:
+
+| Modelo/rol | Entrada sin caché | Lectura caché | Escritura caché | Salida | Total |
+|---|---:|---:|---:|---:|---:|
+| Sonnet solo, incluida corrección | 14 | 20.463 | 14.375 | 5.836 | 40.688 |
+| Sonnet orquestación/revisión | 8 | 15.482 | 9.559 | 1.874 | 26.923 |
+| Haiku ejecución | 12 | 68.064 | 24.383 | 19.851 | 112.310 |
+| Total ruta delegada | 20 | 83.546 | 33.942 | 21.725 | 139.233 |
+
+Aplicando el catálogo oficial vigente a cada categoría, en USD:
+
+| Modelo/rol | Entrada | Lectura caché | Escritura caché | Salida | Total |
+|---|---:|---:|---:|---:|---:|
+| Sonnet solo + corrección | 0,000028 | 0,0020463 | 0,0575 | 0,05836 | 0,1179343 |
+| Sonnet orquestación/revisión | 0,000016 | 0,0015482 | 0,038236 | 0,01874 | 0,0585402 |
+| Haiku ejecución | 0,0000012 | 0,00068064 | 0,003047875–0,003147475 | 0,0099255 | 0,013655215–0,013754815 |
+| Total ruta delegada | 0,0000172 | 0,00222884 | 0,041283875–0,041383475 | 0,0286655 | 0,072195415–0,072295015 |
+
+Se conoce el TTL de las escrituras Sonnet y de parte de Haiku por los mensajes
+de cada petición. Para 1.328 tokens de escritura Haiku no llegó ese desglose:
+se conserva el intervalo 5m/1h, sin adivinarlo. El prompt agregado Haiku es
+inferior a 100.000 tokens, por lo que ninguna petición puede exceder ese umbral;
+la tarifa base es segura. En otras sesiones, cuando no se conoce el nivel por
+petición, el estimador conserva límites entre tarifas posibles.
+
+Esta muestra dio 38,70–38,78% menos valor de referencia, pero 242,20% más tokens.
+Sonnet solo consumió 41,947 s en sesiones, más 21,307 s de checks incluida la
+espera fallida. La ruta delegada consumió 90,067 s en sesión y 0,877 s de checks.
+Dentro de ella se observaron 74,092 s de trabajo en primer plano de Haiku y
+15,690 s fuera de ese tramo hasta el recibo final de Sonnet; el cierre añadió
+0,285 s. No se suman intervalos solapados. Tiempo API informado: 38,044 s frente
+a 88,792 s; puede incluir espera/red y no se etiqueta como inferencia pura.
+Denegaciones de permisos: cero en ambas rutas. Lecturas observadas: 4/146 ms
+frente a 8/135 ms; leer archivos no explica la diferencia principal.
+
+Al cierre ambos pasan las seis pruebas externas; las propias son 6/6 y 11/11.
+Se revisaron los cambios reales y se verificaron inmutables y aceptación. Total
+de las dos estrategias, con la corrección: 179.921 tokens y USD
+0,190129715–0,190229315 de referencia. Dos sondas de diagnóstico de arranque,
+separadas de estas estrategias, reportaron otros 627 y 1.707 tokens; no se
+registró un ID de modelo independiente para cotizarlas. Dos primeros arranques
+sintéticos no ejecutaron la tarea y se conservan como inválidos. Los ensayos
+anteriores siguen conservados; no se mezclan con esta muestra para atribuirle
+ahorro. El chat de desarrollo Codex no está instrumentado en estos totales.
+
+Es una muestra por estrategia, orden fijo y caché compartida; no es ahorro
+general, factura, ni confirmación de duración adicional de una suscripción.
+El esfuerzo medium fue solicitado. Los modelos de ambos roles están confirmados
+por el árbol del host. Los checks del producto pasan 133/133. Sin push.
+
+Fuentes: [subagentes nativos](https://code.claude.com/docs/en/sub-agents),
+[alcance de contadores](https://code.claude.com/docs/en/agent-sdk/cost-tracking),
+[tarifas oficiales](https://platform.claude.com/docs/es/about-claude/pricing).
