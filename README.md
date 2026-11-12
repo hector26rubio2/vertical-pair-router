@@ -10,6 +10,15 @@ remain blocked on owner decisions.
 
 ## Current status
 
+The local CLI and dashboard are usable development builds. End-to-end agent
+execution and provider pilots are still pending; publication is not the only
+remaining work. To try the dashboard run `pwsh -File tools/start-local.ps1` and
+open the local URL printed. To load the Claude Code plugin for a session run
+`pwsh -File tools/start-local.ps1 -Mode plugin`.
+
+The root Markdown files describe contribution, conduct, support, security and
+third-party attribution. They are documentation rather than runtime features.
+
 - Phases 0–11: complete locally; owner decisions for public release remain open.
 - Supported development host: Windows 11, PowerShell 7, Node.js 24 LTS.
 - Initial host adapter: Claude Code 2.1.319 measured locally.

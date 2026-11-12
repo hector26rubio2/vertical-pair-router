@@ -7,3 +7,4 @@ export {
   type UsageProjection,
   type UsageSample
 } from "./usage.js";
+export { parseAgentUsage, compareAgentTokens, type AgentUsage } from './agent-usage.js';
