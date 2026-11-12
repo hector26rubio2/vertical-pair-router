@@ -1,45 +1,81 @@
 # Vertical Pair Router
 
-Vertical Pair Router (VPR) is a local-first, open-source runtime and Claude Code
-plugin for running agent-assisted engineering work with explicit policy,
-evidence, limits, and recovery.
+VPR organiza trabajo de ingeniería con Stories, Tasks, Runs, checks y evidencia
+local. Incluye un CLI y un plugin de Claude Code. Sigue en desarrollo: aún falta
+completar la delegación real entre proveedores y el experimento de ahorro.
 
-The repository is being built in vertical slices from the authoritative product
-plan dated 2026-11-09. Phases 0–11 are complete locally; release and publication
-remain blocked on owner decisions.
+## Qué funciona
 
-## Current status
+- Backlog persistente, planificación, checks con límites/cancelación y revisión.
+- Dashboard local con métricas, glosario y trazas de eventos observados.
+- Inicialización con entrevista de tecnologías, integraciones y modelos.
+- Aprovisionamiento de Husky y Graphify si se seleccionan y están disponibles
+  sus requisitos. Archify comprueba el skill local mediante su diagnóstico.
+- Reglas de routing probadas: modelo ligero para código simple de bajo riesgo
+  con checks y autorización; escalado por riesgo y complejidad. La configuración
+  no prueba por sí sola la calidad o disponibilidad del modelo en una cuenta.
 
-The local CLI and dashboard are usable development builds. End-to-end agent
-execution and provider pilots are still pending; publication is not the only
-remaining work. To try the dashboard run `pwsh -File tools/start-local.ps1` and
-open the local URL printed. To load the Claude Code plugin for a session run
-`pwsh -File tools/start-local.ps1 -Mode plugin`.
+## Probar desde el código fuente
 
-The root Markdown files describe contribution, conduct, support, security and
-third-party attribution. They are documentation rather than runtime features.
+Requiere Git, Node.js >=24.15 y <27, y pnpm 11. Claude Code es opcional para el
+núcleo y necesario para cargar el plugin en ese host.
 
-- Phases 0–11: complete locally; owner decisions for public release remain open.
-- Supported development host: Windows 11, PowerShell 7, Node.js 24 LTS.
-- Initial host adapter: Claude Code 2.1.319 measured locally.
-- Network telemetry: disabled by design.
-- Runtime/package manager: Node.js >=24.15 and pnpm 11.
-
-## Local checkout
-
-```powershell
+```sh
 pnpm install --frozen-lockfile
 pnpm build
-pnpm vpr init --project .
+pnpm vpr init --project . --interactive
+```
+
+La inicialización propone un perfil. Añadir `--apply` guarda el perfil y
+aprovisiona las integraciones elegidas; puede descargar herramientas. Los
+perfiles y hooks existentes se conservan. Los modelos se configuran con alias
+o identificadores de la cuenta del usuario, sin extraer credenciales.
+
+```sh
+pnpm vpr init --project . --interactive --apply
 claude --plugin-dir .
 ```
 
-`--plugin-dir` loads the plugin for that Claude Code session only. It does not
-publish or persistently install VPR. Marketplace installation remains
-unavailable until the license and publication gates are resolved.
+En Windows, `pwsh -File tools/start-local.ps1` inicia el dashboard. Abre la
+dirección local impresa; contiene autorización de sesión y no debe compartirse.
 
-See [host capabilities](docs/research/host-capabilities.md), the
-[architecture overview](docs/architecture/overview.md), and the
-[execution backlog](docs/backlog/execution.md). Installation, rollback and the
-evidence-based OS matrix are in [portability and lifecycle](docs/operations/portability.md).
+## Graphify y Archify
+
+```sh
+node tools/integrations.mjs doctor
+node tools/integrations.mjs graph --project .
+node tools/integrations.mjs query --project . --question BacklogService
+```
+
+Graphify indexa sólo código mediante AST, sin modelo. Su instalación opcional
+necesita Python y uv; no son requisitos del núcleo. Archify genera diagramas
+desde especificaciones validadas; usa el skill local o `VPR_ARCHIFY_HOME`.
+
+## Medición de tokens
+
+Recolectar y mostrar contadores es procesamiento local sin inferencia. Ejecutar
+agentes sí consume tokens. Las métricas conservan su fuente; lo no observado
+es `unavailable`. La comparación debe usar la misma tarea/commit/modelo y checks
+equivalentes e incluir preparación de contexto, orquestación y subtareas.
+Todavía no hay un porcentaje de ahorro demostrado ni una factura calculada.
+
+## Paquete y distribución
+
+`pnpm package:local` prepara el paquete autocontenido en `dist/npm`. El objetivo
+es adjuntar un `.tgz` a una release de GitHub e instalarlo con npm/pnpm, seguido
+de `vpr plugin install`. No requiere publicarlo en npm ni en el catálogo público
+de Claude Code. La instalación empaquetada sigue en validación. No hay release.
+
+## Compatibilidad y documentación
+
+Windows tiene evidencia local. La matriz CI está configurada para Windows,
+macOS y Linux; los últimos dos necesitan ejecuciones reales antes de declarar
+soporte verificado. PowerShell no es requisito del núcleo.
+
+Los Markdown de la raíz son guías de contribución, conducta, soporte, seguridad
+y atribuciones; no son funciones del runtime. Las atribuciones se conservan.
+
+Consulta [el flujo local](docs/operations/local-workflow.md),
+[portabilidad](docs/operations/portability.md) y
+[el estado de ejecución](docs/backlog/execution.md).
 

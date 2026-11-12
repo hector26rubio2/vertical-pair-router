@@ -66,6 +66,21 @@ export async function createDashboardServer(
         return json(response, 200, {
           stories,
           tasks,
+          runs: await options.backlog.listRuns(),
+          traces: events.filter(event => ['AgentUsageObserved', 'EvidenceRecorded', 'backlog.run.transitioned'].includes(event.type)).map(event => ({
+            at: event.occurredAt,
+            type: event.type,
+            runId: event.runId ?? null,
+            agentId: typeof event.payload.agentId === 'string' ? event.payload.agentId : null,
+            provider: typeof event.payload.provider === 'string' ? event.payload.provider : null,
+            scope: typeof event.payload.scope === 'string' ? event.payload.scope : null,
+            inputTokens: typeof event.payload.inputTokens === 'number' ? event.payload.inputTokens : null,
+            outputTokens: typeof event.payload.outputTokens === 'number' ? event.payload.outputTokens : null,
+            cachedInputTokens: typeof event.payload.cachedInputTokens === 'number' ? event.payload.cachedInputTokens : null,
+            state: isRecord(event.payload.run) ? event.payload.run.state : null,
+            check: typeof event.payload.name === 'string' ? event.payload.name : null,
+            exitCode: typeof event.payload.exitCode === 'number' ? event.payload.exitCode : null
+          })),
           usage: projectUsage(events),
           comparisons: projectUsageComparisons(events),
           glossary: parseGlossary(await readFile(glossaryTarget, "utf8"), stories, tasks)
@@ -272,6 +287,20 @@ fetch('/api/snapshot', { headers: authHeaders }).then((response) => {
   return response.json();
 }).then((snapshot) => {
   statusEl.textContent = 'Local · datos verificados';
+  const traces = document.createElement('section');
+  const traceTitle = document.createElement('h2');
+  traceTitle.textContent = 'Trazas de ejecución';
+  traces.append(traceTitle);
+  for (const trace of snapshot.traces) {
+    const row = document.createElement('article');
+    row.textContent = [trace.at, trace.type, trace.runId, trace.provider, trace.agentId, trace.scope,
+      'Entrada: ' + (trace.inputTokens ?? 'unavailable'), 'Salida: ' + (trace.outputTokens ?? 'unavailable'),
+      'Caché: ' + (trace.cachedInputTokens ?? 'unavailable'), trace.state, trace.check,
+      trace.exitCode === null ? null : 'Exit: ' + trace.exitCode].filter(value => value !== null).join(' · ');
+    traces.append(row);
+  }
+  if (snapshot.traces.length === 0) traces.append('Sin ejecuciones medidas.');
+  document.querySelector('main').append(traces);
   metricsEl.innerHTML = [
     ['Runs', snapshot.usage.runs.total],
     ['Checks', snapshot.usage.checks.total],

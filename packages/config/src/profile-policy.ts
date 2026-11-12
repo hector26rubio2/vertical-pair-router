@@ -49,6 +49,13 @@ export function parseProjectProfile(value: unknown): ProjectProfileV1 {
       throw new TypeError("Invalid project check command");
     }
   }
+  if (record.setup !== undefined && (
+    !isRecord(record.setup) || !Array.isArray(record.setup.technologies) ||
+    !record.setup.technologies.every(item => typeof item === 'string') ||
+    !isRecord(record.setup.integrations) ||
+    !['husky', 'graphify', 'archify'].every(key => typeof (record.setup as { integrations: Record<string, unknown> }).integrations[key] === 'boolean')
+  )) throw new TypeError('Invalid project setup');
+  if (record.orchestration !== undefined) validateOrchestration(record.orchestration);
   return {
     schemaVersion: 1,
     projectId: record.projectId as ProjectProfileV1["projectId"],
@@ -56,8 +63,26 @@ export function parseProjectProfile(value: unknown): ProjectProfileV1 {
     packageManager: record.packageManager as ProjectProfileV1["packageManager"],
     checks: record.checks as ProjectProfileV1["checks"],
     glossaryPath: record.glossaryPath,
-    policy: parsePolicy(record.policy)
+    policy: parsePolicy(record.policy),
+    ...(record.orchestration === undefined ? {} : { orchestration: record.orchestration as unknown as NonNullable<ProjectProfileV1['orchestration']> }),
+    ...(record.setup === undefined ? {} : { setup: record.setup as unknown as NonNullable<ProjectProfileV1['setup']> })
   };
+}
+
+function validateOrchestration(value: unknown): void {
+  if (!isRecord(value) || typeof value.orchestratorId !== 'string' ||
+      !Number.isInteger(value.maxWorkers) || (value.maxWorkers as number) < 1 || (value.maxWorkers as number) > 2 ||
+      typeof value.allowLightCoding !== 'boolean' || !Array.isArray(value.models)) throw new TypeError('Invalid orchestration profile');
+  const ids = new Set<string>();
+  for (const model of value.models) {
+    if (!isRecord(model) || typeof model.id !== 'string' || ids.has(model.id) ||
+      !['claude', 'codex', 'copilot'].includes(String(model.provider)) || typeof model.model !== 'string' ||
+      !/^[\w./:-]+$/u.test(model.model) || !['light', 'standard', 'high'].includes(String(model.tier)) ||
+      (model.effort !== undefined && !['low', 'medium', 'high'].includes(String(model.effort))) ||
+      !Array.isArray(model.roles) || !model.roles.every(role => ['orchestrator', 'inventory', 'coding', 'review'].includes(String(role)))) throw new TypeError('Invalid agent model');
+    ids.add(model.id);
+  }
+  if (!ids.has(value.orchestratorId)) throw new TypeError('Configured orchestrator is absent from model catalog');
 }
 
 export function profilePolicyLayers(

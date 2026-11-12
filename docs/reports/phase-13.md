@@ -63,3 +63,44 @@ provider implementation or the unexecuted provider pilot.
 Added a dependency SBOM/file inventory generator with exclusion tests and a
 pilot/onboarding runbook. License and publication are deferred at the owner's
 explicit request; local functionality proceeds independently.
+
+## Seguimiento: selección y medición real — 2026-11-12
+
+La suite más reciente pasa 104/104 pruebas. Se añadieron reglas para comparar
+ejecución única, dividida o mixta, contabilizando coordinación, contexto repetido,
+revisión y reintentos. El objetivo puede ser tokens, latencia o costo con unidades
+comparables. Los costos desconocidos no se convierten en cero ni en gratuidad.
+Las previsiones históricas siguen etiquetadas como estimaciones.
+
+Se ejecutó un microbenchmark real en la cuenta de Claude: tres funciones puras
+independientes, una solución con Sonnet frente a coordinador Sonnet y tres
+trabajadores solicitados como Haiku, con máximo dos trabajadores simultáneos.
+Los mismos checks deterministas aprobaron ambas soluciones.
+
+| Brazo | Tokens reportados, incluyendo caché | Checks |
+|---|---:|---|
+| Un trabajador Sonnet | 71.856 | PASS |
+| Coordinador y tres trabajadores | 296.343 | PASS |
+
+No hubo ahorro en esta muestra. Además, todos los mensajes de los trabajadores
+solicitados como Haiku reportaron `claude-sonnet-5-5`. No es evidencia de una
+comparación real Haiku/Sonnet. Se añadió una verificación que marca esa
+sustitución en lugar de etiquetar como Haiku un recibo de Sonnet.
+
+Los contadores incluyen lecturas/escrituras de caché; no equivalen a dinero ni
+cuota de suscripción. El benchmark es exploratorio y no ejecuta aún el pipeline
+autónomo completo de VPR. No justifica conclusiones generales de ahorro.
+
+La entrevista de init guarda tecnologías, integraciones y modelos; el
+aprovisionamiento detecta requisitos ausentes. Graphify 0.9.106 indexó el código
+local sin modelo: 825 nodos y 1.759 relaciones. Archify pasó doctor; la nueva
+interfaz de generación aún requiere prueba de un artefacto real. El descriptor
+del paquete pasó validación estricta y se generó un tarball local; queda pendiente
+la prueba completa de instalación y registro. La matriz CI incluye Windows,
+macOS y Linux, sin resultados ejecutados todavía en los dos últimos.
+
+Pendientes funcionales: conectar análisis automático de tareas, decisiones y
+delegación real; completar/verificar UI; probar modelos efectivos de cada cuenta;
+comparar una tarea representativa con criterios equivalentes. Copilot sólo tiene
+un shim local, no un CLI usable. No se hará otro push ni una release hasta el
+cierre acordado con el owner.

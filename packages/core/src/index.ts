@@ -5,6 +5,8 @@ export {
   transitionRunIdempotent
 } from "./run-state.js";
 export { evaluatePolicy } from "./policy.js";
+export { selectAgentModel, type AgentModel, type AgentRoutingPolicy, type AgentRouteInput } from './agent-routing.js';
+export { chooseDelegationStrategy, type DelegationStrategy, type StrategyForecast } from './delegation-strategy.js';
 export {
   AdapterCatalog,
   routeRequest

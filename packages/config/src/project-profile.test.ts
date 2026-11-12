@@ -9,6 +9,18 @@ import {
   applyProjectProfile,
   proposeProjectProfile
 } from "./project-profile.js";
+import { parseProjectProfile } from './profile-policy.js';
+
+test('preserves reviewed technology and integration choices through parsing', async context => {
+  const root = await mkdtemp(join(tmpdir(), 'vpr-setup-'));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(join(root, 'package.json'), '{}');
+  const proposal = await proposeProjectProfile(root);
+  const setup = { technologies: ['TypeScript', 'React'], integrations: { husky: true, graphify: true, archify: true } };
+  const profile = parseProjectProfile({ ...proposal.profile, setup });
+  assert.deepEqual(profile.setup, setup);
+  assert.throws(() => parseProjectProfile({ ...profile, setup: { technologies: [], integrations: { husky: 'yes' } } }), /setup/);
+});
 
 test("detects pnpm scripts and proposes a versioned profile", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vpr-profile-"));
@@ -49,7 +61,7 @@ test("refuses apply after the target changed", async (context) => {
   await writeFile(join(root, "package.json"), JSON.stringify({ name: "fixture" }));
   const proposal = await proposeProjectProfile(root);
   await applyProjectProfile(proposal);
-  await writeFile(proposal.target, '{"schemaVersion":1}\n');
+  await writeFile(proposal.target, JSON.stringify({ ...proposal.profile, name: 'user-edited' }) + '\n');
   const update = await proposeProjectProfile(root);
   await writeFile(update.target, "{}\n");
 

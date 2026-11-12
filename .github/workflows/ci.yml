@@ -9,10 +9,11 @@ permissions:
 
 jobs:
   test:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
         node: [24.15.0, 26.x]
     steps:
       - uses: actions/checkout@v5

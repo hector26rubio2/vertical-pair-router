@@ -11,6 +11,8 @@ import {
 import { basename, dirname, join, resolve } from "node:path";
 
 import type { EntityId, PolicyRules } from "@vpr/contracts";
+import type { AgentRoutingPolicy } from '@vpr/core';
+import { parseProjectProfile } from './profile-policy.js';
 
 export interface CheckCommand {
   readonly program: string;
@@ -25,6 +27,11 @@ export interface ProjectProfileV1 {
   readonly checks: Readonly<Record<string, CheckCommand>>;
   readonly glossaryPath: string;
   readonly policy: PolicyRules;
+  readonly orchestration?: AgentRoutingPolicy;
+  readonly setup?: {
+    readonly technologies: readonly string[];
+    readonly integrations: { readonly husky: boolean; readonly graphify: boolean; readonly archify: boolean };
+  };
 }
 
 export interface ProjectProfileProposal {
@@ -73,15 +80,16 @@ export async function proposeProjectProfile(rootInput: string): Promise<ProjectP
       maxOutputBytes: 1_048_576
     }
   };
-  const content = `${JSON.stringify(profile, null, 2)}\n`;
   const target = join(root, ".vpr", "profile.json");
   const current = await readOptional(target);
+  const effectiveProfile = current === null ? profile : parseProjectProfile(JSON.parse(current));
+  const content = `${JSON.stringify(effectiveProfile, null, 2)}\n`;
 
   return {
     action: current === null ? "create" : current === content ? "none" : "update",
     target,
     beforeHash: current === null ? null : sha256(current),
-    profile,
+    profile: effectiveProfile,
     content
   };
 }

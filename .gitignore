@@ -14,4 +14,6 @@ coverage/
 evals/results/
 .vpr/*.bak
 .vpr/*.tmp
+.vpr/graphify/
+.vpr/benchmarks/
 

@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
+import { createInterface } from 'node:readline/promises';
+import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
 
 import { BacklogService, createStoryDraftFromGrill } from "@vpr/backlog";
 import type { EntityId, Run } from "@vpr/contracts";
@@ -14,6 +17,7 @@ import {
 } from "@vpr/runtime";
 import { SqliteStorage } from "@vpr/storage-sqlite";
 import { runTaskCommand } from './task-command.js';
+import { provisionProject } from './provision-project.js';
 
 export interface CliIo {
   readonly stdout: (value: string) => void;
@@ -26,6 +30,21 @@ const defaultIo: CliIo = {
 };
 
 export async function runCli(args: readonly string[], io: CliIo = defaultIo): Promise<number> {
+  if (args[0] === 'plugin') {
+    const packageRoot = fileURLToPath(new URL('../', import.meta.url));
+    if (args[1] === 'path') { io.stdout(resolve(packageRoot, 'plugin') + '\n'); return 0; }
+    if (args[1] !== 'install') { io.stderr('Plugin actions: path, install\n'); return 2; }
+    await readFile(resolve(packageRoot, '.claude-plugin/marketplace.json'), 'utf8');
+    const program = await resolveExecutable('claude');
+    if (!program) throw new Error('Claude Code executable unavailable');
+    return await new Promise<number>((done, reject) => {
+      const child = spawn(program, ['plugin', 'install', 'vertical-pair-router', '--marketplace', packageRoot, '--scope', 'user', '--json'], { shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
+      child.stdout.on('data', chunk => io.stdout(String(chunk)));
+      child.stderr.on('data', chunk => io.stderr(String(chunk)));
+      child.once('error', reject);
+      child.once('close', code => done(code ?? 1));
+    });
+  }
   if (args[0] === 'task') return runTaskCommand(args.slice(1), io);
   if (args[0] === "init") return runInit(args.slice(1), io);
   if (args[0] === "story") return runStory(args.slice(1), io);
@@ -278,17 +297,52 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
     io.stderr("Missing required --project path\n");
     return 2;
   }
-  const proposal = await proposeProjectProfile(project);
+  let proposal = await proposeProjectProfile(project);
+  if (args.includes('--interactive')) {
+    if (!process.stdin.isTTY) throw new Error('--interactive requires a terminal');
+    const interview = createInterface({ input: process.stdin, output: process.stderr });
+    try {
+      const technologies = (await interview.question('Tecnologías del proyecto (separadas por coma): '))
+        .split(',').map(item => item.trim()).filter(Boolean);
+      const yes = async (question: string): Promise<boolean> => /^(s|si|sí|y|yes)$/iu.test((await interview.question(question + ' [s/N]: ')).trim());
+      const integrations = {
+        husky: await yes('¿Activar integración Husky para este proyecto Node?'),
+        graphify: await yes('¿Habilitar Graphify local para mapa del código?'),
+        archify: await yes('¿Habilitar Archify para diagramas?')
+      };
+      const provider = (await interview.question('Proveedor orquestador (claude/codex/copilot): ')).trim();
+      if (!['claude', 'codex', 'copilot'].includes(provider)) throw new TypeError('Unknown orchestrator provider');
+      const model = (await interview.question('Modelo del orquestador (alias o ID de tu cuenta): ')).trim();
+      const light = (await interview.question('Modelo ligero para inventario y tareas simples: ')).trim();
+      const standard = (await interview.question('Modelo para implementación normal/revisión: ')).trim();
+      const high = (await interview.question('Modelo para tareas complejas o de alto riesgo: ')).trim();
+      const allowLightCoding = await yes('¿Permitir modelo ligero en código simple de bajo riesgo con checks?');
+      const profile = parseProjectProfile({ ...proposal.profile,
+        setup: { technologies, integrations },
+        policy: { ...proposal.profile.policy, allowedProviders: ['local', provider] },
+        orchestration: { orchestratorId: 'coordinator', maxWorkers: 2, allowLightCoding, models: [
+          { id: 'coordinator', provider, model, tier: 'standard', roles: ['orchestrator'] },
+          { id: 'light-worker', provider, model: light, tier: 'light', roles: ['inventory', 'coding'] },
+          { id: 'standard-worker', provider, model: standard, tier: 'standard', roles: ['coding', 'review'] },
+          { id: 'high-worker', provider, model: high, tier: 'high', roles: ['coding', 'review'] }
+        ] }
+      });
+      const content = JSON.stringify(profile, null, 2) + '\n';
+      proposal = { ...proposal, profile, content, action: proposal.action === 'none' ? 'update' : proposal.action };
+    } finally { interview.close(); }
+  }
   const apply = args.includes("--apply");
   if (apply) {
     await applyProjectProfile(proposal);
   }
+  const integrations = apply ? await provisionProject(resolve(project), proposal.profile) : [];
   io.stdout(
     `${JSON.stringify({
       action: proposal.action,
       target: proposal.target,
       beforeHash: proposal.beforeHash,
       profile: proposal.profile,
+      integrations,
       applied: apply && proposal.action !== "none"
     })}\n`
   );
@@ -297,7 +351,7 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
 
 function usage(io: CliIo): number {
   io.stderr(
-    "Usage: vpr doctor --db <path> | vpr init --project <path> [--apply] | " +
+    "Usage: vpr doctor --db <path> | vpr init --project <path> [--interactive] [--apply] | " +
       "vpr story --db <path> --project-id <id> --input <json> [--apply] | " +
       "vpr data export --db <path> --project-id <id> --out <jsonl> | " +
       "vpr data retention --db <path> --project-id <id> --before <iso> [--apply --confirm <id>] | " +
