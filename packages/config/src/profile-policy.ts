@@ -44,7 +44,8 @@ export function parseProjectProfile(value: unknown): ProjectProfileV1 {
       !isRecord(command) ||
       typeof command.program !== "string" ||
       !Array.isArray(command.args) ||
-      !command.args.every((arg) => typeof arg === "string")
+      !command.args.every((arg) => typeof arg === "string") ||
+      (command.timeoutMs!==undefined&&(!Number.isInteger(command.timeoutMs)||(command.timeoutMs as number)<1000||(command.timeoutMs as number)>600000))
     ) {
       throw new TypeError("Invalid project check command");
     }

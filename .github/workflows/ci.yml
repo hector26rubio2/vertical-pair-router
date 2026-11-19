@@ -2,7 +2,14 @@ name: ci
 
 on:
   push:
+    branches: ['**']
   pull_request:
+  workflow_call:
+    inputs:
+      ref:
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -16,14 +23,38 @@ jobs:
         os: [windows-latest, macos-latest, ubuntu-latest]
         node: [24.15.0, 26.x]
     steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          version: 11.1.2
-      - uses: actions/setup-node@v6
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: ${{ matrix.node }}
-          cache: pnpm
+      - run: npm install --global pnpm@11.1.2
+      - name: Block sensitive staged content against the change base
+        run: node tools/ci-staged-security.mjs
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm package:local
+      - name: Install the real archive in an isolated prefix
+        shell: bash
+        run: |
+          mkdir -p .tmp/release
+          npm pack ./dist/npm --pack-destination .tmp/release
+          cp dist/npm/SBOM.json .tmp/release/SBOM.json
+          npm install --ignore-scripts --prefix .tmp/package-smoke .tmp/release/*.tgz
+          node tools/package-smoke.mjs .tmp/package-smoke/node_modules/vertical-pair-router/bin/vpr.mjs
+          node tools/pnpm-package-smoke.mjs .tmp/release/*.tgz
+      - name: Install the pinned native host for account-free plugin verification
+        run: npm install --global @anthropic-ai/claude-code@2.1.322
+      - name: Verify native plugin lifecycle without an account or inference
+        run: node tools/native-plugin-lifecycle.mjs .tmp/package-smoke/node_modules/vertical-pair-router
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: matrix.os == 'ubuntu-latest' && matrix.node == '24.15.0'
+        with:
+          name: vpr-installable-package
+          path: |
+            .tmp/release/*.tgz
+            .tmp/release/SBOM.json
+          if-no-files-found: error
 

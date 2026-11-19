@@ -1,7 +1,8 @@
 {
   "name": "vertical-pair-router",
   "displayName": "Vertical Pair Router",
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "license": "MIT",
   "description": "Local-first engineering workflows with policy, evidence, limits, and recovery",
   "author": {
     "name": "Vertical Pair Router contributors"

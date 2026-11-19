@@ -19,7 +19,7 @@ A plan input has `workflow` and `slices`. Each slice supplies `outcome`,
 `acceptanceCriteria`, `demoPath`, `allowedPaths`, `requiredChecks`, `risk`,
 `changesPublicApi`, and `dependsOn` (zero-based earlier slice indexes).
 
-Checks have a 60-second timeout each, bounded output, Ctrl+C cancellation and
+Checks default to a 60-second timeout each (profile overrides up to 600 seconds), bounded output, Ctrl+C cancellation and
 no shell. Unknown checks/programs fail before a Run starts. Failed checks produce
 a FAILED Run; cancelled checks produce CANCELLED. Passing checks reach REVIEW.
 Only metadata is persisted; arbitrary command output is discarded. The review

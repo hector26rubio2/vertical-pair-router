@@ -7,6 +7,8 @@ const at = process.argv.indexOf('--report');
 if (at < 0 || !process.argv[at + 1]) throw new Error('--report required');
 const path = resolve(process.argv[at + 1]);
 const report = JSON.parse(await readFile(path, 'utf8'));
+const baselineModel = report.baselineModel ?? 'claude-sonnet-5-5';
+const baselineArm = `${baselineModel.replace(/^claude-/u, '').replace(/-\d.*$/u, '')}-solo`;
 const catalog = JSON.parse(await readFile('docs/research/model-price-catalog.json', 'utf8'));
 const rangeSum = values => values.every(Boolean) ? { min: values.reduce((sum, value) => sum + value.min, 0), max: values.reduce((sum, value) => sum + value.max, 0) } : null;
 const counterKeys = ['inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens', 'totalTokens'];
@@ -17,7 +19,7 @@ for (const row of report.rows) {
   const latest = attempts.at(-1);
   const models = new Map();
   for (const attempt of attempts) for (const model of attempt.receipt.models) {
-    const role = row.arm === 'sonnet-solo' ? 'ejecutor único' : row.coordinatorModel === row.executorModel && row.coordinatorModel
+    const role = row.arm === baselineArm ? 'ejecutor único' : row.coordinatorModel === row.executorModel && row.coordinatorModel
       ? 'roles combinados: modelo compartido' : model.model === (row.executorModel ?? 'claude-haiku-5-5') ? 'ejecutor' : 'orquestador y revisión';
     const cost = officialCostBreakdown(model, attempt.receipt.requests, catalog);
     const old = models.get(model.model);
@@ -37,10 +39,10 @@ for (const row of report.rows) {
   const latestChecksPassed = latest.checks?.own.exitCode === 0 && latest.checks?.acceptance.exitCode === 0;
   const observedReads = attempts.flatMap(attempt => attempt.receipt.tools).filter(tool => tool.name === 'Read' && tool.endMs !== null);
   const complete = attempts.every(attempt => attempt.receipt.completeAccounting && attempt.receipt.terminalReceipt?.success);
-  const modelIntegrity = row.arm !== 'sonnet-solo' || grouped.every(model => model.model === 'claude-sonnet-5-5');
-  rows.push({ arm: row.arm, coordinatorModel: row.coordinatorModel ?? (row.arm === 'sonnet-solo' ? null : 'claude-sonnet-5-5'),
-    executorModel: row.executorModel ?? (row.arm === 'sonnet-solo' ? 'claude-sonnet-5-5' : 'claude-haiku-5-5'),
-    accepted: latestChecksPassed && complete && modelIntegrity && row.delegationVerified && unchanged.every(Boolean),
+  const modelIntegrity = row.arm !== baselineArm || grouped.every(model => model.model === baselineModel);
+  rows.push({ arm: row.arm, coordinatorModel: row.coordinatorModel ?? (row.arm === baselineArm ? null : 'claude-sonnet-5-5'),
+    executorModel: row.executorModel ?? (row.arm === baselineArm ? baselineModel : 'claude-haiku-5-5'),
+    accepted: latestChecksPassed && (latest.checks?.acceptance.passed ?? 0) >= 6 && (latest.checks?.own.passed ?? 0) > 0 && complete && modelIntegrity && row.delegationVerified && row.allowedChanges && row.acceptanceUnchanged && unchanged.every(Boolean),
     retries: attempts.length - 1, models: grouped, totals, costs,
     timings: { modelSessionsWallMs: attempts.reduce((sum, attempt) => sum + attempt.receipt.timings.wallMs, 0),
       localChecksMs: attempts.reduce((sum, attempt) => sum + (attempt.checks?.own.durationMs ?? 0) + (attempt.checks?.acceptance.durationMs ?? 0), 0),
@@ -53,10 +55,10 @@ for (const row of report.rows) {
       permissionDenials: attempts.reduce((sum, attempt) => sum + attempt.receipt.terminalReceipt.permissionDenials.length, 0) },
     finalChecks: latest.checks, originalAttemptChecks: row.checks });
 }
-const baseline = rows.find(row => row.arm === 'sonnet-solo');
-const delegated = rows.find(row => row.arm !== 'sonnet-solo');
+const baseline = rows.find(row => row.arm === baselineArm);
+const delegated = rows.find(row => row.arm !== baselineArm);
 const comparable = baseline?.accepted && delegated?.accepted && report.rows[0].baseTree === report.rows[1].baseTree;
-const comparisons = rows.filter(row => row.arm !== 'sonnet-solo').map(row => ({
+const comparisons = rows.filter(row => row.arm !== baselineArm).map(row => ({
   arm: row.arm, comparable: !!baseline?.accepted && row.accepted && report.rows.find(source => source.arm === row.arm)?.baseTree === report.rows.find(source => source.arm === baseline.arm)?.baseTree,
   extraTokensPercent: baseline?.accepted && row.accepted ? 100 * (row.totals.totalTokens / baseline.totals.totalTokens - 1) : null,
   savedReferencePercent: baseline?.accepted && row.accepted && row.costs.totalUsd && baseline.costs.totalUsd ? {
@@ -64,7 +66,7 @@ const comparisons = rows.filter(row => row.arm !== 'sonnet-solo').map(row => ({
     max: 100 * (1 - row.costs.totalUsd.min / baseline.costs.totalUsd.max)
   } : null
 }));
-const summary = { sourceReport: path, at: new Date().toISOString(), sourcePrice: 'https://platform.claude.com/docs/es/about-claude/pricing',
+const summary = { sourceReport: path, at: new Date().toISOString(), baselineModel, sourcePrice: 'https://platform.claude.com/docs/es/about-claude/pricing',
   task: { id: 'P01', title: 'Desarrollar reservas HTTP idempotentes con persistencia SQLite',
     level: 'medio', levelSource: 'Clasificación manual del piloto por validación, transacciones, concurrencia y persistencia; no dificultad universal del modelo',
     activities: ['Implementar transacción y persistencia de reservas', 'Implementar HTTP y validación', 'Añadir pruebas propias', 'Revisar cambios'],

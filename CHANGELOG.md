@@ -5,6 +5,22 @@ yet.
 
 ## Unreleased
 
+- MIT confirmed by the owner with attribution to Vertical Pair Router contributors.
+- Installable npm/pnpm archive, self-contained cached Claude plugin, pinned
+  runtime lockfile and SBOM; GitHub release pipeline prepared.
+- Native `/vpr-use` telemetry and `/vpr-run` workflow command; both previews
+  verified without inference. Provider/model/role routing remains local.
+- Native Haiku request preflight and context compaction protection, including
+  full threaded history and fail-closed handling of unknown counts.
+- Technology detection, preserved Husky hooks, staged-secret/configuration
+  gate, local Graphify indexing/query and pinned optional Archify installation.
+- Bounded corrective execution, project run lock, configurable check deadlines,
+  and local graph hints. Provider write permissions are never bypassed.
+- Real Finanzas analysis and implementation experiments with common fresh
+  review, per-phase token/cost detail, charts and explicit quality limitations.
+- Windows/macOS/Linux targets and CI matrix; only executed checks count as
+  verified. Corporate Copilot and Codex write acceptance remain pending.
+
 - Recorded the Phase 0 host audit and base ADRs.
 - Added versioned domain contracts and Run lifecycle validation.
 - Added safe local process execution, SQLite event persistence, and a vertical

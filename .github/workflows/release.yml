@@ -1,0 +1,45 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing reviewed tag matching package.json, e.g. v1.0.0'
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  verify:
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ inputs.tag || github.ref_name }}
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+      - name: Verify ownership and release version gates
+        env:
+          VPR_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: node tools/release-check.mjs
+      - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        with:
+          name: vpr-installable-package
+          path: .tmp/release
+      - name: Publish installable archive and checksums to this GitHub repository
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VPR_RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          cd .tmp/release
+          sha256sum *.tgz SBOM.json > SHA256SUMS
+          gh release create "$VPR_RELEASE_TAG" *.tgz SBOM.json SHA256SUMS --verify-tag --title "$VPR_RELEASE_TAG" --generate-notes

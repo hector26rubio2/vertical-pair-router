@@ -1,0 +1,17 @@
+{
+  "schemaVersion":1,"projectId":"project_portable_pilot","name":"vpr-portable-pilot","packageManager":"npm","glossaryPath":"GLOSSARY.md",
+  "checks":{"test":{"program":"node","args":["--test","acceptance.test.mjs"]}},
+  "policy":{"allowShell":true,"allowNetworkTelemetry":false,"allowedProviders":["local","claude","codex","copilot"],"maxOutputBytes":1048576},
+  "orchestration":{"objective":"reference-cost","orchestratorId":"claude-sonnet","maxWorkers":1,"allowLightCoding":true,"models":[
+    {"id":"claude-sonnet","provider":"claude","model":"claude-sonnet-5-5","effort":"medium","tier":"standard","roles":["orchestrator","coding","review"]},
+    {"id":"claude-haiku","provider":"claude","model":"claude-haiku-5-5","effort":"medium","tier":"light","roles":["inventory","coding"]},
+    {"id":"claude-opus","provider":"claude","model":"claude-opus-5-5","effort":"medium","tier":"high","roles":["orchestrator","coding","review"]},
+    {"id":"codex-luna","provider":"codex","model":"gpt-6-luna","effort":"low","tier":"light","roles":["inventory","coding"]},
+    {"id":"codex-terra","provider":"codex","model":"gpt-6.1-terra","effort":"medium","tier":"standard","roles":["coding","review"]},
+    {"id":"codex-sol","provider":"codex","model":"gpt-6.1-sol","effort":"medium","tier":"high","roles":["orchestrator","coding","review"]},
+    {"id":"copilot-luna","provider":"copilot","model":"gpt-6-luna","effort":"low","tier":"light","roles":["inventory","coding"]},
+    {"id":"copilot-terra","provider":"copilot","model":"gpt-6.1-terra","effort":"medium","tier":"standard","roles":["coding","review"]},
+    {"id":"copilot-sonnet","provider":"copilot","model":"claude-sonnet-5.5","effort":"medium","tier":"standard","roles":["orchestrator","coding","review"]},
+    {"id":"copilot-sol","provider":"copilot","model":"gpt-6.1-sol","effort":"medium","tier":"high","roles":["orchestrator","coding","review"]}
+  ]}
+}

@@ -64,7 +64,7 @@ test("terminates a process after its timeout", async () => {
 
   assert.equal(result.timedOut, true);
   assert.equal(result.cancelled, false);
-  assert.equal(result.exitCode, null);
+  assert.notEqual(result.exitCode, 0);
 });
 
 test("honors AbortSignal cancellation", async () => {

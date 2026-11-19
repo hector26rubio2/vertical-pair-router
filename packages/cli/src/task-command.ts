@@ -5,7 +5,7 @@ import { BacklogService, type PlannedSlice, type WorkflowKind } from '@vpr/backl
 import { parseProjectProfile } from '@vpr/config';
 import type { EntityId } from '@vpr/contracts';
 import { createSafeProcessRunner } from '@vpr/quality';
-import { resolveExecutable } from '@vpr/runtime';
+import { resolveProgramCommand } from '@vpr/runtime';
 import { SqliteStorage } from '@vpr/storage-sqlite';
 import type { CliIo } from './cli.js';
 
@@ -65,9 +65,9 @@ export async function runTaskCommand(args: readonly string[], io: CliIo): Promis
     const checks = await Promise.all(task.requiredChecks.map(async name => {
       const command = profile.checks[name];
       if (!command) throw new Error(`Check is absent from project profile: ${name}`);
-      const program = await resolveExecutable(command.program);
-      if (!program) throw new Error(`Check executable unavailable: ${command.program}`);
-      return { name, program, args: command.args };
+      const executable = await resolveProgramCommand(command.program);
+      if (!executable) throw new Error(`Check executable unavailable: ${command.program}`);
+      return { name, program:executable.program, args:[...executable.prefix,...command.args],timeoutMs:command.timeoutMs??60000 };
     }));
     if (!args.includes('--approve-checks')) {
       io.stdout(JSON.stringify({ applied: false, taskId, checks, cwd: root, timeoutMs: 60_000 }) + '\n'); return 0;
@@ -84,7 +84,7 @@ export async function runTaskCommand(args: readonly string[], io: CliIo): Promis
       await service.transitionRun(run.runId, 'VALIDATING');
       const runner = createSafeProcessRunner(checks.map(check => check.program));
       for (const check of checks) {
-        const result = await runner({ ...check, cwd: root, timeoutMs: 60_000, maxOutputBytes: profile.policy.maxOutputBytes ?? 1_048_576, signal: controller.signal });
+        const result = await runner({ ...check, cwd: root, maxOutputBytes: profile.policy.maxOutputBytes ?? 1_048_576, signal: controller.signal });
         // Persist metadata only: arbitrary repository output may contain source or secrets.
         await storage.appendEvent({ schemaVersion: 1, eventId: nextId('evt'), projectId: profile.projectId, storyId: task.storyId, taskId: task.taskId, runId: run.runId, actor: 'vpr-cli', type: 'EvidenceRecorded', occurredAt: now(), payload: { name: check.name, exitCode: result.exitCode, durationMs: result.durationMs, outputTruncated: result.outputTruncated, timedOut: result.timedOut, cancelled: result.cancelled, source: 'measured' } });
         if (result.exitCode !== 0 || result.outputTruncated || result.timedOut || result.cancelled) {

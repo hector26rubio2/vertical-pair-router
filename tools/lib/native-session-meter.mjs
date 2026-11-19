@@ -20,12 +20,31 @@ const sum = rows => rows.reduce((total, row) => {
 /** Stream metadata only. Never retain prompts, code, tool output or thinking. */
 export class NativeSessionMeter {
   requests = new Map();
+  streams = new Map();
   tools = new Map();
   final = null;
   initializedAtMs = null;
   firstAssistantAtMs = null;
   resultAtMs = null;
+  compactions = [];
   observe(event, atMs) {
+    if(event.type==='system'&&event.subtype==='compact_boundary'){
+      const meta=event.compact_metadata??event.compactMetadata??{};
+      this.compactions.push({atMs,trigger:['auto','manual','plugin'].includes(meta.trigger)?meta.trigger:'unknown',preTokens:count(meta.pre_tokens??meta.preTokens),postTokens:count(meta.post_tokens??meta.postTokens),agentId:typeof event.agent_id==='string'?event.agent_id:null});
+    }
+    if(event.type==='stream_event'){
+      const value=event.event,scope=event.parent_tool_use_id??'main';
+      if(value?.type==='message_start'&&typeof value.message?.id==='string'&&validModel(value.message.model)){
+        this.observe({type:'assistant',parent_tool_use_id:event.parent_tool_use_id,message:{...value.message,content:[]}},atMs);
+        this.streams.set(scope,`${scope}:${value.message.id}`);
+      }
+      if(value?.type==='message_delta'){
+        const row=this.requests.get(this.streams.get(scope));
+        const output=count(value.usage?.output_tokens);
+        if(row&&output!==null)row.outputTokens=Math.max(row.outputTokens,output);
+      }
+      if(value?.type==='message_stop')this.streams.delete(scope);
+    }
     if (event.type === 'system' && event.subtype === 'init') this.initializedAtMs ??= atMs;
     const message = event.type === 'assistant' ? event.message : null;
     if (message) {
@@ -82,7 +101,7 @@ export class NativeSessionMeter {
     for (const [start, end] of childIntervals) { childSpanMs += Math.max(0, end - Math.max(start, lastEnd)); lastEnd = Math.max(lastEnd, end); }
     return { accounting, completeAccounting: accounting !== 'observed-lower-bound', terminalReceipt: this.final,
       models: models.map(row => ({ ...row, totalTokens: row.inputTokens + row.outputTokens + row.cacheReadTokens + row.cacheWriteTokens })),
-      totals: { ...totals, totalTokens: Object.values(totals).reduce((a, b) => a + b, 0) }, requests, tools,
+      totals: { ...totals, totalTokens: Object.values(totals).reduce((a, b) => a + b, 0) }, requests, tools, compactions:this.compactions.map(row=>({...row})),
       timings: { wallMs, initializedAtMs: this.initializedAtMs, firstAssistantAtMs: this.firstAssistantAtMs,
         resultAtMs: this.resultAtMs, shutdownMs: this.resultAtMs === null ? null : Math.max(0, wallMs - this.resultAtMs),
         childForegroundSpanMs: childIntervals.length ? childSpanMs : null,

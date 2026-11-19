@@ -15,6 +15,7 @@ import {
   type GlossaryTerm
 } from "@vpr/knowledge";
 import { projectUsage, projectUsageComparisons, measureSubscriptionQuota, type SubscriptionSnapshot } from "@vpr/observability";
+import {nativeUsageView,nativeUsageScript} from './native-usage.js';
 
 export interface DashboardServerOptions {
   readonly root: string;
@@ -23,6 +24,7 @@ export interface DashboardServerOptions {
   readonly backlog: BacklogService;
   readonly storage: StorageAdapter;
   readonly subscriptions?: readonly { readonly provider: string; readonly planId: string; readonly source: string }[];
+  readonly readNativeUsage?:()=>Promise<unknown>;
 }
 
 export interface DashboardServer {
@@ -58,6 +60,10 @@ export async function createDashboardServer(
         ) {
           return json(response, 403, { error: "csrf-or-origin" });
         }
+      }
+      if(request.method==='GET'&&request.url==='/api/native-usage'){
+        if(!options.readNativeUsage)return json(response,503,{error:'native-usage-unavailable',inferenceTokens:0});
+        return json(response,200,nativeUsageView(await options.readNativeUsage()));
       }
       if (request.method === "GET" && request.url === "/api/snapshot") {
         const events = await options.storage.readEvents(options.projectId);
@@ -292,6 +298,7 @@ const glossaryEl = byId('glossary');
 const searchEl = byId('search');
 history.replaceState(null, '', location.pathname);
 const authHeaders = { Authorization: 'Bearer ' + token };
+${nativeUsageScript()}
 const mutationHeaders = { ...authHeaders, 'Content-Type': 'application/json', 'X-VPR-CSRF': csrf };
 let storyDraft;
 let proposalId;
@@ -305,7 +312,7 @@ fetch('/api/snapshot', { headers: authHeaders }).then((response) => {
   if (!response.ok) throw new Error('unauthorized');
   return response.json();
 }).then((snapshot) => {
-  statusEl.textContent = 'Local · datos verificados';
+  statusEl.textContent = 'Local · datos observados';
   const subscription = document.createElement('section');
   const subscriptionTitle = document.createElement('h2');
   subscriptionTitle.textContent = 'Suscripción y cuota';

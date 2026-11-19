@@ -1,0 +1,97 @@
+import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { Observable, of, throwError } from 'rxjs';
+import { I18nService } from '@core/i18n';
+import { FinanceApiClient } from '@core/api';
+import { AppStore, CAPABILITIES } from '@core/state';
+import { MovementsBookService } from '@shared/movements';
+import { ImportarMovimientosComponent, cuerpoDeMovimientoImportado } from './importar-movimientos';
+import { interpretarExtracto } from './extracto-parse';
+
+const a = { id: 'a', name: 'A', type: 'checking', currency: 'COP', openingBalance: 0, isDefault: true };
+const b = { ...a, id: 'b', name: 'B', isDefault: false };
+const csv = 'Fecha;Descripción;Importe\n2026-10-01;Uno;1250\n2026-10-02;Dos;2500';
+function setup(movements: any[] = [], implementation: (...args: any[]) => any = () => of({})) {
+  const api = { createMovement: vi.fn(implementation) };
+  const book = { loadMovementPage: vi.fn(async () => undefined) };
+  TestBed.configureTestingModule({providers: [
+    {provide: I18nService, useValue: { t: (key: string) => key }},
+    {provide: FinanceApiClient, useValue: api},
+    {provide: CAPABILITIES, useValue: { allows: () => true }},
+    {provide: AppStore, useValue: {data: signal({accounts: [a,b], movements}), toast: signal(''), money: String}},
+    {provide: MovementsBookService, useValue: book},
+  ]});
+  const component = TestBed.runInInjectionContext(() => new ImportarMovimientosComponent());
+  const closed = vi.fn(); component.cerrado.subscribe(closed);
+  component.elegirCuenta('a');
+  return {component,api,book,closed};
+}
+async function load(c: ImportarMovimientosComponent, text: string) {
+  const target = {files: [new File([text], 'synthetic.csv', {type:'text/csv'})],value:'synthetic.csv'};
+  c.elegirArchivo({target} as unknown as Event);
+  await vi.waitFor(() => expect(c.extracto()).not.toBeNull());
+}
+const movement = (accountId: string, kind='income', amount=1250) => ({id:'m',accountId,date:'2026-10-01',description:'Uno',amount,kind,status:'confirmed',category:''});
+afterEach(() => TestBed.resetTestingModule());
+
+describe('VPR aceptación externa del importador real', () => {
+  it('no omite una fila por un movimiento idéntico de otra cuenta', async () => {
+    const {component:c} = setup([movement('b')]);
+    await load(c, 'Fecha;Descripción;Importe\n2026-10-01;Uno;1250');
+    expect(c.filasNuevas()).toHaveLength(1);
+  });
+  it('recalcula duplicados al cambiar de cuenta después de cargar', async () => {
+    const {component:c} = setup([movement('a')]);
+    await load(c, 'Fecha;Descripción;Importe\n2026-10-01;Uno;1250');
+    expect(c.filasNuevas()).toHaveLength(0);
+    c.elegirCuenta('b');
+    expect(c.filasNuevas()).toHaveLength(1);
+  });
+  it('reconoce el gasto con importe positivo del view model frente al importe negativo del CSV', async () => {
+    const {component:c} = setup([movement('a','expense',1250)]);
+    await load(c, 'Fecha;Descripción;Importe\n2026-10-01;Uno;-1250');
+    expect(c.filasNuevas()).toHaveLength(0);
+  });
+  it('mantiene la clave de una fila al cambiar su posición en el lote de reintento', () => {
+    const fila = interpretarExtracto(csv).filas[1];
+    expect(cuerpoDeMovimientoImportado(fila,a as any,0).idempotencyKey).toBe(cuerpoDeMovimientoImportado(fila,a as any,1).idempotencyKey);
+  });
+  it('conserva identidad distinta para dos filas originales legítimamente iguales', () => {
+    const fila=interpretarExtracto(csv).filas[0];
+    expect(cuerpoDeMovimientoImportado({...fila,id:'extracto-0'},a as any,0).idempotencyKey).not.toBe(cuerpoDeMovimientoImportado({...fila,id:'extracto-1'},a as any,0).idempotencyKey);
+  });
+  it('no reutiliza una clave entre cuentas', () => {
+    const fila=interpretarExtracto(csv).filas[0];
+    expect(cuerpoDeMovimientoImportado(fila,a as any,0).idempotencyKey).not.toBe(cuerpoDeMovimientoImportado(fila,b as any,0).idempotencyKey);
+  });
+  it('conserva pendientes y reintenta sólo el fallo con la misma clave sin cerrar tras éxito parcial', async () => {
+    let call=0;
+    const {component:c,api,closed}=setup([],()=>++call===2?throwError(()=>Error('synthetic transient failure')):of({}));
+    await load(c,csv); c.confirmar();
+    await vi.waitFor(()=>expect(c.importando()).toBe(false));
+    expect(api.createMovement).toHaveBeenCalledTimes(2);
+    const failedKey=api.createMovement.mock.calls[1][0].idempotencyKey;
+    expect(c.extracto()).not.toBeNull(); expect(c.filasNuevas()).toHaveLength(1);
+    expect(c.cifraDeFallos()).toBe(1); expect(closed).not.toHaveBeenCalled();
+    c.confirmar(); await vi.waitFor(()=>expect(api.createMovement).toHaveBeenCalledTimes(3));
+    await vi.waitFor(()=>expect(c.importando()).toBe(false));
+    expect(api.createMovement.mock.calls[2][0].idempotencyKey).toBe(failedKey);
+    expect(closed).toHaveBeenCalledTimes(1);
+  });
+  it('conserva todas las filas si todo falla y muestra el número de fallos', async () => {
+    const {component:c,api,closed}=setup([],()=>throwError(()=>Error('synthetic failure')));
+    await load(c,csv);c.confirmar();await vi.waitFor(()=>expect(c.importando()).toBe(false));
+    expect(api.createMovement).toHaveBeenCalledTimes(2);expect(c.filasNuevas()).toHaveLength(2);
+    expect(c.cifraDeFallos()).toBe(2);expect(closed).not.toHaveBeenCalled();
+  });
+  it('respeta el límite de cuatro peticiones y usa la cuenta confirmada aunque cambie la selección', async () => {
+    let active=0,max=0;
+    const {component:c,api}=setup([],()=>new Observable(subscriber=>{active++;max=Math.max(max,active);const timer=setTimeout(()=>{active--;subscriber.next({});subscriber.complete();},5);return ()=>clearTimeout(timer);}));
+    const text='Fecha;Descripción;Importe\n'+Array.from({length:9},(_,i)=>`2026-10-01;Fila ${i};${100+i}`).join('\n');
+    await load(c,text);c.confirmar();c.elegirCuenta('b');
+    await vi.waitFor(()=>expect(api.createMovement).toHaveBeenCalledTimes(9));
+    await vi.waitFor(()=>expect(c.importando()).toBe(false));
+    expect(max).toBeLessThanOrEqual(4);
+    expect(api.createMovement.mock.calls.every(([body])=>body.links.account==='a')).toBe(true);
+  });
+});

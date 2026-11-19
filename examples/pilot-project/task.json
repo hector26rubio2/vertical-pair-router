@@ -1,0 +1,6 @@
+{
+  "title":"Corregir normalización de códigos SKU",
+  "prompt":"Corrige normalizeSku(value) en src/solution.mjs: exige string o lanza TypeError, elimina espacios de los extremos, convierte secuencias internas de espacios/tabulaciones/saltos a un guion y convierte a minúsculas. Vacío devuelve vacío; conserva acentos. Modifica sólo src; no cambies acceptance.test.mjs. Los checks los ejecuta VPR.",
+  "kind":"bugfix","complexity":"simple","risk":"low","executionRole":"coding","needsPlanning":false,
+  "allowedPaths":["src"],"requiredChecks":["test"]
+}

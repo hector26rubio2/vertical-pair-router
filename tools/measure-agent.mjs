@@ -5,6 +5,8 @@ import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { parseAgentUsage } from '../packages/observability/dist/index.js';
 import { SqliteStorage } from '../packages/storage-sqlite/dist/index.js';
+import {subscriptionEnvironment} from '../packages/runtime/dist/native-providers.js';
+import {codexLaunchEnvironment} from '../packages/runtime/dist/codex-launch.js';
 
 const args = process.argv.slice(2);
 const option = name => { const index = args.indexOf(name); return index < 0 ? undefined : args[index + 1]; };
@@ -20,13 +22,14 @@ if (!promptFile) throw new Error('--input requires a prompt file; its content is
 const taskText = await readFile(resolve(promptFile), 'utf8');
 if (Buffer.byteLength(taskText) > 16384) throw new Error('Input exceeds 16 KiB');
 const commandArgs = provider === 'codex'
-  ? ['exec', '--json', '--ephemeral', '--ignore-user-config', '--sandbox', 'read-only', '--cd', root, '-']
+  ? ['--no-daemon','-a','never','exec', '--json', '--ephemeral', '--sandbox', 'read-only', '--cd', root, '-c','sandbox_workspace_write.network_access=false','-']
   : ['--print', '--verbose', '--output-format', 'stream-json', '--forward-subagent-text', '--max-turns', '3', '--permission-mode', 'plan'];
 const db = new SqliteStorage(resolve(root, '.vpr/local.sqlite'));
 await db.initialize();
 const runId = `run_${randomUUID()}`;
 const started = performance.now();
-const child = spawn(executable, commandArgs, { cwd: root, shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] });
+const environment=provider==='codex'?await codexLaunchEnvironment(executable,subscriptionEnvironment()):subscriptionEnvironment();
+const child = spawn(executable, commandArgs, { cwd: root, env:environment,shell: false, windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'] });
 const completion = new Promise((resolve, reject) => { child.once('error', reject); child.once('close', resolve); });
 const stop = () => child.kill();
 process.once('SIGINT', stop);

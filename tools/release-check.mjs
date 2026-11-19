@@ -1,0 +1,10 @@
+import {readFile} from 'node:fs/promises';
+const source=JSON.parse(await readFile('package.json','utf8'));
+const expected=process.env.VPR_RELEASE_TAG;
+if(expected&&expected!=='v'+source.version)throw Error('Release tag must match package.json version');
+const license=await readFile('LICENSE','utf8').catch(()=>null);
+if(!license?.trim())throw Error('Owner-approved LICENSE required before publishing a release');
+if(source.version==='0.0.0')throw Error('A reviewed release version is required');
+const plugin=JSON.parse(await readFile('.claude-plugin/plugin.json','utf8'));
+if(plugin.version!==source.version||plugin.license!==source.license)throw Error('CLI and plugin release metadata must match');
+console.log(JSON.stringify({releaseMetadataReady:true,version:source.version,licensePresent:true,checksProvidedBy:'required verify job'}));

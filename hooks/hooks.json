@@ -1,5 +1,6 @@
 {
   "description": "Thin, local-only Vertical Pair Router host integration",
+  "modules": ["./usage.js"],
   "hooks": {
     "SessionStart": [
       {

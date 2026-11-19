@@ -1,0 +1,8 @@
+# Configure required code-owner reviews for these sensitive paths in GitHub.
+/.github/ @hector26rubio2
+/.husky/ @hector26rubio2
+/packages/quality/src/staged-security* @hector26rubio2
+/tools/pre-commit-security.mjs @hector26rubio2
+/tools/ci-staged-security.mjs @hector26rubio2
+**/appsettings* @hector26rubio2
+**/.env* @hector26rubio2

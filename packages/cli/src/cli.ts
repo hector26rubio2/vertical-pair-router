@@ -3,6 +3,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { createInterface } from 'node:readline/promises';
 import { fileURLToPath } from 'node:url';
+import {existsSync} from 'node:fs';
 import { spawn } from 'node:child_process';
 
 import { BacklogService, createStoryDraftFromGrill } from "@vpr/backlog";
@@ -20,6 +21,12 @@ import { runTaskCommand } from './task-command.js';
 import { provisionProject } from './provision-project.js';
 import { runModelEvidenceCommand } from './model-evidence-command.js';
 import { detectSubscriptionPlan } from './subscription-detection.js';
+import {runUsageCommand} from './usage-command.js';
+import {runAgentCommand} from './agent-command.js';
+import {runLocalToolsCommand} from './local-tools-command.js';
+import {checkStagedSecurity} from '../../quality/src/staged-security.mjs';
+import {readUsage} from '../../runtime/src/usage-ledger.mjs';
+import {installPlugin} from './plugin-install.js';
 
 export interface CliIo {
   readonly stdout: (value: string) => void;
@@ -32,21 +39,36 @@ const defaultIo: CliIo = {
 };
 
 export async function runCli(args: readonly string[], io: CliIo = defaultIo): Promise<number> {
+  if(args[0]==='tools')return runLocalToolsCommand(args.slice(1),io);
+  if(args[0]==='security'){
+    if(args[1]!=='check'){io.stderr('Usage: vpr security check --project <path>\n');return 2;}
+    const at=args.indexOf('--project');const result=checkStagedSecurity(at<0?process.cwd():resolve(args[at+1]??'.'));
+    io.stdout(JSON.stringify(result)+'\n');return result.passed?0:1;
+  }
+  if(args[0]==='use')return runUsageCommand(args.slice(1),io);
+  if(args[0]==='agent')return runAgentCommand(args.slice(1),io);
   if (args[0] === 'models') return runModelEvidenceCommand(args.slice(1), io);
   if (args[0] === 'plugin') {
     const packageRoot = fileURLToPath(new URL('../', import.meta.url));
-    if (args[1] === 'path') { io.stdout(resolve(packageRoot, 'plugin') + '\n'); return 0; }
-    if (args[1] !== 'install') { io.stderr('Plugin actions: path, install\n'); return 2; }
+    const pluginRoot=existsSync(resolve(packageRoot,'.claude-plugin/plugin.json'))?packageRoot:resolve(packageRoot,'plugin');
+    if (args[1] === 'path') { io.stdout(pluginRoot + '\n'); return 0; }
+    if(args[1]==='doctor'){
+      const program=await resolveExecutable('claude');if(!program){io.stdout(JSON.stringify({ready:false,reason:'Claude Code CLI unavailable',inferenceTokens:0})+'\n');return 3;}
+      return new Promise<number>(done=>{
+        const child=spawn(program,['plugin','validate','--strict','--json',pluginRoot],{shell:false,windowsHide:true,stdio:['ignore','pipe','ignore']});let content='';
+        const timer=setTimeout(()=>{child.kill();io.stdout(JSON.stringify({ready:false,reason:'Native validation timed out',inferenceTokens:0})+'\n');done(3);},20000);
+        child.stdout.on('data',chunk=>{content+=chunk.toString();if(content.length>1048576)child.kill();});
+        child.once('error',()=>{clearTimeout(timer);done(3);});child.once('close',()=>{clearTimeout(timer);try{const result=JSON.parse(content) as {manifest?:{errors?:unknown[]};contents?:{errors?:unknown[];notes?:string[]}[];directory?:{findings?:unknown[]}};
+          const notes=result.contents?.flatMap(item=>item.notes??[])??[];const ready=!(result.manifest?.errors?.length)&&result.contents?.every(item=>!item.errors?.length)&&notes.some(note=>note.includes('command.run{command=vpr-use}'));
+          io.stdout(JSON.stringify({ready:!!ready,inferenceTokens:0,command:'vpr-use',directoryFindings:result.directory?.findings??[],reason:ready?'Native usage command recognized; release/license findings are listed separately':'Update Claude Code or resolve plugin module validation before using the slash command'})+'\n');done(ready?0:3);
+        }catch{io.stdout(JSON.stringify({ready:false,reason:'Native validator unavailable or incompatible',inferenceTokens:0})+'\n');done(3);}});
+      });
+    }
+    if (args[1] !== 'install') { io.stderr('Plugin actions: path, doctor, install\n'); return 2; }
     await readFile(resolve(packageRoot, '.claude-plugin/marketplace.json'), 'utf8');
     const program = await resolveExecutable('claude');
     if (!program) throw new Error('Claude Code executable unavailable');
-    return await new Promise<number>((done, reject) => {
-      const child = spawn(program, ['plugin', 'install', 'vertical-pair-router', '--marketplace', packageRoot, '--scope', 'user', '--json'], { shell: false, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
-      child.stdout.on('data', chunk => io.stdout(String(chunk)));
-      child.stderr.on('data', chunk => io.stderr(String(chunk)));
-      child.once('error', reject);
-      child.once('close', code => done(code ?? 1));
-    });
+    return installPlugin(program,packageRoot,io);
   }
   if (args[0] === 'task') return runTaskCommand(args.slice(1), io);
   if (args[0] === "init") return runInit(args.slice(1), io);
@@ -231,6 +253,7 @@ async function runDashboard(args: readonly string[], io: CliIo): Promise<number>
     nextId: (prefix) => `${prefix}_${randomUUID()}` as EntityId
   });
   const dashboard = await createDashboardServer({
+    readNativeUsage:()=>readUsage({scope:'machine',detail:true}),
     root,
     projectId: projectId as EntityId,
     glossaryPath: profile.glossaryPath,
@@ -302,11 +325,22 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
     return 2;
   }
   let proposal = await proposeProjectProfile(project);
+  const integrationsAt=args.indexOf('--integrations'),technologiesAt=args.indexOf('--technologies');
+  if(integrationsAt>=0||technologiesAt>=0){
+    const selected=integrationsAt<0?null:args[integrationsAt+1]?.split(',').map(value=>value.trim());
+    if(selected&&selected.some(value=>!['husky','graphify','archify','none'].includes(value)))throw new TypeError('Integrations: husky,graphify,archify or none');
+    if(integrationsAt>=0&&!selected?.length)throw new TypeError('--integrations needs a value');
+    const previous=proposal.profile.setup;
+    const profile=parseProjectProfile({...proposal.profile,setup:{technologies:technologiesAt<0?previous?.technologies??[]:(args[technologiesAt+1]??'').split(',').filter(Boolean),integrations:selected?{husky:selected.includes('husky'),graphify:selected.includes('graphify'),archify:selected.includes('archify')}:previous?.integrations??{husky:false,graphify:false,archify:false}}});
+    const content=JSON.stringify(profile,null,2)+'\n';
+    proposal={...proposal,profile,content,action:content===proposal.content?proposal.action:proposal.action==='create'?'create':'update'};
+  }
   if (args.includes('--interactive')) {
     if (!process.stdin.isTTY) throw new Error('--interactive requires a terminal');
     const interview = createInterface({ input: process.stdin, output: process.stderr });
     try {
-      const technologies = (await interview.question('Tecnologías del proyecto (separadas por coma): '))
+      const detectedTechnologies=proposal.profile.setup?.technologies??[];
+      const technologies = ((await interview.question('Tecnologías del proyecto (separadas por coma) ['+detectedTechnologies.join(', ')+']: '))||detectedTechnologies.join(','))
         .split(',').map(item => item.trim()).filter(Boolean);
       const yes = async (question: string): Promise<boolean> => /^(s|si|sí|y|yes)$/iu.test((await interview.question(question + ' [s/N]: ')).trim());
       const integrations = {
@@ -361,7 +395,7 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
 
 function usage(io: CliIo): number {
   io.stderr(
-    "Usage: vpr doctor --db <path> | vpr init --project <path> [--interactive] [--apply] | " +
+    "Usage: vpr doctor --db <path> | vpr init --project <path> [--interactive] [--integrations husky,graphify,archify] [--apply] | vpr tools <doctor|graph|query|diagram> --project <path> | " +
       "vpr story --db <path> --project-id <id> --input <json> [--apply] | " +
       "vpr data export --db <path> --project-id <id> --out <jsonl> | " +
       "vpr data retention --db <path> --project-id <id> --before <iso> [--apply --confirm <id>] | " +

@@ -29,7 +29,8 @@ test("serves an authenticated local snapshot and protects mutations", async (con
   });
   await storage.appendEvent({ schemaVersion: 1, eventId: "evt_baseline", occurredAt: "2026-11-11T16:00:00.000Z", projectId, actor: "test", type: "UsageSampleRecorded", payload: { storyId: "story_1", commit: "abc", label: "baseline", metric: 10, source: "measured", sampleSize: 2 } });
   await storage.appendEvent({ schemaVersion: 1, eventId: "evt_plugin", occurredAt: "2026-11-11T16:01:00.000Z", projectId, actor: "test", type: "UsageSampleRecorded", payload: { storyId: "story_1", commit: "abc", label: "plugin", metric: 8, source: "measured", sampleSize: 2 } });
-  const server = await createDashboardServer({ root, projectId, glossaryPath: "GLOSSARY.md", backlog, storage });
+  let nativeReads=0;
+  const server = await createDashboardServer({ root, projectId, glossaryPath: "GLOSSARY.md", backlog, storage,readNativeUsage:async()=>{nativeReads++;return {groups:[{provider:'claude',model:'haiku',inputTokens:2,privatePrompt:'MUST NOT LEAVE DTO'}],records:[{provider:'claude',model:'haiku',role:'implement',outputTokens:3,cost:{min:.1,max:.2,credential:'MUST NOT LEAVE DTO'},privatePrompt:'MUST NOT LEAVE DTO'}],recordCount:1,inferenceTokens:0,credential:'MUST NOT LEAVE DTO'};}});
   context.after(async () => {
     await server.close();
     await storage.close();
@@ -48,6 +49,9 @@ test("serves an authenticated local snapshot and protects mutations", async (con
   assert.doesNotThrow(() => new Script(browserScript));
   assert.equal((await fetch(`${origin}/api/snapshot`)).status, 401);
   const auth = { Authorization: `Bearer ${server.token}` };
+  assert.equal((await fetch(`${origin}/api/native-usage`)).status,401);assert.equal(nativeReads,0);
+  const nativeResponse=await fetch(`${origin}/api/native-usage`,{headers:auth});assert.equal(nativeResponse.status,200);
+  const nativeText=await nativeResponse.text();assert.equal(nativeReads,1);assert.ok(!nativeText.includes('MUST NOT LEAVE DTO'));assert.ok(!nativeText.includes('privatePrompt'));assert.equal(JSON.parse(nativeText).records[0].outputTokens,3);
   const snapshotResponse = await fetch(`${origin}/api/snapshot`, { headers: auth });
   assert.equal(snapshotResponse.status, 200);
   const snapshot = await snapshotResponse.json() as { glossary: { term: string; aliases: string[]; status: string }[]; usage: { tokens: { source: string } }; comparisons: { delta: number; smallSample: boolean }[] };

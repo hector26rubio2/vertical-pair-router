@@ -1,0 +1,1 @@
+{"name":"vpr-portable-pilot","private":true,"type":"module","scripts":{"test":"node --test acceptance.test.mjs"},"engines":{"node":">=24.15 <27"}}

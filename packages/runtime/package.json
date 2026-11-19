@@ -8,6 +8,7 @@
   },
   "types": "./dist/index.d.ts",
   "dependencies": {
+    "@microsoft/copilot-sdk": "2.0.1",
     "@vpr/contracts": "workspace:*",
     "@vpr/core": "workspace:*"
   },
@@ -15,4 +16,3 @@
     "@vpr/storage-sqlite": "workspace:*"
   }
 }
-

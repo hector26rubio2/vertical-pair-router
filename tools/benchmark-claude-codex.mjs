@@ -1,0 +1,70 @@
+import {mkdir,readFile,writeFile,readdir} from 'node:fs/promises';
+import {resolve,join} from 'node:path';
+import {spawn} from 'node:child_process';
+import {createHash} from 'node:crypto';
+import {workflowTasks,workflowAcceptance} from './lib/workflow-benchmark-tasks.mjs';
+import {runMeasuredClaude} from './lib/run-measured-claude.mjs';
+import {officialCostBreakdown} from './lib/official-cost-breakdown.mjs';
+import {codexReferenceCost} from './lib/codex-reference-cost.mjs';
+import {resolveExecutable} from '../packages/runtime/dist/index.js';
+import {runCli} from '../packages/cli/dist/index.js';
+if(!process.argv.includes('--approve-provider'))throw new Error('Explicit cross-provider native usage approval required');
+const root=resolve('.'),directory=join(root,'.tmp','claude-codex-'+Date.now());await mkdir(directory,{recursive:true});
+const cliOverride=process.argv.indexOf('--codex-executable');
+const [claude,codex]=await Promise.all([resolveExecutable('claude'),cliOverride>=0?resolveExecutable(resolve(process.argv[cliOverride+1])):resolveExecutable('codex')]);
+if(!claude||!codex)throw new Error('Both native CLIs required');
+const claudePrices=JSON.parse(await readFile('docs/research/model-price-catalog.json','utf8'));
+const codexPrices=JSON.parse(await readFile('docs/research/openai-model-price-catalog.json','utf8'));
+const report={schemaVersion:1,at:new Date().toISOString(),scenario:'Claude calls a local MCP tool that executes Codex with its ChatGPT login',repetitions:1,
+  meteringInferenceTokens:0,copilotExecuted:false,prices:{checkedAt:codexPrices.checkedAt,source:codexPrices.source},tasks:[],rows:[]};
+const path=join(directory,'report.json');let saving=Promise.resolve();const save=()=>{const text=JSON.stringify(report,null,2)+'\n';saving=saving.then(()=>writeFile(path,text));return saving;};
+async function check(cwd,file){const start=performance.now();const env={...process.env,VPR_BENCH_PROJECT:cwd};delete env.NODE_TEST_CONTEXT;
+  const child=spawn(process.execPath,['--test','--test-reporter=tap','--test-timeout=8000',file],{cwd,env,windowsHide:true,stdio:['ignore','pipe','pipe']});let text='';child.stdout.on('data',c=>{if(text.length<100000)text+=c;});child.stderr.on('data',()=>{});
+  const timer=setTimeout(()=>child.kill(),12000);const exitCode=await new Promise((done,reject)=>{child.once('error',reject);child.once('close',done);}).finally(()=>clearTimeout(timer));
+  const n=key=>Number(text.match(new RegExp('# '+key+' (\\d+)'))?.[1]??0);return {exitCode,passed:n('pass'),failed:n('fail'),durationMs:Math.round(performance.now()-start)};
+}
+async function files(cwd,prefix=''){let result={};for(const file of await readdir(cwd,{withFileTypes:true})){if(['.vpr','.git'].includes(file.name))continue;const name=prefix+file.name;if(file.isSymbolicLink())throw Error('Unexpected symlink');if(file.isDirectory())Object.assign(result,await files(join(cwd,file.name),name+'/'));else result[name]=createHash('sha256').update(await readFile(join(cwd,file.name))).digest('hex');}return result;}
+const requestedTasks=process.argv.includes('--tasks')?process.argv[process.argv.indexOf('--tasks')+1].split(','):['W04','W06'];
+if(requestedTasks.some(id=>!['W04','W06'].includes(id)))throw Error('Unknown cross-provider scenario');
+const requestedModels=process.argv.includes('--models')?process.argv[process.argv.indexOf('--models')+1].split(','):['gpt-6.1-terra'];
+if(!requestedModels.length||new Set(requestedModels).size!==requestedModels.length||requestedModels.some(model=>!codexPrices.cards.some(card=>card.model===model)))throw Error('Unknown or duplicate priced Codex model');
+const fixedCoordinator=process.argv.includes('--coordinator')?process.argv[process.argv.indexOf('--coordinator')+1]:null;
+if(fixedCoordinator&&!['claude-haiku-5-5','claude-sonnet-5-5','claude-opus-5-5'].includes(fixedCoordinator))throw Error('Unknown coordinator');
+for(const [id,defaultCoordinator] of [['W04','claude-haiku-5-5'],['W06','claude-opus-5-5']].filter(([id])=>requestedTasks.includes(id)))for(const workerModel of requestedModels){
+  const coordinator=fixedCoordinator??defaultCoordinator;
+  const task=workflowTasks.find(task=>task.id===id),arm=coordinator.replace('claude-','').replace(/-\d.*$/u,'')+'-codex-'+workerModel.replace('gpt-',''),project=join(directory,id+'-'+arm);
+  await mkdir(join(project,'src'),{recursive:true});await mkdir(join(project,'test'),{recursive:true});
+  const feature=task.requirement+'\nAllowed edits: src/ and test/ only. No dependencies, network, commits or further delegation.\n';
+  await writeFile(join(project,'FEATURE.txt'),feature);
+  await writeFile(join(project,'package.json'),JSON.stringify({name:'vpr-cross-provider-trial',private:true,type:'module',scripts:{test:'node --test test/*.test.mjs'}})+'\n');
+  await writeFile(join(project,'src/solution.mjs'),`export function ${task.entry}(){throw Error('not implemented');}\n`);
+  for(const [name,text] of Object.entries(task.files??{}))await writeFile(join(project,name),text);
+  await runCli(['init','--project',project,'--apply'],{stdout(){},stderr(text){throw Error(text);}});
+  const profilePath=join(project,'.vpr/profile.json'),profile=JSON.parse(await readFile(profilePath,'utf8'));
+  profile.policy.allowedProviders=['local','claude','codex'];profile.policy.allowShell=true;await writeFile(profilePath,JSON.stringify(profile,null,2)+'\n');
+  const before=await files(project),external=join(directory,id+'-acceptance.mjs'),codexReceipt=join(directory,id+'-'+arm+'-codex-receipt.json'),manifest=join(directory,id+'-'+arm+'-manifest.json');
+  await writeFile(external,workflowAcceptance(task));const acceptanceHash=createHash('sha256').update(await readFile(external)).digest('hex');
+  await writeFile(manifest,JSON.stringify({project,executable:codex,model:workerModel,receipt:codexReceipt})+'\n');
+  if(!report.tasks.some(value=>value.id===id))report.tasks.push({id:task.id,name:task.name,level:task.level,kind:task.kind,requirement:task.requirement,testCount:task.checks.length});
+  const row={taskId:id,arm,project,coordinatorModel:coordinator,executorModel:workerModel,startedAt:new Date().toISOString(),status:'running',preflight:await check(project,external),acceptanceHash};report.rows.push(row);await save();
+  const mcp={mcpServers:{vpr_codex:{command:process.execPath,args:[join(root,'tools/lib/codex-delegation-bridge.mjs'),'--manifest',manifest]}}};
+  const agents={'vpr-orchestrator':{description:'Plan and delegate to native Codex',model:coordinator,effort:'medium',tools:['Read','mcp__vpr_codex__execute'],prompt:'Read the task files, provide a concise implementation plan, and call mcp__vpr_codex__execute exactly once. Codex implements all source and test changes. You have read-only access. After it returns inspect source and summarize concerns; do not edit, delegate again or claim external tests passed.'}};
+  const args=['--print','--model',coordinator,'--effort','medium','--max-turns','12','--output-format','stream-json','--verbose','--include-partial-messages','--no-session-persistence','--prompt-suggestions','false','--setting-sources','','--strict-mcp-config','--mcp-config',JSON.stringify(mcp),'--permission-mode','acceptEdits','--permission-prompts','none','--add-dir',project,'--tools','Read','--allowedTools','Read,mcp__vpr_codex__execute','--agents',JSON.stringify(agents),'--agent','vpr-orchestrator','--plugin-dir',join(root,'dist/npm/plugin')];
+  console.log(JSON.stringify({phase:'running',task:id,arm,report:path}));
+  row.receipt=await runMeasuredClaude({executable:claude,cwd:project,args,prompt:`Work in ${project}. Analyze FEATURE.txt, then delegate implementation to native Codex through mcp__vpr_codex__execute. ${task.requirement}`,timeoutMs:200000,onSnapshot(value){row.receipt=value;void save();}});
+  try{row.codexReceipt=JSON.parse(await readFile(codexReceipt,'utf8'));}catch{row.codexReceipt=null;}
+  row.models=row.receipt.models.map(model=>({...model,provider:'claude',role:'orquestador y revisión',cost:officialCostBreakdown(model,row.receipt.requests,claudePrices)}));
+  const worker=codexReferenceCost(row.codexReceipt?.usage,workerModel,codexPrices);if(worker)row.models.push(worker);
+  row.checks={external:await check(project,external),own:await check(project,'test/*.test.mjs')};
+  const after=await files(project);row.changedPaths=[...new Set([...Object.keys(before),...Object.keys(after)])].filter(name=>before[name]!==after[name]);
+  row.allowedChanges=row.changedPaths.every(name=>name.startsWith('src/')||name.startsWith('test/'));
+  row.acceptanceUnchanged=acceptanceHash===createHash('sha256').update(await readFile(external)).digest('hex');
+  const calls=row.receipt.tools.filter(tool=>tool.name==='mcp__vpr_codex__execute');
+  row.delegationVerified=calls.length===1&&calls[0].failed===false&&row.codexReceipt?.completed===true;
+  row.totalCost=row.models.length===2&&row.models.every(model=>model.cost)?{min:row.models.reduce((s,m)=>s+m.cost.totalUsd.min,0),max:row.models.reduce((s,m)=>s+m.cost.totalUsd.max,0)}:null;
+  row.totals=Object.fromEntries(['inputTokens','outputTokens','cacheReadTokens','cacheWriteTokens','totalTokens'].map(key=>[key,row.models.reduce((s,m)=>s+m[key],0)]));
+  row.status=row.delegationVerified&&row.receipt.completeAccounting&&row.receipt.terminalReceipt?.success&&row.allowedChanges&&row.acceptanceUnchanged&&row.checks.external.exitCode===0&&row.checks.external.passed===task.checks.length&&row.checks.own.exitCode===0&&row.checks.own.passed>0?'accepted':'incomplete';
+  row.finishedAt=new Date().toISOString();
+  await save();console.log(JSON.stringify({phase:'measured',task:id,arm,status:row.status,delegationVerified:row.delegationVerified,cost:row.totalCost,tokens:row.totals,checks:row.checks,codex:row.codexReceipt}));
+}
+await saving;console.log(JSON.stringify({report:path}));

@@ -55,6 +55,17 @@ test("detects pnpm scripts and proposes a versioned profile", async (context) =>
   await assert.rejects(readFile(proposal.target, "utf8"), /ENOENT/);
 });
 
+test('initializes non-Node projects, detects technology locally and does not invent acceptance tests',async context=>{
+  const root=await mkdtemp(join(tmpdir(),'vpr-polyglot-'));context.after(()=>rm(root,{recursive:true,force:true}));
+  await writeFile(join(root,'service.csproj'),'<Project Sdk="Microsoft.NET.Sdk" />');
+  const dotnet=await proposeProjectProfile(root);assert.ok(dotnet.profile.setup?.technologies.includes('.NET'));
+  assert.deepEqual(dotnet.profile.checks,{build:{program:'dotnet',args:['build']}});assert.equal(dotnet.profile.packageManager,'unknown');
+  await writeFile(join(root,'pyproject.toml'),'[project]\nname="service"\n');
+  const mixed=await proposeProjectProfile(root);assert.ok(mixed.profile.setup?.technologies.includes('Python'));assert.equal(mixed.profile.checks.test,undefined);
+  await writeFile(join(root,'package.json'),JSON.stringify({packageManager:'pnpm@11.1.2',devDependencies:{typescript:'5.9.3'},dependencies:{'@angular/core':'22.0.0'}}));
+  const frontend=await proposeProjectProfile(root);assert.equal(frontend.profile.packageManager,'pnpm');assert.ok(frontend.profile.setup?.technologies.includes('Angular'));assert.ok(frontend.profile.setup?.technologies.includes('TypeScript'));
+});
+
 test("applies only the reviewed proposal and then becomes a no-op", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vpr-profile-"));
   context.after(async () => rm(root, { recursive: true, force: true }));

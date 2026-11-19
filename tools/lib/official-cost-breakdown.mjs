@@ -6,7 +6,23 @@ export function officialCostBreakdown(row, requests, catalog, now = new Date().t
   const keys = ['inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens'];
   if (keys.some(key => !Number.isSafeInteger(row[key]) || row[key] < 0)) return null;
   const matched = requests.filter(request => request.model === row.model);
+  const ids=matched.map(request=>request.id).filter(id=>typeof id==='string');
+  if(ids.length&&(ids.length!==matched.length||new Set(ids).size!==ids.length))return null;
   const covered = matched.length > 0 && keys.every(key => matched.reduce((sum, request) => sum + request[key], 0) === row[key]);
+  const promptKeys=['inputTokens','cacheReadTokens','cacheWriteTokens'];
+  const observed=Object.fromEntries(promptKeys.map(key=>[key,matched.reduce((sum,request)=>sum+request[key],0)]));
+  const promptCovered = matched.length > 0 && promptKeys.every(key=>observed[key]===row[key]);
+  // A streamed message may omit final output usage while still reporting every
+  // prompt counter. If all covered prompts are in the base tier, the whole
+  // observed output is base-tier too; cumulative input is not context length.
+  const aggregatePrompt=promptKeys.reduce((sum,key)=>sum+row[key],0);
+  const remaining=promptKeys.reduce((sum,key)=>sum+row[key]-observed[key],0);
+  const canBound=matched.length>0&&promptKeys.every(key=>observed[key]<=row[key]);
+  // Even if a request is missing, its input is bounded by the remaining
+  // aggregate. Add that remainder to the largest observed prompt to cover
+  // partial observations too; never assume the missing requests are small.
+  const contextPromptUpperBound=canBound?Math.max(...matched.map(request=>promptKeys.reduce((sum,key)=>sum+request[key],0)))+remaining:aggregatePrompt;
+  const basePromptCoverage=card.tiers[0].maxPromptTokens===null||contextPromptUpperBound<=card.tiers[0].maxPromptTokens;
   const observed5m = matched.reduce((sum, request) => sum + (request.cacheWrite5mTokens ?? 0), 0);
   const observed1h = matched.reduce((sum, request) => sum + (request.cacheWrite1hTokens ?? 0), 0);
   const validPartialCache = observed5m + observed1h <= row.cacheWriteTokens;
@@ -17,8 +33,8 @@ export function officialCostBreakdown(row, requests, catalog, now = new Date().t
   let unknownContextTier = false, unknownCacheTtl = false;
   for (const sample of samples) {
     const prompt = sample.inputTokens + sample.cacheReadTokens + sample.cacheWriteTokens;
-    const knownTier = covered || card.tiers.length === 1 || prompt <= card.tiers[0].maxPromptTokens;
-    const tiers = knownTier ? [card.tiers.find(tier => tier.maxPromptTokens === null || prompt <= tier.maxPromptTokens)] : card.tiers;
+    const knownTier = covered || basePromptCoverage || card.tiers.length === 1 || prompt <= card.tiers[0].maxPromptTokens;
+    const tiers = basePromptCoverage ? [card.tiers[0]] : knownTier ? [card.tiers.find(tier => tier.maxPromptTokens === null || prompt <= tier.maxPromptTokens)] : card.tiers;
     if (!tiers.every(Boolean)) return null;
     unknownContextTier ||= !knownTier;
     const known5m = sample.cacheWrite5mTokens ?? 0, known1h = sample.cacheWrite1hTokens ?? 0;
@@ -43,5 +59,5 @@ export function officialCostBreakdown(row, requests, catalog, now = new Date().t
     cacheReadUsd: { min: parts.cacheRead, max: parts.cacheReadMax }, cacheWriteUsd: { min: parts.cacheWriteMin, max: parts.cacheWriteMax },
     totalUsd: { min: parts.input + parts.output + parts.cacheRead + parts.cacheWriteMin,
       max: parts.inputMax + parts.outputMax + parts.cacheReadMax + parts.cacheWriteMax },
-    perRequestCoverage: covered, unknownContextTier, unknownCacheTtl };
+    perRequestCoverage: covered, perRequestPromptCoverage: promptCovered, contextPromptUpperBound, unknownContextTier, unknownCacheTtl };
 }

@@ -31,18 +31,46 @@ file ownership must not overlap.
 | Phase | Status | Next gate |
 |---|---|---|
 | 0 Audit and ADRs | COMPLETE with owner blockers recorded | Commit baseline and prove worktree behavior |
-| 1 Open-source repo and contracts | COMPLETE LOCALLY / RELEASE BLOCKED | Owner confirms license; directory profile becomes publishable |
+| 1 Open-source repo and contracts | COMPLETE LOCALLY; MIT CONFIRMED | Release requires executed package/CI checks |
 | 2 Configuration/capabilities/policy | COMPLETE LOCALLY | Adapter consumes effective policy and capability evidence |
-| 3 Claude Code adapter/hooks | COMPLETE LOCALLY | Provider-backed smoke remains explicit/authorized |
-| 4 Skills/AI Hero adaptation | COMPLETE LOCALLY | Provider-backed eval cases remain NOT_RUN |
+| 3 Claude Code adapter/hooks | VERIFIED LOCALLY | Native usage, guarded execution and reversible installation tested; other OS jobs pending |
+| 4 Skills/AI Hero adaptation | VERIFIED LOCALLY | Bounded provider experiments recorded; no general quality/savings claim |
 | 5 Knowledge/context packs | COMPLETE LOCALLY | BacklogService consumes Story-linked proposals and handoffs |
 | 6 Story/Task/Run and planner | COMPLETE LOCALLY | Quality Guard consumes required checks and real diff state |
 | 7 Quality Guard | COMPLETE LOCALLY | Execution engine persists fresh check/review evidence |
 | 8 Execution/recovery | COMPLETE LOCALLY | Orchestrator uses leases, checkpoints and approvals |
 | 9 Orchestration/isolation | COMPLETE LOCALLY | OmniRouter consumes capability and assignment boundaries |
-| 10 OmniRouter/adapters | COMPLETE LOCALLY | Usage engine records route/adapter measurement sources |
-| 11 Usage/event log/dashboard | COMPLETE LOCALLY | Portability matrix consumes storage/dashboard evidence |
-| 12 Portability/compatibility | COMPLETE LOCALLY | Windows clean install passed; macOS/Linux experimental |
-| 13 Evaluation/security/pilot | IN PROGRESS | Local security checkpoint passed; provider pilots NOT_RUN |
-| 14 Release/publication | BLOCKED on owner authorization | License/title/publication decision |
+| 10 OmniRouter/adapters | VERIFIED LOCALLY; PROVIDER LIMITATIONS RECORDED | Claude and Codex real edits/checks verified; corporate Copilot inference acceptance pending |
+| 11 Usage/event log/dashboard | VERIFIED LOCALLY | Native account/model/phase ledger displayed with authenticated DTO; no inference for reads |
+| 12 Portability/compatibility | WINDOWS VERIFIED; CI PREPARED | Native package/lifecycle matrix on macOS/Linux must run before marking those hosts verified |
+| 13 Evaluation/security/pilot | BOUNDED EXPERIMENTS COMPLETE | 17 tasks/119 trials in the local report; mixed quality, not a general savings guarantee |
+| 14 Release/publication | 0.1.0 CANDIDATE PREPARED | Owner approved MIT and publication; publish only after local checks and remote verification |
+
+## Verification update — 2026-11-18
+
+The owner confirmed MIT and `Vertical Pair Router contributors`. Windows clean
+installation, npm/pnpm archive installation, native plugin install/update/
+rollback/uninstall, Husky rejection of staged sensitive content, Graphify query,
+and pinned Archify rendering were exercised. The native dashboard displays
+observed counts without inference. No raw Finanzas snapshot, local benchmark
+data, personal project profile, credential or run database belongs in the release.
+
+Real Finanzas implementation case F02 passed with Sonnet after one correction
+(9 external criteria, original regressions, full build, fresh review). The
+Haiku recipes did not reach the same acceptance in this trial; Opus direct
+timed out and the triple recipe exhausted planning turns before implementation.
+These are bounded outcomes, not a ranking of general model intelligence.
+
+The resumed Codex pilot used the independent official npm CLI 0.170.0. Both a
+direct invocation and `/vpr-run` from Claude edited only the authorized SKU file
+and passed five acceptance cases. The Claude immediate command used no main-model
+inference. The larger F02 Sonnet→Terra and Sonnet→Sol recipes passed all nine
+external criteria, original regressions and the full Angular build. Terra had
+only low review findings; Sol retained one medium finding. The Opus→Codex recipes
+exhausted planning turns before dispatch and are not Codex implementation results.
+
+Copilot now uses the official Microsoft SDK 2.0.1 with CLI 1.0.114, explicit stdio
+ownership and native sign-in. The real account-free inference check authenticated
+to GitHub but listed no entitled models; no Copilot generation was attempted.
+The corporate machine must validate its own permitted models and execution.
 

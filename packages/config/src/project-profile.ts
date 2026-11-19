@@ -4,6 +4,7 @@ import {
   mkdir,
   readFile,
   rename,
+  readdir,
   rm,
   stat,
   writeFile
@@ -17,6 +18,7 @@ import { parseProjectProfile } from './profile-policy.js';
 export interface CheckCommand {
   readonly program: string;
   readonly args: readonly string[];
+  readonly timeoutMs?: number;
 }
 
 export interface ProjectProfileV1 {
@@ -54,8 +56,11 @@ export async function proposeProjectProfile(rootInput: string): Promise<ProjectP
   const root = resolve(rootInput);
   const packageJsonPath = join(root, "package.json");
   const packageJson = await readJsonObject(packageJsonPath);
+  const entries=await readdir(root);
+  const dependencies={...(isRecord(packageJson.dependencies)?packageJson.dependencies:{}),...(isRecord(packageJson.devDependencies)?packageJson.devDependencies:{})};
+  const technologies=[...(Object.keys(packageJson).length?['Node.js']:[]),...(dependencies.typescript||entries.includes('tsconfig.json')?['TypeScript']:[]),...(dependencies['@angular/core']?['Angular']:[]),...(dependencies.react?['React']:[]),...(entries.some(path=>/\.(?:csproj|sln|slnx)$/iu.test(path))?['.NET']:[]),...(entries.some(path=>['pyproject.toml','requirements.txt','Pipfile'].includes(path))?['Python']:[]),...(entries.includes('Cargo.toml')?['Rust']:[]),...(entries.includes('go.mod')?['Go']:[])];
   const scripts = isRecord(packageJson.scripts) ? packageJson.scripts : {};
-  const packageManager = await detectPackageManager(root);
+  const packageManager = await detectPackageManager(root,packageJson.packageManager);
   const checks = Object.fromEntries(
     ["build", "lint", "test", "typecheck"]
       .filter(
@@ -63,6 +68,7 @@ export async function proposeProjectProfile(rootInput: string): Promise<ProjectP
       )
       .map((name) => [name, { program: packageManager, args: [name] }])
   ) as Readonly<Record<string, CheckCommand>>;
+  const effectiveChecks=Object.keys(checks).length?checks:technologies.includes('.NET')?{build:{program:'dotnet',args:['build']}}:checks;
   const projectName =
     typeof packageJson.name === "string" && packageJson.name.length > 0
       ? packageJson.name
@@ -72,7 +78,8 @@ export async function proposeProjectProfile(rootInput: string): Promise<ProjectP
     projectId: `project_${sha256(root).slice(0, 20)}`,
     name: projectName,
     packageManager,
-    checks,
+    checks:effectiveChecks,
+    setup:{technologies,integrations:{husky:false,graphify:false,archify:false}},
     glossaryPath: "GLOSSARY.md",
     policy: {
       allowShell: false,
@@ -83,7 +90,7 @@ export async function proposeProjectProfile(rootInput: string): Promise<ProjectP
   };
   const target = join(root, ".vpr", "profile.json");
   const current = await readOptional(target);
-  const effectiveProfile = current === null ? profile : parseProjectProfile(JSON.parse(current));
+  const effectiveProfile = current === null ? parseProjectProfile(profile) : parseProjectProfile(JSON.parse(current));
   const content = `${JSON.stringify(effectiveProfile, null, 2)}\n`;
 
   return {
@@ -120,16 +127,21 @@ export async function applyProjectProfile(proposal: ProjectProfileProposal): Pro
 }
 
 async function detectPackageManager(
-  root: string
+  root: string,declared?:unknown
 ): Promise<ProjectProfileV1["packageManager"]> {
   if (await exists(join(root, "pnpm-lock.yaml"))) return "pnpm";
   if (await exists(join(root, "package-lock.json"))) return "npm";
   if (await exists(join(root, "yarn.lock"))) return "yarn";
+  if(typeof declared==='string'){
+    const manager=declared.split('@')[0];
+    if(manager==='pnpm'||manager==='npm'||manager==='yarn')return manager;
+  }
   return "unknown";
 }
 
 async function readJsonObject(path: string): Promise<Record<string, unknown>> {
-  const parsed: unknown = JSON.parse(await readFile(path, "utf8"));
+  let content:string;try{content=await readFile(path,'utf8');}catch(error){if(isNodeError(error)&&error.code==='ENOENT')return {};throw error;}
+  const parsed: unknown = JSON.parse(content);
   if (!isRecord(parsed)) {
     throw new TypeError(`Expected a JSON object at ${path}`);
   }

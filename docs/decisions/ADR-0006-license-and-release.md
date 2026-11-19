@@ -1,6 +1,6 @@
 # ADR-0006: License and release
 
-- Status: BLOCKED
+- Status: ACCEPTED (license); release subject to verification
 - Date: 2026-11-09
 
 ## Proposal
@@ -15,4 +15,12 @@ public repository only after owner authorization.
 Only the rights holder can confirm copyright ownership, the final license, and
 public publication. Implementation may prepare the files, but it will not
 publish or assert that this decision is closed.
+
+## Owner confirmation — 2026-11-18
+
+The owner explicitly confirmed MIT with the attribution
+`Vertical Pair Router contributors`. The approved text is installed as LICENSE.
+Third-party notices remain separate. The owner also authorized pushing and
+publishing an installable GitHub release after the functionality and applicable
+checks are complete. This authorization does not make unexecuted checks pass.
 

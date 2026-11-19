@@ -6,6 +6,37 @@ import test from "node:test";
 
 import { runCli } from "./cli.js";
 
+test('workflow proposal uses local rules and cannot widen project provider policy',async context=>{
+  const root=await mkdtemp(join(tmpdir(),'vpr-workflow-plan-'));context.after(()=>rm(root,{recursive:true,force:true}));await mkdir(join(root,'.vpr'));
+  const models=[{id:'haiku',provider:'claude',model:'claude-haiku-5-5',tier:'light',roles:['coding']},{id:'sonnet',provider:'claude',model:'claude-sonnet-5-5',tier:'standard',roles:['orchestrator','coding','review']},{id:'opus',provider:'claude',model:'claude-opus-5-5',tier:'high',roles:['review']},{id:'terra',provider:'codex',model:'gpt-6.1-terra',tier:'standard',roles:['coding']}];
+  await writeFile(join(root,'.vpr/profile.json'),JSON.stringify({schemaVersion:1,projectId:'project_workflow',name:'workflow',packageManager:'unknown',checks:{},glossaryPath:'GLOSSARY.md',policy:{allowedProviders:['claude']},orchestration:{objective:'reference-cost',orchestratorId:'sonnet',maxWorkers:1,allowLightCoding:true,models}}));
+  const input=join(root,'request.json'),request={kind:'feature',taskSignature:'feature-v1',complexity:'simple',risk:'low',hasAcceptanceChecks:true,needsPlanning:false,currentModelId:'sonnet',preferredExecutorId:'haiku',plannerId:'sonnet',advancedPlannerId:'opus',allowedProviders:['claude','codex'],verifiedModelIds:['haiku','sonnet','opus','terra'],history:[],now:'2026-11-16'};
+  await writeFile(input,JSON.stringify(request));let output='';const io={stdout:(text:string)=>{output+=text;},stderr:(text:string)=>{output+=text;}};
+  assert.equal(await runCli(['models','plan','--project',root,'--input',input],io),0);
+  const decision=JSON.parse(output) as {executorId:string;plannerId:null;decisionInferenceTokens:number;dispatchPerformed:boolean};assert.equal(decision.executorId,'haiku');assert.equal(decision.plannerId,null);assert.equal(decision.decisionInferenceTokens,0);assert.equal(decision.dispatchPerformed,false);
+  await writeFile(input,JSON.stringify({...request,preferredExecutorId:'terra',needsPlanning:true}));output='';
+  assert.equal(await runCli(['models','plan','--project',root,'--input',input],io),3);assert.equal((JSON.parse(output) as {status:string}).status,'blocked');
+  await mkdir(join(root,'.vpr/benchmarks'));
+  const rows=Array.from({length:3},(_,index)=>[
+    {caseId:'direct-'+index,taskKind:'feature',taskSignature:'feature-v1',complexity:'normal',risk:'low',plannerId:null,executorId:'claude-sonnet-5-5',executorProvider:'claude',executorEffort:'medium',accepted:true,modelConfirmed:true,completeAccounting:true,usdMax:.05,pricesExpireAt:'2099-01-01'},
+    {caseId:'planned-'+index,taskKind:'feature',taskSignature:'feature-v1',complexity:'normal',risk:'low',plannerId:'claude-sonnet-5-5',executorId:'claude-haiku-5-5',plannerProvider:'claude',executorProvider:'claude',plannerEffort:'medium',executorEffort:'medium',accepted:true,modelConfirmed:true,completeAccounting:true,usdMax:.01,pricesExpireAt:'2099-01-01'}
+  ]).flat();
+  await writeFile(join(root,'.vpr/benchmarks/workflow-cases.json'),JSON.stringify({rows}));
+  await writeFile(input,JSON.stringify({...request,complexity:'normal'}));output='';
+  assert.equal(await runCli(['models','plan','--project',root,'--input',input],io),0);
+  const local=JSON.parse(output) as {status:string;executorId:string;plannerId:string;caseLibraryRowsLoaded:number};
+  assert.equal(local.status,'historical-forecast');assert.equal(local.executorId,'haiku');assert.equal(local.plannerId,'sonnet');assert.equal(local.caseLibraryRowsLoaded,6);
+  await writeFile(input,JSON.stringify({...request,complexity:'normal',taskSignature:'unrelated-task'}));output='';
+  await runCli(['models','plan','--project',root,'--input',input],io);assert.equal((JSON.parse(output) as {status:string}).status,'rule-based');
+  await writeFile(join(root,'.vpr/benchmarks/workflow-cases.json'),JSON.stringify({rows:rows.map(row=>({...row,executorProvider:'copilot',plannerProvider:row.plannerId?'copilot':null}))}));
+  await writeFile(input,JSON.stringify({...request,complexity:'normal'}));output='';
+  await runCli(['models','plan','--project',root,'--input',input],io);
+  assert.equal((JSON.parse(output) as {caseLibraryRowsLoaded:number}).caseLibraryRowsLoaded,0,'same model name from another provider must not reuse Claude costs');
+  output='';await runCli(['models','plan','--project',root,'--input',input,'--capability-query','revisión arquitectura compleja'],io);
+  const sourced=JSON.parse(output) as {capabilityEvidence:{cardId:string;sources:string[]}[];decisionInferenceTokens:number};
+  assert.ok(sourced.capabilityEvidence.length>0);assert.ok(sourced.capabilityEvidence.every(item=>item.cardId.startsWith('claude-')&&item.sources.length>0));assert.equal(sourced.decisionInferenceTokens,0);
+});
+
 test('shows subscription plan prices separately and measures only observed quota deltas', async context => {
   let output = '';
   const io = { stdout: (value: string) => { output += value; }, stderr: (value: string) => { output += value; } };

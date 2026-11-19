@@ -7,6 +7,7 @@ export interface CapabilityCard {
   readonly claims: string;
   readonly sources: readonly string[];
   readonly expiresAt: string;
+  readonly roleGuidance?: { readonly basis:string; readonly preferred:readonly string[]; readonly conditional:readonly string[]; readonly escalate:readonly string[] };
 }
 export interface EmpiricalCapability {
   readonly evidenceId: string;
@@ -77,7 +78,10 @@ function terms(value: string): readonly string[] {
     sencilla: 'simple', sencillo: 'simple', simples: 'simple',
     compleja: 'complex', complejo: 'complex', complejas: 'complex',
     inventario: 'inventory', extraccion: 'extraction', extracción: 'extraction',
-    clasificacion: 'classification', clasificación: 'classification', repetitiva: 'repeatable'
+    clasificacion: 'classification', clasificación: 'classification', repetitiva: 'repeatable',
+    revision:'review', revisión:'review', revisar:'review', lectura:'reading', leer:'reading',
+    planeacion:'planning', planeación:'planning', planificacion:'planning', planificación:'planning',
+    arquitectura:'architecture', refactorizacion:'refactor', refactorización:'refactor', ejecucion:'execution', ejecución:'execution'
   };
   return value.toLowerCase().normalize('NFKC').split(/[^\p{L}\p{N}]+/u).filter(Boolean).map(term => aliases[term] ?? term);
 }

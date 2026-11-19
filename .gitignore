@@ -16,4 +16,10 @@ evals/results/
 .vpr/*.tmp
 .vpr/graphify/
 .vpr/benchmarks/
+.vpr/runs/
+.vpr/native-run.lock
+.vpr/usage/
+hooks/lib/usage-ledger.mjs
+hooks/lib/staged-security.mjs
+hooks/lib/context-guard-plugin/
 

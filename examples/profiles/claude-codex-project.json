@@ -1,0 +1,20 @@
+{
+  "schemaVersion":1,
+  "projectId":"project_claude_codex_example",
+  "name":"claude-codex-example",
+  "packageManager":"unknown",
+  "checks":{},
+  "glossaryPath":"GLOSSARY.md",
+  "policy":{"allowShell":false,"allowNetworkTelemetry":false,"allowedProviders":["local","claude","codex"],"maxOutputBytes":1048576},
+  "orchestration":{
+    "objective":"reference-cost","orchestratorId":"sonnet","maxWorkers":1,"allowLightCoding":true,
+    "models":[
+      {"id":"sonnet","provider":"claude","model":"claude-sonnet-5-5","effort":"medium","tier":"standard","roles":["orchestrator","coding","review"]},
+      {"id":"haiku","provider":"claude","model":"claude-haiku-5-5","effort":"medium","tier":"light","roles":["inventory","coding"]},
+      {"id":"opus","provider":"claude","model":"claude-opus-5-5","effort":"medium","tier":"high","roles":["orchestrator","coding","review"]},
+      {"id":"codex-luna","provider":"codex","model":"gpt-6-luna","effort":"low","tier":"light","roles":["inventory","coding"]},
+      {"id":"codex-terra","provider":"codex","model":"gpt-6.1-terra","effort":"medium","tier":"standard","roles":["coding","review"]},
+      {"id":"codex-sol","provider":"codex","model":"gpt-6.1-sol","effort":"medium","tier":"high","roles":["orchestrator","coding","review"]}
+    ]
+  }
+}

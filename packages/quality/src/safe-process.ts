@@ -56,6 +56,7 @@ export function createSafeProcessRunner(
       cwd: request.cwd,
       shell: false,
       windowsHide: true,
+      detached: process.platform !== 'win32',
       stdio: ["ignore", "pipe", "pipe"]
     });
 
@@ -63,12 +64,14 @@ export function createSafeProcessRunner(
       const remaining = request.maxOutputBytes - capturedBytes;
       if (remaining <= 0) {
         outputTruncated = true;
+        terminate();
         return;
       }
       if (chunk.length > remaining) {
         target.push(chunk.subarray(0, remaining));
         capturedBytes += remaining;
         outputTruncated = true;
+        terminate();
         return;
       }
       target.push(chunk);
@@ -78,9 +81,17 @@ export function createSafeProcessRunner(
     child.stdout.on("data", (chunk: Buffer) => capture(stdout, chunk));
     child.stderr.on("data", (chunk: Buffer) => capture(stderr, chunk));
 
+    let terminationRequested=false;
+    let forceTimer:ReturnType<typeof setTimeout>|undefined;
     const terminate = (): void => {
+      if(terminationRequested)return;terminationRequested=true;
       if (child.exitCode === null && child.signalCode === null) {
-        child.kill();
+        if(process.platform==='win32'&&child.pid){
+          spawn('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'}).once('error',()=>child.kill());
+        }else{
+          try{if(child.pid)process.kill(-child.pid,'SIGTERM');else child.kill();}catch{child.kill();}
+          forceTimer=setTimeout(()=>{try{if(child.pid)process.kill(-child.pid,'SIGKILL');}catch{}},750);
+        }
       }
     };
 
@@ -100,11 +111,13 @@ export function createSafeProcessRunner(
 
     return await new Promise<ProcessResult>((resolve, reject) => {
       child.once("error", (error) => {
+        clearTimeout(forceTimer);
         clearTimeout(timeout);
         request.signal?.removeEventListener("abort", onAbort);
         reject(error);
       });
       child.once("close", (exitCode) => {
+        clearTimeout(forceTimer);
         clearTimeout(timeout);
         request.signal?.removeEventListener("abort", onAbort);
         resolve({

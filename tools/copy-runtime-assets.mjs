@@ -1,0 +1,14 @@
+import {copyFile,mkdir,writeFile} from 'node:fs/promises';
+await mkdir('packages/runtime/dist',{recursive:true});
+await copyFile('packages/runtime/src/usage-ledger.mjs','packages/runtime/dist/usage-ledger.mjs');
+await copyFile('packages/runtime/src/claude-guard-launch.mjs','packages/runtime/dist/claude-guard-launch.mjs');
+await mkdir('hooks/lib',{recursive:true});
+await copyFile('packages/runtime/src/usage-ledger.mjs','hooks/lib/usage-ledger.mjs');
+await mkdir('packages/quality/dist',{recursive:true});
+await copyFile('packages/quality/src/staged-security.mjs','packages/quality/dist/staged-security.mjs');
+await copyFile('packages/quality/src/staged-security.mjs','hooks/lib/staged-security.mjs');
+const guard='hooks/lib/context-guard-plugin';
+await mkdir(guard+'/.claude-plugin',{recursive:true});await mkdir(guard+'/hooks',{recursive:true});
+await writeFile(guard+'/.claude-plugin/plugin.json',JSON.stringify({name:'vpr-context-guard',version:'0.0.0',license:'MIT',description:'Native Haiku context guard only; no Skills or task prompts',author:{name:'Vertical Pair Router contributors'}}));
+await writeFile(guard+'/hooks/hooks.json',JSON.stringify({modules:['./guard-module.js']}));
+for(const file of ['guard-module.js','haiku-context.js','haiku-http-guard.js'])await copyFile('hooks/'+file,guard+'/hooks/'+file);

@@ -35,6 +35,24 @@ SOFTWARE.
 
 Development dependencies are recorded by the lockfile and will be included in
 the generated SBOM/license report before release. Current direct development
-dependencies are TypeScript and the Node.js type definitions; runtime behavior
-uses Node.js standard-library APIs.
+dependencies include TypeScript, the Node.js type definitions, esbuild and Husky.
+
+## Microsoft Copilot SDK
+
+The native Copilot adapter depends on `@microsoft/copilot-sdk` 2.0.1 (MIT),
+the successor of the GitHub SDK. Its transitive dependencies and platform runtimes retain
+their own licenses and notices in the installed packages and lockfile inventory.
+VPR uses its stdio transport and the user's native authentication; it does not
+redistribute account credentials. See https://github.com/microsoft/copilot-sdk.
+This dependency's license does not decide the license or ownership of VPR.
+
+## Optional local tools
+
+When explicitly selected during project initialization, VPR can install Graphify
+(`graphifyy` 0.9.106, via uv) and Archify MIT 2.16.0 from the upstream commit
+`c826e6c3a7abad19c0f3cd1ca57207d54b1ad8de` at
+https://github.com/tt-a1i/archify. These remain separate local installations;
+their code is not bundled in the VPR archive. Existing installations and their
+licenses are preserved. No model is invoked for indexing, graph queries, or
+rendering an already-authored diagram specification.
 

@@ -44,3 +44,9 @@ test('does not use complex-task outcomes as evidence for a simple-task query', (
   ] });
   assert.equal(result[0]?.sampleSize, 0);
 });
+
+test('retrieves Spanish review and planning roles without interpreting them as coding evidence',()=>{
+  const reviewCard:CapabilityCard={...card,id:'reviewer',tags:['review','planning','complex']};
+  const result=retrieveCapabilities({...request,queryTags:['revisión planificación compleja'],cards:[reviewCard]});
+  assert.deepEqual(result[0]?.matchedTerms,['review','planning','complex']);assert.equal(result[0]?.decisionInferenceTokens,0);
+});
