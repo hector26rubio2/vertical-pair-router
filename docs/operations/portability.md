@@ -57,7 +57,7 @@ en Windows el 18/11/2026. No requiere subirlo a un catálogo público.
 Desde la carpeta donde está el archivo `.tgz`, usando su nombre real:
 
 ```sh
-npm install --global ./vertical-pair-router-0.1.0.tgz
+npm install --global ./vertical-pair-router-0.1.1.tgz
 vpr plugin install
 vpr plugin doctor
 ```

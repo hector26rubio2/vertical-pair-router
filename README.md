@@ -46,10 +46,10 @@ de cuenta se comprobaron sin inferencia, con cero modelos habilitados en esta cu
 ## Instalar y probar el paquete local
 
 La distribución usa un `.tgz` de GitHub Releases, instalable con npm o pnpm.
-Para la versión 0.1.0:
+Para la versión 0.1.1:
 
 ```sh
-npm install --global https://github.com/hector26rubio2/vertical-pair-router/releases/download/v0.1.0/vertical-pair-router-0.1.0.tgz
+npm install --global https://github.com/hector26rubio2/vertical-pair-router/releases/download/v0.1.1/vertical-pair-router-0.1.1.tgz
 vpr plugin install
 vpr plugin doctor
 ```

@@ -22,7 +22,8 @@ try{
  const npm=await resolveProgramCommand('npm');assert.ok(npm);
  execFileSync(npm.program,[...npm.prefix,'ci','--ignore-scripts','--no-audit','--no-fund'],{cwd:plugin,env,windowsHide:true,timeout:120000,maxBuffer:1048576});steps.push({name:'frozen-runtime-install',exitCode:0});
  await version(previous);
- assert.equal(JSON.parse(command('validate',['plugin','validate','--strict','--json',plugin])).success,true);
+ const validation=JSON.parse(command('validate',['plugin','validate','--strict','--json',plugin]));assert.equal(validation.success,true);
+ assert.ok(!validation.directoryFindings?.some(finding=>finding.code==='README_MISSING'),'The independently copied plugin must include its own README');
  command('install',['plugin','install','vertical-pair-router','--marketplace',catalog,'--scope','user','--json']);installed(previous);
  await version(current);command('update',['plugin','update',id,'--json']);installed(current);
  const doctor=JSON.parse(execFileSync(process.execPath,[join(plugin,'bin/vpr.mjs'),'tools','doctor','--project',root],{cwd:root,env,windowsHide:true,encoding:'utf8',timeout:30000}));assert.equal(doctor.inferenceTokens,0);steps.push({name:'isolated-plugin-cli',exitCode:0});

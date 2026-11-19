@@ -2,6 +2,12 @@
 
 Notable changes to Vertical Pair Router are documented here.
 
+## 0.1.1
+
+- Include the README inside the independently copied plugin directory. Native
+  lifecycle verification now rejects a missing plugin README.
+- Preserve the published 0.1.0 archive and checksums unchanged.
+
 ## 0.1.0
 
 - MIT confirmed by the owner with attribution to Vertical Pair Router contributors.

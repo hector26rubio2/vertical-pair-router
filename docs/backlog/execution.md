@@ -44,7 +44,7 @@ file ownership must not overlap.
 | 11 Usage/event log/dashboard | VERIFIED LOCALLY | Native account/model/phase ledger displayed with authenticated DTO; no inference for reads |
 | 12 Portability/compatibility | PACKAGE/LIFECYCLE VERIFIED ON THREE SYSTEMS | Release pipeline requires the complete Node 24/26 matrix; generative provider tests remain Windows-only |
 | 13 Evaluation/security/pilot | BOUNDED EXPERIMENTS COMPLETE | 17 tasks/119 trials in the local report; mixed quality, not a general savings guarantee |
-| 14 Release/publication | 0.1.0 CANDIDATE PREPARED | Owner approved MIT and publication; publish only after local checks and remote verification |
+| 14 Release/publication | RELEASE PIPELINE ACTIVE; 0.1.0 PUBLISHED | GitHub Releases records published versions; every new tag requires the complete verification matrix before upload |
 
 ## Verification update — 2026-11-18
 

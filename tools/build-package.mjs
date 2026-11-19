@@ -33,7 +33,7 @@ await writeFile(join(output, 'package.json'), JSON.stringify({ name: source.name
 await mkdir(join(output,'plugin/bin'),{recursive:true});
 await cp(join(output,'bin/vpr.mjs'),join(output,'plugin/bin/vpr.mjs'));
 for(const directory of ['data','examples'])await cp(join(output,directory),join(output,'plugin',directory),{recursive:true});
-for(const file of ['LICENSE','THIRD-PARTY-NOTICES.md','SBOM.json'])await cp(join(output,file),join(output,'plugin',file));
+for(const file of ['README.md','LICENSE','THIRD-PARTY-NOTICES.md','SBOM.json'])await cp(join(output,file),join(output,'plugin',file));
 await cp(resolve('tools/plugin-runtime/package.json'),join(output,'plugin/package.json'));
 await cp(resolve('tools/plugin-runtime/npm-shrinkwrap.json'),join(output,'plugin/npm-shrinkwrap.json'));
 console.log('Paquete local preparado en ' + output);
