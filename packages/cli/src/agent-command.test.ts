@@ -503,3 +503,115 @@ test("preview of a complex high-risk task uses the advanced planner", async (con
     },
   );
 });
+
+test("preview falls back to the default planner when the explicit one is on a limit-reached provider", async (context) => {
+  assert.deepEqual(
+    await previewDecision(
+      context,
+      { plannerId: "codex-standard", complexity: "normal", risk: "medium", needsPlanning: true },
+      ["codex"],
+    ),
+    {
+      code: 0,
+      status: "rule-based",
+      mode: "plan-implement-review",
+      plannerId: "standard",
+      technicalPlannerId: null,
+      executorId: "light",
+      reviewerId: "standard",
+      workerCount: 1,
+      phases: [
+        { phase: "plan", modelId: "standard", writeFiles: false },
+        { phase: "implement", modelId: "light", writeFiles: true },
+        { phase: "review", modelId: "standard", writeFiles: false },
+      ],
+      candidates: [
+        "standard|null|standard|light",
+        "standard|null|standard|standard",
+        "standard|null|standard|advanced",
+      ],
+      quotaChecks: [
+        ["claude", "available", "provider_reported"],
+        ["codex", "limit-reached", "provider_reported"],
+      ],
+    },
+  );
+});
+
+test("preview falls back to the default advanced planner when the explicit one is unusable", async (context) => {
+  assert.deepEqual(
+    await previewDecision(
+      context,
+      {
+        advancedPlannerId: "codex-standard",
+        complexity: "complex",
+        risk: "high",
+        needsPlanning: true,
+      },
+      ["codex"],
+    ),
+    {
+      code: 0,
+      status: "rule-based",
+      mode: "plan-implement-review",
+      plannerId: "advanced",
+      technicalPlannerId: null,
+      executorId: "light",
+      reviewerId: "advanced",
+      workerCount: 1,
+      phases: [
+        { phase: "plan", modelId: "advanced", writeFiles: false },
+        { phase: "implement", modelId: "light", writeFiles: true },
+        { phase: "review", modelId: "advanced", writeFiles: false },
+      ],
+      candidates: [
+        "advanced|null|advanced|light",
+        "advanced|null|advanced|standard",
+        "advanced|null|advanced|advanced",
+      ],
+      quotaChecks: [
+        ["claude", "available", "provider_reported"],
+        ["codex", "limit-reached", "provider_reported"],
+      ],
+    },
+  );
+});
+
+test("preview falls back to the default executor when the preferred one is on a limit-reached provider", async (context) => {
+  assert.deepEqual(
+    await previewDecision(
+      context,
+      {
+        preferredExecutorId: "codex-standard",
+        complexity: "simple",
+        risk: "low",
+        needsPlanning: false,
+        currentModelId: "codex-standard",
+      },
+      ["codex"],
+    ),
+    {
+      code: 0,
+      status: "rule-based",
+      mode: "direct-worker",
+      plannerId: null,
+      technicalPlannerId: null,
+      executorId: "light",
+      reviewerId: null,
+      workerCount: 1,
+      phases: [{ phase: "implement", modelId: "light", writeFiles: true }],
+      candidates: [
+        "null|null|null|light",
+        "null|null|null|standard",
+        "null|null|null|advanced",
+        "standard|null|standard|light",
+        "standard|null|standard|standard",
+        "standard|null|standard|advanced",
+      ],
+      quotaChecks: [
+        ["claude", "available", "provider_reported"],
+        ["codex", "limit-reached", "provider_reported"],
+      ],
+    },
+  );
+});

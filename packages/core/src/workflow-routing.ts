@@ -70,6 +70,7 @@ export interface WorkflowRoutingRequest {
     readonly source: "provider_reported";
   }[];
   readonly requireKnownCapacity?: boolean;
+  readonly fallbackIneligibleRoles?: boolean;
   readonly plannerId?: string;
   readonly advancedPlannerId?: string;
   readonly technicalPlannerId?: string;
@@ -230,11 +231,11 @@ function defaultRoleModels(
 ) {
   const hasRole = (model: AgentModel, role: AgentModel["roles"][number]) =>
     model.roles.includes(role);
+  const firstOrchestrator =
+    eligible.find((model) => hasRole(model, "orchestrator")) ?? executors[0];
   return {
-    current:
-      eligible.find((model) => model.id === policy.orchestratorId) ??
-      eligible.find((model) => hasRole(model, "orchestrator")) ??
-      executors[0],
+    current: eligible.find((model) => model.id === policy.orchestratorId) ?? firstOrchestrator,
+    currentWhenExplicitIneligible: firstOrchestrator,
     planner:
       eligible.find((model) => hasRole(model, "orchestrator") && model.tier !== "light") ??
       eligible.find((model) => hasRole(model, "review") && model.tier !== "light"),
@@ -243,6 +244,17 @@ function defaultRoleModels(
         model.tier === "high" && (hasRole(model, "review") || hasRole(model, "orchestrator")),
     ),
   };
+}
+
+function pickRole(
+  explicitId: string | undefined,
+  pool: readonly AgentModel[],
+  fallback: AgentModel | undefined,
+  fallbackIneligible: boolean | undefined,
+) {
+  if (explicitId === undefined) return fallback?.id ?? "unavailable";
+  if (!fallbackIneligible) return explicitId;
+  return pool.find((model) => model.id === explicitId)?.id ?? fallback?.id ?? "unavailable";
 }
 
 function resolveRoles(
@@ -258,11 +270,14 @@ function resolveRoles(
       ? executors.map((model) => model.id)
       : (input.executorModelIds ?? []);
   if (executorModelIds.length > 20) throw new TypeError("Invalid executor alternatives");
+  const fallback = input.fallbackIneligibleRoles;
+  const currentFallback =
+    input.currentModelId === undefined ? defaults.current : defaults.currentWhenExplicitIneligible;
   return {
-    currentModelId: input.currentModelId ?? defaults.current?.id ?? "unavailable",
-    preferredExecutorId: input.preferredExecutorId ?? executors[0]?.id ?? "unavailable",
-    plannerId: input.plannerId ?? defaults.planner?.id ?? "unavailable",
-    advancedPlannerId: input.advancedPlannerId ?? defaults.advanced?.id ?? "unavailable",
+    currentModelId: pickRole(input.currentModelId, eligible, currentFallback, fallback),
+    preferredExecutorId: pickRole(input.preferredExecutorId, executors, executors[0], fallback),
+    plannerId: pickRole(input.plannerId, eligible, defaults.planner, fallback),
+    advancedPlannerId: pickRole(input.advancedPlannerId, eligible, defaults.advanced, fallback),
     executorModelIds,
     ...(input.technicalPlannerId ? { technicalPlannerId: input.technicalPlannerId } : {}),
     ...(input.reviewerId ? { reviewerId: input.reviewerId } : {}),

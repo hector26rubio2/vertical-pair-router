@@ -138,6 +138,7 @@ export async function runAgentCommand(
     ...(task.plannerId !== undefined ? { plannerId: task.plannerId } : {}),
     ...(task.advancedPlannerId !== undefined ? { advancedPlannerId: task.advancedPlannerId } : {}),
     executorModelIds: "eligible",
+    fallbackIneligibleRoles: true,
     allowedProviders: permitted,
     verifiedModelIds: verified.map((model) => model.id),
     history: [],
