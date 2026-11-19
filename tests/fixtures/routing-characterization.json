@@ -1,0 +1,2674 @@
+[
+  {
+    "fn": "routeRequest",
+    "args": [
+      {
+        "requestId": "fixture",
+        "requiredCapabilities": [
+          "code"
+        ],
+        "sensitivity": "local-only",
+        "requiredQuality": "standard",
+        "operatingSystem": "win32",
+        "preferredProvider": "local",
+        "fallbackOptIn": false,
+        "optimizeFor": "latency"
+      },
+      {
+        "allowShell": false,
+        "allowNetworkTelemetry": false,
+        "allowedProviders": [
+          "local"
+        ],
+        "maxOutputBytes": 1024,
+        "explanation": []
+      },
+      [
+        {
+          "id": "local",
+          "provider": "local",
+          "displayName": "Local",
+          "authentication": "none",
+          "credentialHandling": "none",
+          "capabilities": [
+            "code"
+          ],
+          "availability": "available",
+          "availabilityEvidence": "fixture",
+          "quality": "standard",
+          "operatingSystems": [
+            "win32",
+            "linux",
+            "darwin"
+          ],
+          "transmittedData": [],
+          "limits": {
+            "concurrency": 1
+          },
+          "cost": {
+            "source": "measured",
+            "estimatedUsd": 0
+          },
+          "latency": {
+            "source": "measured",
+            "estimatedMs": 1
+          }
+        }
+      ]
+    ],
+    "expected": {
+      "requestId": "fixture",
+      "status": "routed",
+      "adapterId": "local",
+      "provider": "local",
+      "pipeline": [
+        {
+          "stage": "policy",
+          "eligibleAdapterIds": [
+            "local"
+          ],
+          "rejected": []
+        },
+        {
+          "stage": "capability",
+          "eligibleAdapterIds": [
+            "local"
+          ],
+          "rejected": []
+        },
+        {
+          "stage": "privacy",
+          "eligibleAdapterIds": [
+            "local"
+          ],
+          "rejected": []
+        },
+        {
+          "stage": "quality",
+          "eligibleAdapterIds": [
+            "local"
+          ],
+          "rejected": []
+        },
+        {
+          "stage": "cost-latency",
+          "eligibleAdapterIds": [
+            "local"
+          ],
+          "rejected": []
+        }
+      ],
+      "cost": {
+        "source": "measured",
+        "estimatedUsd": 0
+      },
+      "latency": {
+        "source": "measured",
+        "estimatedMs": 1
+      },
+      "explanation": "Selected local. to local; no data leaves the local host; cost measured."
+    }
+  },
+  {
+    "fn": "routeRequest",
+    "args": [
+      {
+        "requestId": "fixture",
+        "requiredCapabilities": [
+          "code"
+        ],
+        "sensitivity": "local-only",
+        "requiredQuality": "standard",
+        "operatingSystem": "win32",
+        "preferredProvider": "local",
+        "fallbackOptIn": false,
+        "optimizeFor": "latency"
+      },
+      {
+        "allowShell": false,
+        "allowNetworkTelemetry": false,
+        "allowedProviders": [],
+        "maxOutputBytes": 1024,
+        "explanation": []
+      },
+      [
+        {
+          "id": "local",
+          "provider": "local",
+          "displayName": "Local",
+          "authentication": "none",
+          "credentialHandling": "none",
+          "capabilities": [
+            "code"
+          ],
+          "availability": "available",
+          "availabilityEvidence": "fixture",
+          "quality": "standard",
+          "operatingSystems": [
+            "win32",
+            "linux",
+            "darwin"
+          ],
+          "transmittedData": [],
+          "limits": {
+            "concurrency": 1
+          },
+          "cost": {
+            "source": "measured",
+            "estimatedUsd": 0
+          },
+          "latency": {
+            "source": "measured",
+            "estimatedMs": 1
+          }
+        }
+      ]
+    ],
+    "expected": {
+      "requestId": "fixture",
+      "status": "unavailable",
+      "pipeline": [
+        {
+          "stage": "policy",
+          "eligibleAdapterIds": [],
+          "rejected": [
+            {
+              "adapterId": "local",
+              "reason": "provider local is disallowed by effective policy"
+            }
+          ]
+        },
+        {
+          "stage": "capability",
+          "eligibleAdapterIds": [],
+          "rejected": []
+        },
+        {
+          "stage": "privacy",
+          "eligibleAdapterIds": [],
+          "rejected": []
+        },
+        {
+          "stage": "quality",
+          "eligibleAdapterIds": [],
+          "rejected": []
+        },
+        {
+          "stage": "cost-latency",
+          "eligibleAdapterIds": [],
+          "rejected": []
+        }
+      ],
+      "cost": {
+        "source": "unavailable"
+      },
+      "latency": {
+        "source": "unavailable"
+      },
+      "explanation": "No eligible adapter remains after deterministic filters."
+    }
+  },
+  {
+    "fn": "selectAgentModel",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "role": "coding",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ]
+      }
+    ],
+    "expected": {
+      "selected": {
+        "id": "light",
+        "provider": "claude",
+        "model": "haiku",
+        "tier": "light",
+        "roles": [
+          "coding",
+          "inventory"
+        ]
+      },
+      "requiredTier": "light",
+      "reason": "Selected configured light tier for coding; complexity=simple; risk=low; acceptanceChecks=true"
+    }
+  },
+  {
+    "fn": "selectAgentModel",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "role": "coding",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "allowedProviders": [],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ]
+      }
+    ],
+    "expected": {
+      "selected": null,
+      "requiredTier": "light",
+      "reason": "No policy-allowed, verified model meets the role and required tier; approval/configuration required"
+    }
+  },
+  {
+    "fn": "decideLocalExecution",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "currentModelId": "standard",
+        "taskKind": "feature",
+        "task": {
+          "role": "coding",
+          "complexity": "simple",
+          "risk": "low",
+          "hasAcceptanceChecks": true,
+          "allowedProviders": [
+            "claude"
+          ],
+          "verifiedModelIds": [
+            "light",
+            "standard",
+            "advanced"
+          ]
+        },
+        "history": []
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "direct",
+      "workerCount": 0,
+      "selectedModelId": "standard",
+      "decisionInferenceTokens": 0,
+      "objective": "tokens",
+      "estimatedReferenceUsdPerSuccess": null,
+      "estimatedQuotaPercentagePointsPerSuccess": null,
+      "subscriptionEvidenceAvailable": false,
+      "actualSubscriptionCharge": null,
+      "estimatedTokensPerSuccess": null,
+      "reason": "Retain the capable active model: insufficient comparable history to justify an extra worker",
+      "candidates": [
+        {
+          "model": {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          "evidenceIds": [],
+          "sampleSize": 0,
+          "qualityRate": null,
+          "estimatedReferenceUsdPerSuccess": null,
+          "estimatedQuotaPercentagePointsPerSuccess": null,
+          "estimatedTokensPerSuccess": null
+        },
+        {
+          "model": {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          "evidenceIds": [],
+          "sampleSize": 0,
+          "qualityRate": null,
+          "estimatedReferenceUsdPerSuccess": null,
+          "estimatedQuotaPercentagePointsPerSuccess": null,
+          "estimatedTokensPerSuccess": null
+        },
+        {
+          "model": {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          "evidenceIds": [],
+          "sampleSize": 0,
+          "qualityRate": null,
+          "estimatedReferenceUsdPerSuccess": null,
+          "estimatedQuotaPercentagePointsPerSuccess": null,
+          "estimatedTokensPerSuccess": null
+        }
+      ]
+    }
+  },
+  {
+    "fn": "decideLocalExecution",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "currentModelId": "standard",
+        "taskKind": "feature",
+        "task": {
+          "role": "coding",
+          "complexity": "simple",
+          "risk": "low",
+          "hasAcceptanceChecks": true,
+          "allowedProviders": [
+            "claude"
+          ],
+          "verifiedModelIds": []
+        },
+        "history": []
+      }
+    ],
+    "expected": {
+      "status": "unavailable",
+      "mode": "blocked",
+      "workerCount": 0,
+      "selectedModelId": null,
+      "decisionInferenceTokens": 0,
+      "objective": "tokens",
+      "estimatedReferenceUsdPerSuccess": null,
+      "estimatedQuotaPercentagePointsPerSuccess": null,
+      "subscriptionEvidenceAvailable": false,
+      "actualSubscriptionCharge": null,
+      "estimatedTokensPerSuccess": null,
+      "reason": "No allowed verified model meets the task requirements",
+      "candidates": []
+    }
+  },
+  {
+    "fn": "chooseDelegationStrategy",
+    "args": [
+      [
+        {
+          "id": "single",
+          "kind": "single",
+          "taskIds": [
+            "task"
+          ],
+          "assignments": [
+            {
+              "taskId": "task",
+              "modelId": "standard"
+            }
+          ],
+          "checks": [
+            "acceptance"
+          ],
+          "verifiedEligible": true,
+          "forecast": null
+        }
+      ]
+    ],
+    "expected": {
+      "selectedId": null,
+      "status": "experiment-required",
+      "candidates": [
+        {
+          "id": "single",
+          "estimatedTokens": null,
+          "objectiveValue": null,
+          "objective": "tokens",
+          "reason": "Comparable evidence or objective units unavailable: experiment required"
+        }
+      ]
+    }
+  },
+  {
+    "fn": "chooseDelegationStrategy",
+    "args": [
+      []
+    ],
+    "expected": {
+      "selectedId": null,
+      "status": "unavailable",
+      "candidates": []
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "light",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z"
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "direct-worker",
+      "plannerId": null,
+      "executorId": "light",
+      "technicalPlannerId": null,
+      "reviewerId": null,
+      "workerCount": 1,
+      "phases": [
+        {
+          "phase": "implement",
+          "modelId": "light",
+          "writeFiles": true
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": null,
+          "technicalPlannerId": null,
+          "reviewerId": null,
+          "executorId": "light",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        },
+        {
+          "plannerId": null,
+          "technicalPlannerId": null,
+          "reviewerId": null,
+          "executorId": "standard",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        },
+        {
+          "plannerId": "standard",
+          "technicalPlannerId": null,
+          "reviewerId": "standard",
+          "executorId": "light",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Configured complexity and risk rules; insufficient matched evidence to claim optimal cost",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "complex",
+        "risk": "high",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": true,
+        "currentModelId": "standard",
+        "preferredExecutorId": "light",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z",
+        "technicalPlannerId": "standard",
+        "reviewerId": "standard",
+        "planningMode": "three-stage"
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "architecture-technical-implement-review",
+      "plannerId": "advanced",
+      "executorId": "light",
+      "technicalPlannerId": "standard",
+      "reviewerId": "standard",
+      "workerCount": 1,
+      "phases": [
+        {
+          "phase": "plan",
+          "modelId": "advanced",
+          "writeFiles": false
+        },
+        {
+          "phase": "technical-plan",
+          "modelId": "standard",
+          "writeFiles": false
+        },
+        {
+          "phase": "implement",
+          "modelId": "light",
+          "writeFiles": true
+        },
+        {
+          "phase": "review",
+          "modelId": "standard",
+          "writeFiles": false
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": "advanced",
+          "technicalPlannerId": "standard",
+          "reviewerId": "standard",
+          "executorId": "light",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Configured complexity and risk rules; insufficient matched evidence to claim optimal cost",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "light",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z"
+      }
+    ],
+    "expected": {
+      "status": "blocked",
+      "mode": "blocked",
+      "plannerId": null,
+      "executorId": null,
+      "technicalPlannerId": null,
+      "reviewerId": null,
+      "workerCount": 0,
+      "phases": [],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "No verified, policy-allowed workflow satisfies planning, implementation and acceptance requirements",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "standard",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z"
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "direct-current",
+      "plannerId": null,
+      "executorId": "standard",
+      "technicalPlannerId": null,
+      "reviewerId": null,
+      "workerCount": 0,
+      "phases": [
+        {
+          "phase": "implement",
+          "modelId": "standard",
+          "writeFiles": true
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": null,
+          "technicalPlannerId": null,
+          "reviewerId": null,
+          "executorId": "standard",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        },
+        {
+          "plannerId": "standard",
+          "technicalPlannerId": null,
+          "reviewerId": "standard",
+          "executorId": "standard",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Configured complexity and risk rules; insufficient matched evidence to claim optimal cost",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "normal",
+        "risk": "medium",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": true,
+        "currentModelId": "standard",
+        "preferredExecutorId": "standard",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z"
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "plan-implement-review",
+      "plannerId": "standard",
+      "executorId": "standard",
+      "technicalPlannerId": null,
+      "reviewerId": "standard",
+      "workerCount": 1,
+      "phases": [
+        {
+          "phase": "plan",
+          "modelId": "standard",
+          "writeFiles": false
+        },
+        {
+          "phase": "implement",
+          "modelId": "standard",
+          "writeFiles": true
+        },
+        {
+          "phase": "review",
+          "modelId": "standard",
+          "writeFiles": false
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": "standard",
+          "technicalPlannerId": null,
+          "reviewerId": "standard",
+          "executorId": "standard",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Configured complexity and risk rules; insufficient matched evidence to claim optimal cost",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "complex",
+        "risk": "medium",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": true,
+        "currentModelId": "standard",
+        "preferredExecutorId": "standard",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z",
+        "planningMode": "three-stage",
+        "technicalPlannerId": "standard"
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "architecture-technical-implement-review",
+      "plannerId": "advanced",
+      "executorId": "standard",
+      "technicalPlannerId": "standard",
+      "reviewerId": "standard",
+      "workerCount": 1,
+      "phases": [
+        {
+          "phase": "plan",
+          "modelId": "advanced",
+          "writeFiles": false
+        },
+        {
+          "phase": "technical-plan",
+          "modelId": "standard",
+          "writeFiles": false
+        },
+        {
+          "phase": "implement",
+          "modelId": "standard",
+          "writeFiles": true
+        },
+        {
+          "phase": "review",
+          "modelId": "standard",
+          "writeFiles": false
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": "advanced",
+          "technicalPlannerId": "standard",
+          "reviewerId": "standard",
+          "executorId": "standard",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Configured complexity and risk rules; insufficient matched evidence to claim optimal cost",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "light",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z",
+        "providerCapacity": [
+          {
+            "provider": "claude",
+            "state": "limit-reached",
+            "observedAt": "2026-11-19T00:00:00Z",
+            "source": "provider_reported"
+          }
+        ]
+      }
+    ],
+    "expected": {
+      "status": "blocked",
+      "mode": "blocked",
+      "plannerId": null,
+      "executorId": null,
+      "technicalPlannerId": null,
+      "reviewerId": null,
+      "workerCount": 0,
+      "phases": [],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "limit-reached",
+          "source": "provider_reported",
+          "observedAt": "2026-11-19T00:00:00Z"
+        }
+      ],
+      "reason": "No verified, policy-allowed workflow satisfies planning, implementation and acceptance requirements",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "light",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z",
+        "requireKnownCapacity": true
+      }
+    ],
+    "expected": {
+      "status": "blocked",
+      "mode": "blocked",
+      "plannerId": null,
+      "executorId": null,
+      "technicalPlannerId": null,
+      "reviewerId": null,
+      "workerCount": 0,
+      "phases": [],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "No verified, policy-allowed workflow satisfies planning, implementation and acceptance requirements",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "light",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z",
+        "requireKnownCapacity": true,
+        "providerCapacity": [
+          {
+            "provider": "claude",
+            "state": "available",
+            "observedAt": "2026-11-19T00:00:00Z",
+            "source": "provider_reported"
+          }
+        ]
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "direct-worker",
+      "plannerId": null,
+      "executorId": "light",
+      "technicalPlannerId": null,
+      "reviewerId": null,
+      "workerCount": 1,
+      "phases": [
+        {
+          "phase": "implement",
+          "modelId": "light",
+          "writeFiles": true
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": null,
+          "technicalPlannerId": null,
+          "reviewerId": null,
+          "executorId": "light",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        },
+        {
+          "plannerId": null,
+          "technicalPlannerId": null,
+          "reviewerId": null,
+          "executorId": "standard",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        },
+        {
+          "plannerId": "standard",
+          "technicalPlannerId": null,
+          "reviewerId": "standard",
+          "executorId": "light",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "available",
+          "source": "provider_reported",
+          "observedAt": "2026-11-19T00:00:00Z"
+        }
+      ],
+      "reason": "Configured complexity and risk rules; insufficient matched evidence to claim optimal cost",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": false,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "normal",
+        "risk": "medium",
+        "hasAcceptanceChecks": false,
+        "needsPlanning": true,
+        "currentModelId": "standard",
+        "preferredExecutorId": "light",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z"
+      }
+    ],
+    "expected": {
+      "status": "blocked",
+      "mode": "blocked",
+      "plannerId": null,
+      "executorId": null,
+      "technicalPlannerId": null,
+      "reviewerId": null,
+      "workerCount": 0,
+      "phases": [],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "No verified, policy-allowed workflow satisfies planning, implementation and acceptance requirements",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "standard",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [
+          {
+            "caseId": "c1",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": null,
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 1,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c2",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": null,
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 1,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c3",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": null,
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 1,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c4",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": "standard",
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 3,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c5",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": "standard",
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 3,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c6",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": "standard",
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 3,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          }
+        ],
+        "now": "2026-11-19T00:00:00Z"
+      }
+    ],
+    "expected": {
+      "status": "historical-forecast",
+      "mode": "direct-current",
+      "plannerId": null,
+      "executorId": "standard",
+      "technicalPlannerId": null,
+      "reviewerId": null,
+      "workerCount": 0,
+      "phases": [
+        {
+          "phase": "implement",
+          "modelId": "standard",
+          "writeFiles": true
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": 1,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": null,
+          "technicalPlannerId": null,
+          "reviewerId": null,
+          "executorId": "standard",
+          "evidenceIds": [
+            "c1",
+            "c2",
+            "c3"
+          ],
+          "evidenceTruncated": false,
+          "samples": 3,
+          "qualityRate": 1,
+          "usdPerAccepted": 1
+        },
+        {
+          "plannerId": "standard",
+          "technicalPlannerId": null,
+          "reviewerId": "standard",
+          "executorId": "standard",
+          "evidenceIds": [
+            "c4",
+            "c5",
+            "c6"
+          ],
+          "evidenceTruncated": false,
+          "samples": 3,
+          "qualityRate": 1,
+          "usdPerAccepted": 3
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Ranked full workflow cost per accepted result, including failed attempts; forecast only",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "standard",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [
+          {
+            "caseId": "c1",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": null,
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 5,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c2",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": null,
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 5,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c3",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": null,
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 5,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c4",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": "standard",
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 2,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c5",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": "standard",
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 2,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          },
+          {
+            "caseId": "c6",
+            "taskKind": "feature",
+            "taskSignature": "fixture-v1",
+            "complexity": "simple",
+            "risk": "low",
+            "plannerId": "standard",
+            "executorId": "standard",
+            "accepted": true,
+            "modelConfirmed": true,
+            "completeAccounting": true,
+            "usdMax": 2,
+            "pricesExpireAt": "2027-01-01T00:00:00Z"
+          }
+        ],
+        "now": "2026-11-19T00:00:00Z"
+      }
+    ],
+    "expected": {
+      "status": "historical-forecast",
+      "mode": "plan-implement-review",
+      "plannerId": "standard",
+      "executorId": "standard",
+      "technicalPlannerId": null,
+      "reviewerId": "standard",
+      "workerCount": 1,
+      "phases": [
+        {
+          "phase": "plan",
+          "modelId": "standard",
+          "writeFiles": false
+        },
+        {
+          "phase": "implement",
+          "modelId": "standard",
+          "writeFiles": true
+        },
+        {
+          "phase": "review",
+          "modelId": "standard",
+          "writeFiles": false
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": 2,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": null,
+          "technicalPlannerId": null,
+          "reviewerId": null,
+          "executorId": "standard",
+          "evidenceIds": [
+            "c1",
+            "c2",
+            "c3"
+          ],
+          "evidenceTruncated": false,
+          "samples": 3,
+          "qualityRate": 1,
+          "usdPerAccepted": 5
+        },
+        {
+          "plannerId": "standard",
+          "technicalPlannerId": null,
+          "reviewerId": "standard",
+          "executorId": "standard",
+          "evidenceIds": [
+            "c4",
+            "c5",
+            "c6"
+          ],
+          "evidenceTruncated": false,
+          "samples": 3,
+          "qualityRate": 1,
+          "usdPerAccepted": 2
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Ranked full workflow cost per accepted result, including failed attempts; forecast only",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "standard",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z",
+        "executionRole": "review",
+        "reviewerId": "advanced"
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "direct-current",
+      "plannerId": null,
+      "executorId": "standard",
+      "technicalPlannerId": null,
+      "reviewerId": "advanced",
+      "workerCount": 0,
+      "phases": [
+        {
+          "phase": "review",
+          "modelId": "standard",
+          "writeFiles": false
+        },
+        {
+          "phase": "review",
+          "modelId": "advanced",
+          "writeFiles": false
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": null,
+          "technicalPlannerId": null,
+          "reviewerId": "advanced",
+          "executorId": "standard",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        },
+        {
+          "plannerId": "standard",
+          "technicalPlannerId": null,
+          "reviewerId": "advanced",
+          "executorId": "standard",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Configured complexity and risk rules; insufficient matched evidence to claim optimal cost",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "simple",
+        "risk": "low",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": false,
+        "currentModelId": "standard",
+        "preferredExecutorId": "light",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z",
+        "executionRole": "inventory"
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "direct-worker",
+      "plannerId": null,
+      "executorId": "light",
+      "technicalPlannerId": null,
+      "reviewerId": null,
+      "workerCount": 1,
+      "phases": [
+        {
+          "phase": "inventory",
+          "modelId": "light",
+          "writeFiles": false
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": null,
+          "technicalPlannerId": null,
+          "reviewerId": null,
+          "executorId": "light",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        },
+        {
+          "plannerId": "standard",
+          "technicalPlannerId": null,
+          "reviewerId": "standard",
+          "executorId": "light",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Configured complexity and risk rules; insufficient matched evidence to claim optimal cost",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  },
+  {
+    "fn": "decideAgentWorkflow",
+    "args": [
+      {
+        "orchestratorId": "standard",
+        "maxWorkers": 2,
+        "allowLightCoding": true,
+        "models": [
+          {
+            "id": "light",
+            "provider": "claude",
+            "model": "haiku",
+            "tier": "light",
+            "roles": [
+              "coding",
+              "inventory"
+            ]
+          },
+          {
+            "id": "standard",
+            "provider": "claude",
+            "model": "sonnet",
+            "tier": "standard",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          },
+          {
+            "id": "advanced",
+            "provider": "claude",
+            "model": "opus",
+            "tier": "high",
+            "roles": [
+              "orchestrator",
+              "coding",
+              "review"
+            ]
+          }
+        ]
+      },
+      {
+        "kind": "feature",
+        "taskSignature": "fixture-v1",
+        "complexity": "complex",
+        "risk": "high",
+        "hasAcceptanceChecks": true,
+        "needsPlanning": true,
+        "currentModelId": "standard",
+        "preferredExecutorId": "standard",
+        "plannerId": "standard",
+        "advancedPlannerId": "advanced",
+        "allowedProviders": [
+          "claude"
+        ],
+        "verifiedModelIds": [
+          "light",
+          "standard",
+          "advanced"
+        ],
+        "history": [],
+        "now": "2026-11-19T00:00:00Z"
+      }
+    ],
+    "expected": {
+      "status": "rule-based",
+      "mode": "plan-implement-review",
+      "plannerId": "advanced",
+      "executorId": "standard",
+      "technicalPlannerId": null,
+      "reviewerId": "advanced",
+      "workerCount": 1,
+      "phases": [
+        {
+          "phase": "plan",
+          "modelId": "advanced",
+          "writeFiles": false
+        },
+        {
+          "phase": "implement",
+          "modelId": "standard",
+          "writeFiles": true
+        },
+        {
+          "phase": "review",
+          "modelId": "advanced",
+          "writeFiles": false
+        }
+      ],
+      "decisionInferenceTokens": 0,
+      "dispatchPerformed": false,
+      "objective": "reference-cost",
+      "estimatedReferenceUsdPerAccepted": null,
+      "actualSubscriptionCharge": null,
+      "candidates": [
+        {
+          "plannerId": "advanced",
+          "technicalPlannerId": null,
+          "reviewerId": "advanced",
+          "executorId": "standard",
+          "evidenceIds": [],
+          "evidenceTruncated": false,
+          "samples": 0,
+          "qualityRate": null,
+          "usdPerAccepted": null
+        }
+      ],
+      "quotaChecks": [
+        {
+          "provider": "claude",
+          "state": "unknown",
+          "source": "unavailable",
+          "observedAt": null
+        }
+      ],
+      "reason": "Configured complexity and risk rules; insufficient matched evidence to claim optimal cost",
+      "requiredHandoff": [
+        "goal",
+        "acceptanceCriteria",
+        "allowedPaths",
+        "dependencies",
+        "checkCommands",
+        "openQuestions"
+      ],
+      "maxImplementationRetries": 1
+    }
+  }
+]
