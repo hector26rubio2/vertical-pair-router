@@ -58,7 +58,11 @@ const short = model => model?.replace('claude-', '') ?? '—';
 const armLabel=id=>{
   const attempt=id.match(/-(?:attempt|repeat)-(\d+)$/u),base=id.replace(/-(?:attempt|repeat)-\d+$/u,'');
   const label=({'haiku-solo':'Haiku solo','sonnet-solo':'Sonnet solo','opus-solo':'Opus solo','sonnet-haiku':'Sonnet → Haiku','haiku-sonnet':'Haiku → Sonnet','opus-haiku':'Opus → Haiku','haiku-codex-terra':'Haiku → Codex Terra','opus-codex-terra':'Opus → Codex Terra'})[base]??base;
-  if(base.endsWith('-reviewed'))return base.slice(0,-9).replace('-solo','').split('-').map(name=>name[0].toUpperCase()+name.slice(1)).join(' → ')+' + revisión común Sonnet'+(attempt?' · intento '+attempt[1]:'');
+  if(base.endsWith('-reviewed')){
+    const recipe=base.slice(0,-9),cross=recipe.match(/^(sonnet|opus)-codex-(terra|sol)$/u);
+    const readable=cross?cross[1][0].toUpperCase()+cross[1].slice(1)+' → Codex '+cross[2][0].toUpperCase()+cross[2].slice(1):recipe.replace('-solo','').split('-').map(name=>name[0].toUpperCase()+name.slice(1)).join(' → ');
+    return readable+' + revisión común Sonnet'+(attempt?' · intento '+attempt[1]:'');
+  }
   const readable=label.replace(/^(sonnet|haiku|opus)-codex-(.+)$/u,(_,planner,model)=>planner[0].toUpperCase()+planner.slice(1)+' → Codex GPT-'+model);
   return readable+(attempt?' · '+(id.includes('-repeat-')?'repetición ':'intento ')+attempt[1]:'');
 };

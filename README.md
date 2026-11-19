@@ -19,7 +19,9 @@ equivalente; listar el modelo no basta para prometer el límite de contexto.
 VPR organiza trabajo de ingeniería con Stories, Tasks, Runs, checks y evidencia
 local. Incluye un CLI y un plugin de Claude Code. La ejecución Claude está
 probada localmente. Codex ya corrigió un archivo en una copia aislada y pasó sus
-cinco casos de aceptación; la comparación de ingeniería con Finanzas está en curso.
+cinco casos de aceptación. Sonnet→Codex Terra y Sonnet→Codex Sol también aprobaron
+los nueve criterios externos, regresiones y compilación del caso real Finanzas;
+Sol conservó un hallazgo medio y no se recomienda como caso positivo de routing.
 La aceptación de Copilot con cuenta corporativa sigue pendiente.
 Su adaptador utiliza el SDK oficial 2.0.1 y CLI 1.0.114; el arranque y consulta
 de cuenta se comprobaron sin inferencia, con cero modelos habilitados en esta cuenta.
@@ -44,6 +46,18 @@ de cuenta se comprobaron sin inferencia, con cero modelos habilitados en esta cu
 ## Instalar y probar el paquete local
 
 La distribución usa un `.tgz` de GitHub Releases, instalable con npm o pnpm.
+Para la versión 0.1.0:
+
+```sh
+npm install --global https://github.com/hector26rubio2/vertical-pair-router/releases/download/v0.1.0/vertical-pair-router-0.1.0.tgz
+vpr plugin install
+vpr plugin doctor
+```
+
+Con pnpm, sustituye la primera orden por `pnpm add --global` con la misma URL;
+su directorio global debe estar configurado. La release incluye `SHA256SUMS`
+y el inventario de dependencias `SBOM.json`.
+
 La compilación local genera ese mismo formato; los pasos de registro, actualización y retirada
 están en [la guía de instalación](docs/operations/portability.md).
 `vpr plugin install` registra el plugin en Claude desde el paquete instalado;

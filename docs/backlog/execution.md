@@ -42,7 +42,7 @@ file ownership must not overlap.
 | 9 Orchestration/isolation | COMPLETE LOCALLY | OmniRouter consumes capability and assignment boundaries |
 | 10 OmniRouter/adapters | VERIFIED LOCALLY; PROVIDER LIMITATIONS RECORDED | Claude and Codex real edits/checks verified; corporate Copilot inference acceptance pending |
 | 11 Usage/event log/dashboard | VERIFIED LOCALLY | Native account/model/phase ledger displayed with authenticated DTO; no inference for reads |
-| 12 Portability/compatibility | WINDOWS VERIFIED; CI PREPARED | Native package/lifecycle matrix on macOS/Linux must run before marking those hosts verified |
+| 12 Portability/compatibility | PACKAGE/LIFECYCLE VERIFIED ON THREE SYSTEMS | Release pipeline requires the complete Node 24/26 matrix; generative provider tests remain Windows-only |
 | 13 Evaluation/security/pilot | BOUNDED EXPERIMENTS COMPLETE | 17 tasks/119 trials in the local report; mixed quality, not a general savings guarantee |
 | 14 Release/publication | 0.1.0 CANDIDATE PREPARED | Owner approved MIT and publication; publish only after local checks and remote verification |
 

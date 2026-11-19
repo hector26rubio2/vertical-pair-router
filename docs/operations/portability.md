@@ -4,23 +4,30 @@
 
 | Surface | Windows 11 | macOS | Linux |
 |---|---|---|---|
-| Core policy, lifecycle and routing | VERIFIED locally | EXPERIMENTAL / NOT_RUN | EXPERIMENTAL / NOT_RUN |
-| Node/pnpm clean checkout | VERIFIED locally | NOT_RUN | NOT_RUN |
-| SQLite/WAL/backup/locking | VERIFIED locally | NOT_RUN | NOT_RUN |
-| Safe process execution and quoting | VERIFIED locally, `shell: false` | NOT_RUN | NOT_RUN |
+| Core policy, lifecycle and routing | VERIFIED locally / CI | VERIFIED in CI | VERIFIED in CI |
+| Node/pnpm clean checkout and npm/pnpm archive install | VERIFIED locally / CI | VERIFIED in CI | VERIFIED in CI |
+| SQLite/WAL/backup/locking tests | VERIFIED locally / CI | VERIFIED in CI | VERIFIED in CI |
+| Safe process execution and quoting tests | VERIFIED locally, `shell: false` / CI | VERIFIED in CI | VERIFIED in CI |
 | Git worktree create/remove | VERIFIED locally | NOT_RUN | NOT_RUN |
-| Claude Code plugin manifest/hooks | VERIFIED locally | NOT_RUN | NOT_RUN |
-| Local dashboard | VERIFIED locally | NOT_RUN | NOT_RUN |
+| Claude manifest validation and native plugin lifecycle | VERIFIED locally / CI | VERIFIED in CI | VERIFIED in CI |
+| Dashboard HTTP/authentication/DTO tests | VERIFIED locally / CI | VERIFIED in CI | VERIFIED in CI |
+| Generative Claude/Codex implementation | VERIFIED locally | NOT_RUN | NOT_RUN |
+| Corporate Copilot implementation | PENDING on owner's other account | NOT_RUN | NOT_RUN |
 
 Los adaptadores admiten como destinos Windows, macOS y Linux; su disponibilidad
 permanece desconocida hasta inspeccionar la máquina. La matriz distingue los
-destinos implementados de los checks realmente ejecutados. La pipeline preparada
-prueba los tres sistemas con Node 24.15 y 26; hasta ejecutar esos jobs, macOS y
-Linux permanecen NOT_RUN y no se presentan como verificados.
+destinos implementados de los checks realmente ejecutados. El
+[run de portabilidad](https://github.com/hector26rubio2/vertical-pair-router/actions/runs/44461466194)
+ejecutó y aprobó los seis jobs: Windows, macOS y Linux con Node 24.15 y 26.
+La release exige que toda
+la matriz termine correctamente. La instalación/actualización/reversión/
+desinstalación nativa usa versiones de fixture, sin cuenta ni inferencia.
+Eso no demuestra ejecución generativa en cada sistema ni acceso corporativo.
 
 ## Prerequisites
 
-- Windows 11 and PowerShell 7 for the currently verified path.
+- Windows, macOS or Linux supported by Node and the selected provider CLI.
+- PowerShell 7 only for the optional Windows clean-checkout script.
 - Git.
 - Node.js `>=24.15 <27`.
 - pnpm `>=11 <12` (the repository pins 11.1.2).
