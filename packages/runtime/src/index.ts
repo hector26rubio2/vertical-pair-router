@@ -49,3 +49,14 @@ export {
   type WorkerOutput
 } from "./orchestration.js";
 
+export {
+  executeNativeRun,
+  type NativeCheckOutcome,
+  type NativeRunInput,
+  type NativeRunOutcome,
+  type NativeRunPorts,
+  type NativeRunReceipt,
+  type NativeRunWorkspaceReport,
+  type NativeWorkflowDecision
+} from "./native-run.js";
+export { nativeWorkspace, verifyNativeWorkspace } from "./native-workspace.js";
