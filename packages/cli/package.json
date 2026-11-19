@@ -11,11 +11,12 @@
     "@vpr/config": "workspace:*",
     "@vpr/contracts": "workspace:*",
     "@vpr/dashboard": "workspace:*",
+    "@vpr/experiments": "workspace:*",
     "@vpr/knowledge": "workspace:*",
     "@vpr/observability": "workspace:*",
     "@vpr/quality": "workspace:*",
     "@vpr/runtime": "workspace:*",
-    "@vpr/storage-sqlite": "workspace:*"
+    "@vpr/storage-sqlite": "workspace:*",
+    "yaml": "2.8.1"
   }
 }
-

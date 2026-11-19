@@ -8,9 +8,10 @@
   },
   "types": "./dist/index.d.ts",
   "dependencies": {
+    "@vpr/backlog": "workspace:*",
     "@vpr/contracts": "workspace:*",
-    "@vpr/storage-sqlite": "workspace:*",
     "@vpr/core": "workspace:*",
-    "@vpr/observability": "workspace:*"
+    "@vpr/observability": "workspace:*",
+    "@vpr/storage-sqlite": "workspace:*"
   }
 }

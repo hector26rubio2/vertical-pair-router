@@ -6,16 +6,38 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "references": [
-    { "path": "../backlog" },
-    { "path": "../config" },
-    { "path": "../contracts" },
-    { "path": "../dashboard" },
-    { "path": "../knowledge" },
-    { "path": "../observability" },
-    { "path": "../quality" },
-    { "path": "../runtime" },
-    { "path": "../storage-sqlite" }
+    {
+      "path": "../backlog"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../dashboard"
+    },
+    {
+      "path": "../knowledge"
+    },
+    {
+      "path": "../observability"
+    },
+    {
+      "path": "../quality"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../storage-sqlite"
+    },
+    {
+      "path": "../experiments"
+    }
   ],
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }
-

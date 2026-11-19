@@ -11,6 +11,9 @@ importers:
       '@types/node':
         specifier: 24.10.1
         version: 24.10.1
+      '@vpr/backlog':
+        specifier: workspace:*
+        version: link:packages/backlog
       '@vpr/config':
         specifier: workspace:*
         version: link:packages/config
@@ -68,6 +71,9 @@ importers:
       '@vpr/dashboard':
         specifier: workspace:*
         version: link:../dashboard
+      '@vpr/experiments':
+        specifier: workspace:*
+        version: link:../experiments
       '@vpr/knowledge':
         specifier: workspace:*
         version: link:../knowledge
@@ -83,6 +89,9 @@ importers:
       '@vpr/storage-sqlite':
         specifier: workspace:*
         version: link:../storage-sqlite
+      yaml:
+        specifier: 2.8.1
+        version: 2.8.1
 
   packages/config:
     dependencies:
@@ -129,6 +138,9 @@ importers:
 
   packages/experiments:
     dependencies:
+      '@vpr/backlog':
+        specifier: workspace:*
+        version: link:../backlog
       '@vpr/contracts':
         specifier: workspace:*
         version: link:../contracts
