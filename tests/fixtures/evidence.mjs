@@ -1,5 +1,5 @@
 export function fixture(id = 'call-1') {
-  return {schemaVersion: 1, id, granularity: 'call', runId: 'run-1', storyId: null,
+  return {schemaVersion: 1, snapshotHash: 'd'.repeat(64), id, granularity: 'call', runId: 'run-1', storyId: null,
     callId: id, taskId: 'task-1', protocol: 'factorial-v1', acceptanceContractHash: 'a'.repeat(64),
     recipe: 'sonnet-haiku', phase: 'implement', operation: 'implementar', model: 'haiku',
     provider: 'claude', modelIdentity: 'confirmed',

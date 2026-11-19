@@ -51,6 +51,7 @@ export const evidenceFailureReasons = [
   'test_externo_fallido', 'bloqueo_de_proveedor', 'plan_insuficiente',
 ] as const;
 export interface EvidenceRecord {
+  readonly snapshotHash?: string | null;
   readonly schemaVersion: 1;
   readonly id: string;
   readonly granularity: 'run' | 'story' | 'call';
@@ -115,8 +116,8 @@ const textOrNull = {type: ['string', 'null'], minLength: 1};
 const hashOrNull = {anyOf: [hash, {type: 'null'}]};
 const strings = {type: 'array', items: text, uniqueItems: true};
 const nonempty = {...strings, minItems: 1};
-function object(properties: Record<string, unknown>) {
-  return {type: 'object', additionalProperties: false, properties, required: Object.keys(properties)};
+function object(properties: Record<string, unknown>, optional: readonly string[] = []) {
+  return {type: 'object', additionalProperties: false, properties, required: Object.keys(properties).filter(key => !optional.includes(key))};
 }
 function nullableEnum(values: readonly string[]) {return {enum: [...values, null]};}
 const level = nullableEnum(['simple', 'normal', 'complex']);
@@ -155,6 +156,7 @@ export const workFeaturesSchema = object({
 export const evidenceSchema = {
   $id: 'https://vpr.local/schemas/evidence-v1',
   ...object({
+    snapshotHash: hashOrNull,
     schemaVersion: {const: 1}, id: text, granularity: {enum: ['run', 'story', 'call']},
     runId: text, storyId: textOrNull, callId: textOrNull, taskId: text,
     protocol: textOrNull, acceptanceContractHash: hashOrNull, recipe: text,
@@ -178,7 +180,7 @@ export const evidenceSchema = {
     escalationRequired: boolOrNull, shadowRecipe: textOrNull,
     source: object({path: text, sha256: hash, pointer: text}),
     unavailable: {type: 'object', additionalProperties: text},
-  }),
+  }, ['snapshotHash']),
 };
 const ajv = new Ajv({allErrors: true, strict: true, allowUnionTypes: true});
 const handoffValidator = ajv.compile(handoffSchema);
