@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdtemp,writeFile,rm,cp,readFile} from 'node:fs/promises';
-import {join,resolve} from 'node:path';
+import {mkdtemp,writeFile,rm,cp,readFile,realpath} from 'node:fs/promises';
+import {join,resolve,relative} from 'node:path';
 import {tmpdir} from 'node:os';
 const cli=resolve(process.argv[2]??'.tmp/package-smoke/node_modules/vertical-pair-router/bin/vpr.mjs');
 const root=await mkdtemp(join(tmpdir(),'vpr-archive-smoke-'));
@@ -24,7 +24,7 @@ try{
   const cachedCli=join(isolatedPlugin,'bin/vpr.mjs');
   const cachedDoctor=JSON.parse(execFileSync(process.execPath,[cachedCli,'tools','doctor','--project',root],{cwd:root,encoding:'utf8',timeout:30000,windowsHide:true}));
   assert.equal(cachedDoctor.inferenceTokens,0);
-  assert.equal(resolve(execFileSync(process.execPath,[cachedCli,'plugin','path'],{cwd:root,encoding:'utf8',timeout:30000,windowsHide:true}).trim()),isolatedPlugin);
+  assert.equal(await realpath(resolve(execFileSync(process.execPath,[cachedCli,'plugin','path'],{cwd:root,encoding:'utf8',timeout:30000,windowsHide:true}).trim())),await realpath(isolatedPlugin));
   const prices=JSON.parse(execFileSync(process.execPath,[cachedCli,'models','prices','--provider','claude'],{cwd:root,encoding:'utf8',timeout:30000,windowsHide:true}));assert.equal(prices.inferenceTokens,0);assert.ok(prices.catalog.cards.length);
   console.log(JSON.stringify({passed:true,archiveCli:cli,checks:['single-json-output','tools-doctor','init-preview','init-apply','copied-plugin-frozen-dependencies','copied-plugin-cli','copied-plugin-catalogs'],inferenceTokens:0}));
-}finally{await rm(root,{recursive:true,force:true});}
+}finally{const local=relative(await realpath(tmpdir()),await realpath(root));assert.ok(local&&!local.startsWith('..')&&!/^[a-z]:/iu.test(local));await rm(root,{recursive:true,force:true});}

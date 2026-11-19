@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
 import { access } from "node:fs/promises";
-import { delimiter, extname, isAbsolute, join, normalize } from "node:path";
+import { delimiter, extname, isAbsolute, join, normalize,dirname,resolve } from "node:path";
 
 export async function resolveExecutable(
   program: string,
@@ -24,6 +24,13 @@ export async function resolveExecutable(
     for (const candidate of candidates) {
       const path = join(directory, candidate);
       if (await isExecutable(path)) return normalize(path);
+    }
+  }
+  if(process.platform==='win32'&&program==='claude'){
+    const nodeDirectory=dirname(process.execPath);
+    for(const directory of new Set([...directories,nodeDirectory,resolve(nodeDirectory,'../../packages/@anthropic-ai/claude-code')])){
+      const binary=join(directory,'node_modules','@anthropic-ai','claude-code','bin','claude.exe');
+      if(await isExecutable(binary))return normalize(binary);
     }
   }
   return null;

@@ -28,6 +28,12 @@ test('cost per acceptance includes failed attempts and missing baselines stay ex
   assert.ok(result.missing.includes('sonnet-solo'));
   assert.ok(result.missing.includes('opus-haiku'));
 });
+
+test('an accepted conditional engineering candidate is visible without becoming a confirmed routing winner',()=>{
+  const row={...sample('sonnet-codex-terra','accepted',.03),semanticReview:'passed',models:[{cost:{modelIdentityCaveat:true}}],qualityReview:{approved:true,findings:[]}};
+  const result=analyzeTask(task,[row]);assert.equal(result.cheapestObserved,null);assert.equal(result.conditionalEngineeringCandidate.arm,'sonnet-codex-terra');
+  assert.equal(analyzeTask(task,[{...row,qualityReview:{approved:true,findings:[{severity:'medium'}]}}]).conditionalEngineeringCandidate,null);
+});
 test('context is max prompt including cache, never cumulative session tokens',()=>{
   const row={receipt:{requests:[{model:'h',inputTokens:10,cacheReadTokens:100,cacheWriteTokens:5},{model:'h',inputTokens:20,cacheReadTokens:200,cacheWriteTokens:10}]}};
   assert.equal(contextEvidence(row,{model:'h',totalTokens:10000}).observedMax,230);

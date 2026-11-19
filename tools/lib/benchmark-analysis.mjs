@@ -54,11 +54,13 @@ export function analyzeTask(task, rows) {
   });
   const candidates = strategies.filter(s => s.accepted && s.costPerAccepted && !s.conditional && !contractConflict && s.acceptanceRate >= .8 && s.semanticReview !== 'pending-or-failed');
   const cheapest = [...candidates].sort((a,b)=>a.costPerAccepted.max-b.costPerAccepted.max)[0];
+  const conditionalCandidate=!contractConflict?[...strategies].filter(s=>s.conditional&&s.accepted&&s.costPerAccepted&&s.acceptanceRate>=.8&&s.semanticReview==='passed').sort((a,b)=>a.costPerAccepted.max-b.costPerAccepted.max)[0]:null;
   const fastest = [...strategies].filter(s=>s.accepted && s.semanticReview!=='pending-or-failed' && s.meanAcceptedMs !== null).sort((a,b)=>a.meanAcceptedMs-b.meanAcceptedMs)[0];
   const expected = task.expectedArms??(task.id === 'R01' ? ['sonnet-codex-6-luna','sonnet-codex-6.1-terra','sonnet-codex-6.1-sol'] : ['haiku-solo','sonnet-solo','sonnet-haiku','opus-solo','opus-haiku',...(task.id==='F01'?['sonnet','opus'].flatMap(planner=>['6-luna','6.1-terra','6.1-sol'].map(model=>planner+'-codex-'+model)):[])]);
   const missing = expected.filter(arm => !strategies.some(s => s.arm === arm && s.accepted));
   const nextTrial=selected.filter(row=>row.status==='accepted'&&row.semanticReview==='reviewed-draft'&&row.receipt?.completeAccounting&&row.totalCost&&!contractConflict).sort((a,b)=>a.totalCost.max-b.totalCost.max)[0];
   return {taskId: task.id, contractConflict, strategies, comparisonPolicy:selection.policy,excludedTrials:selection.excluded.length,technicalBlocked:selection.technicalBlocked,cheapestObserved: cheapest?.arm ?? null, fastestObserved: fastest?.arm ?? null,
+    conditionalEngineeringCandidate:conditionalCandidate?{arm:conditionalCandidate.arm,cost:conditionalCandidate.costPerAccepted,basis:'Accepted bounded engineering contract, conditional requested model pricing; repeat and verify identity before default routing.'}:null,
     nextTrialCandidate:nextTrial?{arm:baseArm(nextTrial),cost:nextTrial.totalCost,priceConditional:nextTrial.models.some(model=>model.cost?.modelIdentityCaveat),basis:'Next trial among coordinator-reviewed drafts; not approved engineering quality or autonomous optimal routing'}:null,
     missing, comparativeConfidence: contractConflict ? 'incompatible-contracts' : candidates.length > 1 && candidates.every(s=>s.attempts>=3) && !missing.length ? 'repeated-bounded-tests' : 'exploratory',
     qualityConclusion: 'Only acceptance of the measured contract is established; equal general code quality is not established.',

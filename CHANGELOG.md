@@ -1,9 +1,8 @@
 # Changelog
 
-All notable changes will be documented here. The project has no public release
-yet.
+Notable changes to Vertical Pair Router are documented here.
 
-## Unreleased
+## 0.1.0
 
 - MIT confirmed by the owner with attribution to Vertical Pair Router contributors.
 - Installable npm/pnpm archive, self-contained cached Claude plugin, pinned
@@ -18,8 +17,13 @@ yet.
   and local graph hints. Provider write permissions are never bypassed.
 - Real Finanzas analysis and implementation experiments with common fresh
   review, per-phase token/cost detail, charts and explicit quality limitations.
-- Windows/macOS/Linux targets and CI matrix; only executed checks count as
-  verified. Corporate Copilot and Codex write acceptance remain pending.
+- Real Codex edits from the CLI and Claude plugin; Finanzas implementation
+  trials with separate planning, execution and fresh review. Conditional price
+  intervals retain unknown per-request context instead of guessing its tier.
+- Copilot SDK 2.0.1 / CLI 1.0.114 integration and account metadata handshake;
+  corporate Copilot inference acceptance remains pending.
+- Windows/macOS/Linux targets and native lifecycle CI matrix; only executed
+  checks count as verified. Windows npm binaries resolve without a command shell.
 
 - Recorded the Phase 0 host audit and base ADRs.
 - Added versioned domain contracts and Run lifecycle validation.

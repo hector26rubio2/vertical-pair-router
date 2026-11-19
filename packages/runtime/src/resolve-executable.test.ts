@@ -6,6 +6,14 @@ import test from "node:test";
 
 import { resolveExecutable } from "./resolve-executable.js";
 
+test('resolves the native Windows Claude binary behind an npm command shim',async context=>{
+  if(process.platform!=='win32'){context.skip('Windows npm executable layout');return;}
+  const root=await mkdtemp(join(tmpdir(),'vpr-claude-npm-'));context.after(()=>rm(root,{recursive:true,force:true}));
+  const bin=join(root,'node_modules','@anthropic-ai','claude-code','bin');await mkdir(bin,{recursive:true});
+  await writeFile(join(root,'claude.cmd'),'@echo off\n');await writeFile(join(bin,'claude.exe'),'fixture');
+  assert.equal(await resolveExecutable('claude',{PATH:root}),join(bin,'claude.exe'));
+});
+
 test("resolves the first executable deterministically from PATH", async (context) => {
   const root = await mkdtemp(join(tmpdir(), "vpr-path-"));
   context.after(async () => rm(root, { recursive: true, force: true }));
