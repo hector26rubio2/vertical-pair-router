@@ -1,3 +1,4 @@
+import { readProjectProfile } from "./project-workspace.js";
 import { readFile, readdir } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -9,7 +10,6 @@ import {
 import type { CliIo } from "./cli.js";
 import { measureSubscriptionQuota, type SubscriptionSnapshot } from "@vpr/observability";
 import { detectSubscriptionPlan } from "./subscription-detection.js";
-import { parseProjectProfile } from "@vpr/config";
 import {
   routeWorkflow,
   inspectCodexAccount,
@@ -91,9 +91,7 @@ export async function runModelEvidenceCommand(args: readonly string[], io: CliIo
       return 2;
     }
     const root = resolve(flag("--project") ?? process.cwd());
-    const profile = parseProjectProfile(
-      JSON.parse(await readFile(join(root, ".vpr/profile.json"), "utf8")),
-    );
+    const profile = await readProjectProfile(root);
     if (!profile.orchestration)
       throw new Error("Configure orchestration before requesting a workflow plan");
     const policy = profile.orchestration;

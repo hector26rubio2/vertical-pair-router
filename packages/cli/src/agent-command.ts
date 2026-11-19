@@ -2,10 +2,7 @@ import { readFile, writeFile, mkdir, open, unlink } from "node:fs/promises";
 import { join, resolve, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID, createHash } from "node:crypto";
-import { homedir } from "node:os";
-import { parseProjectProfile, parseGlobalProfile, profilePolicyLayers } from "@vpr/config";
 import {
-  evaluatePolicy,
   routeWorkflow,
   inspectProvider,
   filterNativeModels,
@@ -15,6 +12,7 @@ import {
   type NativeAgentRequest,
 } from "@vpr/runtime";
 import type { CliIo } from "./cli.js";
+import { readEffectiveProfile } from "./project-workspace.js";
 import { loadWorkflowCases } from "./workflow-cases.js";
 import { createSafeProcessRunner } from "@vpr/quality";
 import { secretFindings } from "../../quality/src/staged-security.mjs";
@@ -40,16 +38,7 @@ export async function runAgentCommand(
     io.stderr("Usage: vpr agent <detect|run> --input <task.json> [--project <path>] [--preview]\n");
     return 2;
   }
-  let profile = parseProjectProfile(
-    JSON.parse(await readFile(join(root, ".vpr/profile.json"), "utf8")),
-  );
-  const globalPath = process.env.VPR_GLOBAL_PROFILE ?? join(homedir(), ".vpr/global.json");
-  try {
-    const global = parseGlobalProfile(JSON.parse(await readFile(globalPath, "utf8")));
-    profile = { ...profile, policy: evaluatePolicy(profilePolicyLayers(global, profile)) };
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
+  const profile = await readEffectiveProfile(root);
   const policy = profile.orchestration;
   if (!policy) throw Error("Configure orchestration in init before native execution");
   const content = await readFile(resolve(file), "utf8");
