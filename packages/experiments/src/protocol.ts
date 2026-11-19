@@ -49,12 +49,17 @@ function overlap(left: readonly string[], right: readonly string[]): boolean {
   const normalize = (path: string) => path.replaceAll('\\', '/').toLowerCase().replace(/\/$/u, '');
   return left.some(a => right.some(b => {
     const x = normalize(a), y = normalize(b);
+    if (/[?*\[\]{}]/u.test(x + y)) return true;
     return x === y || x.startsWith(y + '/') || y.startsWith(x + '/');
   }));
 }
 export function scheduleStories(stories: readonly ExperimentStory[], maxWorkers = 2): ExperimentStory[][] {
   if (!Number.isInteger(maxWorkers) || maxWorkers < 1 || maxWorkers > 2) throw new TypeError('Invalid worker limit');
   const ids = new Set(stories.map(story => story.id));
+  if (stories.some(story => !story.id || !story.model || !story.files.length || story.files.some(path =>
+    !path || /^[\\/]|^[A-Za-z]:/u.test(path) || path.split(/[\\/]/u).includes('..')))) {
+    throw new TypeError('Story requires bounded relative write paths');
+  }
   if (ids.size !== stories.length) throw new TypeError('Duplicate story');
   if (stories.some(story => story.dependencies.some(id => !ids.has(id)))) throw new TypeError('Unknown dependency');
   const done = new Set<string>(), waves: ExperimentStory[][] = [];

@@ -30,6 +30,8 @@ test('stories batch by executor while honoring dependencies and overlapping file
   assert.ok(waves.findIndex(w => w.some(s => s.id === 'd')) > 0);
   assert.throws(() => scheduleStories([{...stories[0], dependencies: ['missing']}]), /dependency/);
   assert.throws(() => scheduleStories([{...stories[0], dependencies: ['b']}, {...stories[1], dependencies: ['a']}]), /cycle/);
+  assert.equal(scheduleStories([{...stories[0], files: ['src/**']}, stories[1]])[0].length, 1);
+  assert.throws(() => scheduleStories([{...stories[0], files: ['../outside.ts']}]), /relative/);
 });
 test('shared design allocation only divides complete costs across consumers with real receipts', () => {
   assert.equal(allocateSharedDesign(null, []).allocatedPerConsumer, null);
