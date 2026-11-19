@@ -23,7 +23,7 @@ export {
   type UsageObservability
 } from "./execution-budget.js";
 export { CycleDetector, type CycleObservation } from "./cycle-detector.js";
-export { decideAgentWorkflow, type WorkflowRequest, type WorkflowCase } from '@vpr/core';
+export { decideAgentWorkflow, type WorkflowRequest, type WorkflowRoles, type WorkflowCase } from '@vpr/core';
 export {evaluatePolicy} from '@vpr/core';
 export {
   EffectInDoubtError,
