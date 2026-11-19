@@ -26,6 +26,7 @@
     "@vpr/contracts": "workspace:*",
     "@vpr/core": "workspace:*",
     "@vpr/experiments": "workspace:*",
+    "@vpr/observability": "workspace:*",
     "@vpr/storage-sqlite": "workspace:*",
     "esbuild": "0.28.2",
     "husky": "9.1.7",

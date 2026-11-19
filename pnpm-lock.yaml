@@ -23,6 +23,9 @@ importers:
       '@vpr/experiments':
         specifier: workspace:*
         version: link:packages/experiments
+      '@vpr/observability':
+        specifier: workspace:*
+        version: link:packages/observability
       '@vpr/storage-sqlite':
         specifier: workspace:*
         version: link:packages/storage-sqlite

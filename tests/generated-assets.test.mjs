@@ -5,6 +5,7 @@ import {createHash} from 'node:crypto';
 
 test('runtime and security copies have the same hash as their single source after build', async () => {
   for (const [source, copies] of [
+    ['packages/observability/src/native-session-meter.mjs', ['packages/observability/dist/native-session-meter.mjs']],
     ['packages/runtime/src/usage-ledger.mjs', ['packages/runtime/dist/usage-ledger.mjs', 'hooks/lib/usage-ledger.mjs']],
     ['packages/quality/src/staged-security.mjs', ['packages/quality/dist/staged-security.mjs', 'hooks/lib/staged-security.mjs']],
   ]) {
