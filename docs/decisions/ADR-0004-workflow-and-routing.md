@@ -1,9 +1,14 @@
 # ADR-0004: Workflow and routing
 
-- Status: PROPOSED
+- Status: ACCEPTED (architecture; enforcement transition remains experimental)
 - Date: 2026-11-09
 
 ## Decision
+
+See ADR-0009 for the incremental evidence cycle. The owner-authorized consolidation
+keeps routeWorkflow as the deep model-routing module and routeRequest as adapter
+routing. The additive routeWork facade is shadow-only; this acceptance does not
+authorize paid experiments or active evidence-based delegation.
 
 Use one deterministic pipeline: protected policy, verified capabilities,
 privacy, quality/risk, then cost/latency. Skill/workflow, executor/model, and

@@ -1,22 +1,8 @@
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { validateEvidence, type EvidenceRecord } from '@vpr/contracts';
-
-export interface EvidenceCohort {
-  readonly protocol: string | null;
-  readonly acceptanceContractHash: string | null;
-  readonly features: EvidenceRecord['features'];
-}
-const featureKeys = ['kind', 'role', 'designComplexity', 'executionComplexity', 'risk',
-  'publicApi', 'persistence', 'transactions', 'security', 'money'] as const;
-
-/** Similarity never relaxes the acceptance contract, protocol, risk or safety signals. */
-export function isComparableEvidence(left: EvidenceCohort, right: EvidenceCohort): boolean {
-  if (!left.protocol || !left.acceptanceContractHash) return false;
-  if (left.protocol !== right.protocol || left.acceptanceContractHash !== right.acceptanceContractHash) return false;
-  return featureKeys.every(key => left.features[key] !== null && left.features[key] === right.features[key]);
-}
+import { validateEvidence, isComparableEvidence, type EvidenceCohort, type EvidenceRecord } from '@vpr/contracts';
+export {isComparableEvidence, type EvidenceCohort} from '@vpr/contracts';
 function stable(value: unknown): string {
   if (Array.isArray(value)) return '[' + value.map(stable).join(',') + ']';
   if (value !== null && typeof value === 'object') {

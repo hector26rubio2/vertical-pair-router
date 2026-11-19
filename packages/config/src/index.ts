@@ -14,3 +14,4 @@ export {
   type GlobalProfileV1
 } from "./profile-policy.js";
 
+export {loadRoutingPolicy} from './routing-policy.js';

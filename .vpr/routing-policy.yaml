@@ -1,0 +1,30 @@
+schemaVersion: 1
+version: experiment-2026-11-19-v1
+mode: shadow
+evidence:
+  minimumSamples: 3
+  minimumAcceptance: 0.8
+phases:
+  triage: standard
+  design: standard
+  advanced-design: high
+  implement: light
+  review: standard
+operations:
+  explorar_grafo: light
+  buscar_codigo: light
+  leer_archivo: light
+  triar: standard
+  disenar: standard
+  crear_historias: standard
+  escribir_tests: light
+  implementar: light
+  corregir: light
+  revisar: standard
+escalationRules:
+  - security
+  - public-contract-change
+  - invariant-not-covered
+limits:
+  maxWorkers: 2
+  retriesPerModel: 1

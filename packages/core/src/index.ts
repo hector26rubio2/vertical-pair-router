@@ -5,6 +5,7 @@ export {
   transitionRunIdempotent
 } from "./run-state.js";
 export { evaluatePolicy } from "./policy.js";
+export {routeWork, routingPolicyHash, canonicalJson, type RouteWorkRequest} from './route-work.js';
 export {
   routeWorkflow,
   type AgentModel,

@@ -22,14 +22,15 @@
   },
   "devDependencies": {
     "@types/node": "24.10.1",
+    "@vpr/config": "workspace:*",
     "@vpr/contracts": "workspace:*",
     "@vpr/core": "workspace:*",
+    "@vpr/experiments": "workspace:*",
     "@vpr/storage-sqlite": "workspace:*",
     "esbuild": "0.28.2",
     "husky": "9.1.7",
     "prettier": "3.10.1",
-    "typescript": "5.9.3",
-    "@vpr/experiments": "workspace:*"
+    "typescript": "5.9.3"
   },
   "bin": {
     "vpr": "./packages/cli/dist/bin.js"
