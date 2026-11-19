@@ -1,0 +1,294 @@
+body {
+  font: 16px system-ui;
+  background: #eef3f8;
+  color: #182c40;
+  margin: 0;
+}
+main {
+  max-width: 1500px;
+  margin: auto;
+  padding: 28px;
+}
+h1 {
+  font-size: 36px;
+}
+h2 {
+  font-size: 27px;
+}
+h3 {
+  font-size: 18px;
+}
+p,
+li {
+  line-height: 1.6;
+}
+section {
+  background: white;
+  padding: 28px;
+  border: 1px solid #d9e2ed;
+  border-radius: 16px;
+  margin: 24px 0;
+  scroll-margin-top: 120px;
+}
+header {
+  padding: 12px 0;
+}
+.eyebrow {
+  color: #49647e;
+  font-weight: 700;
+}
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #122f4b;
+  color: white;
+  padding: 14px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  border-radius: 10px;
+}
+.toolbar a {
+  color: #d7eaff;
+}
+.toolbar select {
+  font: inherit;
+  padding: 8px;
+  max-width: 75vw;
+}
+.decision-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.decision-grid article,
+.chart-card {
+  border: 1px solid #dbe4ed;
+  border-radius: 12px;
+  padding: 18px;
+  background: #f9fbfd;
+}
+.quality,
+.pending {
+  padding: 16px 20px;
+  margin: 18px 0;
+  border-left: 5px solid #bd8d2f;
+  background: #fff9eb;
+}
+.charts {
+  display: grid;
+  gap: 18px;
+}
+.bar-row {
+  display: grid;
+  grid-template-columns: 240px minmax(140px, 1fr) 240px;
+  gap: 14px;
+  align-items: center;
+  margin: 14px 0;
+}
+.missing {
+  border: 1px dashed #9aabba;
+  background: transparent !important;
+}
+.track {
+  display: flex;
+  height: 24px;
+  background: #e3eaf0;
+}
+.bar {
+  display: block;
+  height: 24px;
+  min-width: 0;
+}
+.time {
+  background: #536a80;
+}
+.haiku {
+  background: #198266;
+}
+.sonnet {
+  background: #336dc4;
+}
+.opus {
+  background: #8855b4;
+}
+.codex {
+  background: #b4761c;
+}
+.legend b {
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.table {
+  overflow: auto;
+  margin: 20px 0;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+td,
+th {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #d9e2eb;
+  vertical-align: top;
+}
+thead {
+  background: #e8eff6;
+}
+caption {
+  text-align: left;
+  font-weight: bold;
+  padding: 10px;
+}
+small {
+  display: block;
+  font-size: 12px;
+  color: #52677b;
+  margin-top: 4px;
+  white-space: normal;
+}
+a {
+  color: #235a9a;
+}
+.total {
+  background: #e9f1f8;
+}
+.allocation-panel {
+  margin: 24px 0;
+}
+.allocation-selector {
+  font: inherit;
+  padding: 8px;
+  max-width: 100%;
+}
+.allocation-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 18px 0;
+}
+.pie-layout {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.pie-layout svg {
+  width: 180px;
+  height: 180px;
+  flex-shrink: 0;
+}
+.pie-layout ul {
+  padding-left: 0;
+  list-style: none;
+  flex: 1;
+  min-width: 160px;
+}
+.pie-layout li {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.pie-layout i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+}
+.coverage-table {
+  min-width: 1100px;
+}
+.coverage-passed {
+  background: #dcf3e5;
+}
+.coverage-open {
+  background: #fff1cb;
+}
+.verdict-headline {
+  font-size: 22px;
+}
+.task-verdict {
+  border: 2px solid #abc3d8;
+  padding: 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+.coverage-legacy {
+  background: #e4edfa;
+}
+.coverage-failed {
+  background: #ffe3e1;
+}
+.coverage-missing {
+  background: #eef1f4;
+  color: #687989;
+}
+.scenario {
+  min-width: 260px;
+}
+#scenario-comparison {
+  min-width: 2100px;
+}
+#scenario-comparison tbody {
+  border-top: 4px solid #8299ad;
+}
+#scenario-comparison th[rowspan] {
+  background: #f1f6fb;
+  min-width: 150px;
+}
+#comparison select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 8px;
+}
+#routing {
+  overflow: auto;
+}
+#comparison > .table {
+  max-height: 75vh;
+  overflow: auto;
+}
+#scenario-comparison thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+details > summary {
+  cursor: pointer;
+  font-weight: bold;
+  padding: 12px;
+}
+nav {
+  line-height: 2;
+}
+pre {
+  max-width: 100%;
+  overflow: auto;
+}
+[hidden] {
+  display: none !important;
+}
+@media (max-width: 900px) {
+  main {
+    padding: 12px;
+  }
+  .decision-grid,
+  .allocation-pair {
+    grid-template-columns: 1fr;
+  }
+  .bar-row {
+    grid-template-columns: 1fr;
+  }
+  .task-panel {
+    padding: 18px;
+  }
+}

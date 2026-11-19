@@ -34,6 +34,7 @@ jobs:
       - name: Block sensitive staged content against the change base
         run: node tools/ci-staged-security.mjs
       - run: pnpm install --frozen-lockfile
+      - run: pnpm lint:source
       - run: pnpm check
       - run: pnpm package:local
       - name: Install the real archive in an isolated prefix

@@ -15,14 +15,17 @@
     "build": "tsc -b && node tools/copy-runtime-assets.mjs",
     "clean": "tsc -b --clean",
     "test": "pnpm build && node --test packages/core/dist/*.test.js packages/quality/dist/*.test.js packages/storage-sqlite/dist/*.test.js packages/runtime/dist/*.test.js packages/config/dist/*.test.js packages/workflow/dist/*.test.js packages/knowledge/dist/*.test.js packages/backlog/dist/*.test.js packages/observability/dist/*.test.js packages/dashboard/dist/*.test.js packages/cli/dist/*.test.js tests/*.test.mjs",
-    "typecheck": "tsc -b --pretty false",
+    "typecheck": "tsc -b --pretty false && tsc -p tools/tsconfig.check.json",
     "check": "pnpm test",
-    "vpr": "node ./packages/cli/dist/bin.js"
+    "vpr": "node ./packages/cli/dist/bin.js",
+    "lint:source": "node tools/check-source-size.mts"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
+    "@vpr/core": "workspace:*",
     "esbuild": "0.28.2",
     "husky": "9.1.7",
+    "prettier": "3.10.1",
     "typescript": "5.9.3"
   },
   "bin": {

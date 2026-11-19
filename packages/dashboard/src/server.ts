@@ -2,20 +2,22 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
-import {
-  createStoryDraftFromGrill,
-  type BacklogService
-} from "@vpr/backlog";
+import { createStoryDraftFromGrill, type BacklogService } from "@vpr/backlog";
 import type { EntityId, StorageAdapter } from "@vpr/contracts";
 import {
   applyGlossaryProposal,
   proposeGlossaryTerm,
   resolveGlossaryPath,
   type GlossaryProposal,
-  type GlossaryTerm
+  type GlossaryTerm,
 } from "@vpr/knowledge";
-import { projectUsage, projectUsageComparisons, measureSubscriptionQuota, type SubscriptionSnapshot } from "@vpr/observability";
-import {nativeUsageView,nativeUsageScript} from './native-usage.js';
+import {
+  projectUsage,
+  projectUsageComparisons,
+  measureSubscriptionQuota,
+  type SubscriptionSnapshot,
+} from "@vpr/observability";
+import { nativeUsageView, nativeUsageScript } from "./native-usage.js";
 
 export interface DashboardServerOptions {
   readonly root: string;
@@ -23,8 +25,12 @@ export interface DashboardServerOptions {
   readonly glossaryPath: string;
   readonly backlog: BacklogService;
   readonly storage: StorageAdapter;
-  readonly subscriptions?: readonly { readonly provider: string; readonly planId: string; readonly source: string }[];
-  readonly readNativeUsage?:()=>Promise<unknown>;
+  readonly subscriptions?: readonly {
+    readonly provider: string;
+    readonly planId: string;
+    readonly source: string;
+  }[];
+  readonly readNativeUsage?: () => Promise<unknown>;
 }
 
 export interface DashboardServer {
@@ -35,7 +41,7 @@ export interface DashboardServer {
 }
 
 export async function createDashboardServer(
-  options: DashboardServerOptions
+  options: DashboardServerOptions,
 ): Promise<DashboardServer> {
   const token = randomBytes(32).toString("base64url");
   const csrfToken = randomBytes(32).toString("base64url");
@@ -45,7 +51,8 @@ export async function createDashboardServer(
   const server = createServer(async (request, response) => {
     setSecurityHeaders(response);
     try {
-      if (request.headers.host !== expectedHost) return json(response, 421, { error: "invalid-host" });
+      if (request.headers.host !== expectedHost)
+        return json(response, 421, { error: "invalid-host" });
       if (request.url === "/") return html(response, dashboardHtml());
       if (request.url === "/app.js") return javascript(response, dashboardScript());
       if (request.url === "/style.css") return css(response, dashboardCss());
@@ -61,9 +68,10 @@ export async function createDashboardServer(
           return json(response, 403, { error: "csrf-or-origin" });
         }
       }
-      if(request.method==='GET'&&request.url==='/api/native-usage'){
-        if(!options.readNativeUsage)return json(response,503,{error:'native-usage-unavailable',inferenceTokens:0});
-        return json(response,200,nativeUsageView(await options.readNativeUsage()));
+      if (request.method === "GET" && request.url === "/api/native-usage") {
+        if (!options.readNativeUsage)
+          return json(response, 503, { error: "native-usage-unavailable", inferenceTokens: 0 });
+        return json(response, 200, nativeUsageView(await options.readNativeUsage()));
       }
       if (request.method === "GET" && request.url === "/api/snapshot") {
         const events = await options.storage.readEvents(options.projectId);
@@ -75,69 +83,132 @@ export async function createDashboardServer(
           tasks,
           runs: await options.backlog.listRuns(),
           subscriptions: options.subscriptions ?? [],
-          subscriptionQuota: events.filter(event => event.type === 'SubscriptionQuotaObserved').map(event => ({ at: event.occurredAt, runId: event.runId ?? null, ...event.payload })),
-          traces: events.filter(event => ['AgentUsageObserved', 'EvidenceRecorded', 'backlog.run.transitioned'].includes(event.type)).map(event => ({
-            at: event.occurredAt,
-            type: event.type,
-            runId: event.runId ?? null,
-            agentId: typeof event.payload.agentId === 'string' ? event.payload.agentId : null,
-            model: typeof event.payload.model === 'string' ? event.payload.model : null,
-            role: typeof event.payload.role === 'string' ? event.payload.role : null,
-            provider: typeof event.payload.provider === 'string' ? event.payload.provider : null,
-            scope: typeof event.payload.scope === 'string' ? event.payload.scope : null,
-            inputTokens: typeof event.payload.inputTokens === 'number' ? event.payload.inputTokens : null,
-            outputTokens: typeof event.payload.outputTokens === 'number' ? event.payload.outputTokens : null,
-            cachedInputTokens: typeof event.payload.cachedInputTokens === 'number' ? event.payload.cachedInputTokens : typeof event.payload.cacheReadTokens === 'number' ? event.payload.cacheReadTokens : null,
-            cacheWriteTokens: typeof event.payload.cacheWriteTokens === 'number' ? event.payload.cacheWriteTokens : null,
-            state: isRecord(event.payload.run) ? event.payload.run.state : null,
-            check: typeof event.payload.name === 'string' ? event.payload.name : null,
-            exitCode: typeof event.payload.exitCode === 'number' ? event.payload.exitCode : null
-          })),
+          subscriptionQuota: events
+            .filter((event) => event.type === "SubscriptionQuotaObserved")
+            .map((event) => ({
+              at: event.occurredAt,
+              runId: event.runId ?? null,
+              ...event.payload,
+            })),
+          traces: events
+            .filter((event) =>
+              ["AgentUsageObserved", "EvidenceRecorded", "backlog.run.transitioned"].includes(
+                event.type,
+              ),
+            )
+            .map((event) => ({
+              at: event.occurredAt,
+              type: event.type,
+              runId: event.runId ?? null,
+              agentId: typeof event.payload.agentId === "string" ? event.payload.agentId : null,
+              model: typeof event.payload.model === "string" ? event.payload.model : null,
+              role: typeof event.payload.role === "string" ? event.payload.role : null,
+              provider: typeof event.payload.provider === "string" ? event.payload.provider : null,
+              scope: typeof event.payload.scope === "string" ? event.payload.scope : null,
+              inputTokens:
+                typeof event.payload.inputTokens === "number" ? event.payload.inputTokens : null,
+              outputTokens:
+                typeof event.payload.outputTokens === "number" ? event.payload.outputTokens : null,
+              cachedInputTokens:
+                typeof event.payload.cachedInputTokens === "number"
+                  ? event.payload.cachedInputTokens
+                  : typeof event.payload.cacheReadTokens === "number"
+                    ? event.payload.cacheReadTokens
+                    : null,
+              cacheWriteTokens:
+                typeof event.payload.cacheWriteTokens === "number"
+                  ? event.payload.cacheWriteTokens
+                  : null,
+              state: isRecord(event.payload.run) ? event.payload.run.state : null,
+              check: typeof event.payload.name === "string" ? event.payload.name : null,
+              exitCode: typeof event.payload.exitCode === "number" ? event.payload.exitCode : null,
+            })),
           usage: projectUsage(events),
           comparisons: projectUsageComparisons(events),
-          glossary: parseGlossary(await readFile(glossaryTarget, "utf8").catch(error => {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') return '';
-            throw error;
-          }), stories, tasks)
+          glossary: parseGlossary(
+            await readFile(glossaryTarget, "utf8").catch((error) => {
+              if ((error as NodeJS.ErrnoException).code === "ENOENT") return "";
+              throw error;
+            }),
+            stories,
+            tasks,
+          ),
         });
       }
-      if (request.method === 'POST' && request.url === '/api/subscription-quota') {
+      if (request.method === "POST" && request.url === "/api/subscription-quota") {
         const body = await readJsonBody(request);
-        if (!isRecord(body) || !isRecord(body.before) || !isRecord(body.after) || typeof body.isolated !== 'boolean' || typeof body.runId !== 'string' ||
-          ![body.before.source, body.after.source].every(source => ['provider_reported', 'user_reported'].includes(String(source)))) throw new TypeError('Invalid subscription quota observations');
+        if (
+          !isRecord(body) ||
+          !isRecord(body.before) ||
+          !isRecord(body.after) ||
+          typeof body.isolated !== "boolean" ||
+          typeof body.runId !== "string" ||
+          ![body.before.source, body.after.source].every((source) =>
+            ["provider_reported", "user_reported"].includes(String(source)),
+          )
+        )
+          throw new TypeError("Invalid subscription quota observations");
         const run = await options.backlog.getRun(body.runId as EntityId);
-        if (!run) throw new RangeError('Unknown Run');
-        const result = measureSubscriptionQuota({ before: body.before as unknown as SubscriptionSnapshot, after: body.after as unknown as SubscriptionSnapshot, isolated: body.isolated });
-        if (result.status === 'observed') await options.storage.appendEvent({ schemaVersion: 1, eventId: `evt_${randomUUID()}`, projectId: options.projectId, runId: run.runId, taskId: run.taskId, actor: 'dashboard', type: 'SubscriptionQuotaObserved', occurredAt: new Date().toISOString(), payload: result });
+        if (!run) throw new RangeError("Unknown Run");
+        const result = measureSubscriptionQuota({
+          before: body.before as unknown as SubscriptionSnapshot,
+          after: body.after as unknown as SubscriptionSnapshot,
+          isolated: body.isolated,
+        });
+        if (result.status === "observed")
+          await options.storage.appendEvent({
+            schemaVersion: 1,
+            eventId: `evt_${randomUUID()}`,
+            projectId: options.projectId,
+            runId: run.runId,
+            taskId: run.taskId,
+            actor: "dashboard",
+            type: "SubscriptionQuotaObserved",
+            occurredAt: new Date().toISOString(),
+            payload: result,
+          });
         return json(response, 200, result);
       }
       if (request.method === "POST" && request.url === "/api/stories") {
         const body = await readJsonBody(request);
         const input = parseStoryBody(body);
-        const proposal = await options.backlog.previewStory(createStoryDraftFromGrill({
-          projectId: options.projectId,
-          ...input.story
-        }));
+        const proposal = await options.backlog.previewStory(
+          createStoryDraftFromGrill({
+            projectId: options.projectId,
+            ...input.story,
+          }),
+        );
         const record = input.apply
           ? await options.backlog.commitStory(proposal, { confirmed: true })
           : undefined;
         return json(response, 200, {
           action: proposal.action,
           applied: input.apply && proposal.action === "create",
-          ...(record === undefined ? {} : { record })
+          ...(record === undefined ? {} : { record }),
         });
       }
       if (request.method === "POST" && request.url === "/api/glossary/proposals") {
         const body = await readJsonBody(request);
         const { term, storyId } = parseGlossaryBody(body);
-        const proposal = await proposeGlossaryTerm(options.root, options.glossaryPath, term, storyId);
+        const proposal = await proposeGlossaryTerm(
+          options.root,
+          options.glossaryPath,
+          term,
+          storyId,
+        );
         const proposalId = randomUUID();
         proposals.set(proposalId, proposal);
-        return json(response, 200, { proposalId, action: proposal.action, diff: proposal.diff, storyId });
+        return json(response, 200, {
+          proposalId,
+          action: proposal.action,
+          diff: proposal.diff,
+          storyId,
+        });
       }
       if (request.method === "POST" && request.url === "/api/glossary/apply") {
         const body = await readJsonBody(request);
-        const proposalId = isRecord(body) && typeof body.proposalId === "string" ? body.proposalId : "";
+        const proposalId =
+          isRecord(body) && typeof body.proposalId === "string" ? body.proposalId : "";
         const proposal = proposals.get(proposalId);
         if (proposal === undefined) return json(response, 404, { error: "unknown-proposal" });
         const resolution = await applyGlossaryProposal(proposal);
@@ -146,7 +217,9 @@ export async function createDashboardServer(
       }
       return json(response, 404, { error: "not-found" });
     } catch (error) {
-      return json(response, 400, { error: error instanceof Error ? error.message : "request-failed" });
+      return json(response, 400, {
+        error: error instanceof Error ? error.message : "request-failed",
+      });
     }
   });
   await new Promise<void>((resolve, reject) => {
@@ -154,14 +227,18 @@ export async function createDashboardServer(
     server.listen(0, "127.0.0.1", () => resolve());
   });
   const address = server.address();
-  if (address === null || typeof address === "string") throw new Error("Dashboard did not bind a TCP port");
+  if (address === null || typeof address === "string")
+    throw new Error("Dashboard did not bind a TCP port");
   expectedHost = `127.0.0.1:${address.port}`;
   expectedOrigin = `http://${expectedHost}`;
   return {
     url: `${expectedOrigin}/#token=${encodeURIComponent(token)}&csrf=${encodeURIComponent(csrfToken)}`,
     token,
     csrfToken,
-    close: () => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
+    close: () =>
+      new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      ),
   };
 }
 
@@ -188,15 +265,26 @@ function parseStoryBody(value: unknown): {
   for (const field of ["title", "need", "desiredOutcome"] as const) {
     if (typeof story[field] !== "string") throw new TypeError(`Story ${field} must be a string`);
   }
-  for (const field of ["acceptanceCriteria", "exclusions", "openQuestions", "attachments"] as const) {
+  for (const field of [
+    "acceptanceCriteria",
+    "exclusions",
+    "openQuestions",
+    "attachments",
+  ] as const) {
     if (!Array.isArray(story[field]) || !story[field].every((item) => typeof item === "string")) {
       throw new TypeError(`Story ${field} must be a string array`);
     }
   }
-  return { apply: value.apply, story: story as unknown as Omit<Parameters<typeof createStoryDraftFromGrill>[0], "projectId"> };
+  return {
+    apply: value.apply,
+    story: story as unknown as Omit<Parameters<typeof createStoryDraftFromGrill>[0], "projectId">,
+  };
 }
 
-function parseGlossaryBody(value: unknown): { readonly term: GlossaryTerm; readonly storyId: string } {
+function parseGlossaryBody(value: unknown): {
+  readonly term: GlossaryTerm;
+  readonly storyId: string;
+} {
   if (!isRecord(value) || !isRecord(value.term) || typeof value.storyId !== "string") {
     throw new TypeError("Glossary request requires term and storyId");
   }
@@ -216,7 +304,7 @@ function parseGlossaryBody(value: unknown): { readonly term: GlossaryTerm; reado
 function parseGlossary(
   content: string,
   stories: readonly unknown[],
-  tasks: readonly unknown[]
+  tasks: readonly unknown[],
 ): readonly {
   term: string;
   aliases: readonly string[];
@@ -226,37 +314,57 @@ function parseGlossary(
   references: readonly string[];
   usedBy: readonly string[];
 }[] {
-  return content.split(/^## /mu).slice(1).map((section) => {
-    const lines = section.split(/\r?\n/u);
-    const term = lines[0]?.trim() ?? "";
-    const definition = lines.slice(1).find((line) => line.trim().length > 0 && !line.startsWith("- "))?.trim() ?? "";
-    const source = lines.find((line) => line.startsWith("- Fuente: "))?.slice(10).trim() ?? "unavailable";
-    const aliases = metadataList(lines, "Alias");
-    const references = metadataList(lines, "Enlaces");
-    const needle = [term, ...aliases].map((value) => value.toLocaleLowerCase("es"));
-    const usedBy = [...stories, ...tasks].flatMap((record) => {
-      const serialized = JSON.stringify(record).toLocaleLowerCase("es");
-      if (!needle.some((value) => serialized.includes(value))) return [];
-      if (!isRecord(record)) return [];
-      const story = isRecord(record.story) ? record.story : undefined;
-      const task = isRecord(record.task) ? record.task : undefined;
-      const id = story?.storyId ?? task?.taskId;
-      return typeof id === "string" ? [id] : [];
+  return content
+    .split(/^## /mu)
+    .slice(1)
+    .map((section) => {
+      const lines = section.split(/\r?\n/u);
+      const term = lines[0]?.trim() ?? "";
+      const definition =
+        lines
+          .slice(1)
+          .find((line) => line.trim().length > 0 && !line.startsWith("- "))
+          ?.trim() ?? "";
+      const source =
+        lines
+          .find((line) => line.startsWith("- Fuente: "))
+          ?.slice(10)
+          .trim() ?? "unavailable";
+      const aliases = metadataList(lines, "Alias");
+      const references = metadataList(lines, "Enlaces");
+      const needle = [term, ...aliases].map((value) => value.toLocaleLowerCase("es"));
+      const usedBy = [...stories, ...tasks].flatMap((record) => {
+        const serialized = JSON.stringify(record).toLocaleLowerCase("es");
+        if (!needle.some((value) => serialized.includes(value))) return [];
+        if (!isRecord(record)) return [];
+        const story = isRecord(record.story) ? record.story : undefined;
+        const task = isRecord(record.task) ? record.task : undefined;
+        const id = story?.storyId ?? task?.taskId;
+        return typeof id === "string" ? [id] : [];
+      });
+      return { term, aliases, definition, status: "canonical", source, references, usedBy };
     });
-    return { term, aliases, definition, status: "canonical", source, references, usedBy };
-  });
 }
 
 function metadataList(lines: readonly string[], label: string): readonly string[] {
   const prefix = `- ${label}: `;
-  const value = lines.find((line) => line.startsWith(prefix))?.slice(prefix.length).trim();
+  const value = lines
+    .find((line) => line.startsWith(prefix))
+    ?.slice(prefix.length)
+    .trim();
   return value === undefined || value.length === 0
     ? []
-    : value.split(",").map((item) => item.trim().replace(/^`|`$/gu, "")).filter(Boolean);
+    : value
+        .split(",")
+        .map((item) => item.trim().replace(/^`|`$/gu, ""))
+        .filter(Boolean);
 }
 
 function setSecurityHeaders(response: ServerResponse): void {
-  response.setHeader("Content-Security-Policy", "default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'");
+  response.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; connect-src 'self'; script-src 'self'; style-src 'self'; frame-ancestors 'none'",
+  );
   response.setHeader("X-Content-Type-Options", "nosniff");
   response.setHeader("Referrer-Policy", "no-referrer");
   response.setHeader("Cache-Control", "no-store");
@@ -283,7 +391,73 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function dashboardHtml(): string {
-  return `<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Vertical Pair Router</title><link rel="stylesheet" href="/style.css"></head><body><header><p>LOCAL CONTROL PLANE</p><h1>Vertical Pair Router</h1><span id="status">Conectando…</span></header><main><section><h2>Runs y uso</h2><div id="metrics" class="grid"></div><h3>Baseline / plugin</h3><div id="comparisons"></div></section><section><h2>Backlog</h2><div id="stories"></div><details><summary>Proponer Story</summary><form id="story-form"><input name="title" required placeholder="Título"><textarea name="need" required placeholder="Necesidad"></textarea><textarea name="outcome" required placeholder="Resultado deseado"></textarea><input name="criterion" required placeholder="Criterio de aceptación"><button>Previsualizar</button></form><pre id="story-preview"></pre><button id="story-apply" hidden>Aprobar y crear</button></details></section><section><h2>Glosario</h2><input id="search" type="search" placeholder="Buscar término o alias"><div id="glossary"></div><details><summary>Proponer término</summary><form id="glossary-form"><input name="term" required placeholder="Término canónico"><textarea name="definition" required placeholder="Definición"></textarea><input name="source" required placeholder="Procedencia"><input name="storyId" required placeholder="Story de origen"><button>Previsualizar diff</button></form><pre id="glossary-preview"></pre><button id="glossary-apply" hidden>Aprobar cambio canónico</button></details></section></main><script src="/app.js" defer></script></body></html>`;
+  return /* HTML */ `<!doctype html>
+    <html lang="es">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Vertical Pair Router</title>
+        <link rel="stylesheet" href="/style.css" />
+      </head>
+      <body>
+        <header>
+          <p>LOCAL CONTROL PLANE</p>
+          <h1>Vertical Pair Router</h1>
+          <span id="status">Conectando…</span>
+        </header>
+        <main>
+          <section>
+            <h2>Runs y uso</h2>
+            <div id="metrics" class="grid"></div>
+            <h3>Baseline / plugin</h3>
+            <div id="comparisons"></div>
+          </section>
+          <section>
+            <h2>Backlog</h2>
+            <div id="stories"></div>
+            <details>
+              <summary>Proponer Story</summary>
+              <form id="story-form">
+                <input name="title" required placeholder="Título" /><textarea
+                  name="need"
+                  required
+                  placeholder="Necesidad"
+                ></textarea
+                ><textarea name="outcome" required placeholder="Resultado deseado"></textarea
+                ><input name="criterion" required placeholder="Criterio de aceptación" /><button>
+                  Previsualizar
+                </button>
+              </form>
+              <pre id="story-preview"></pre>
+              <button id="story-apply" hidden>Aprobar y crear</button>
+            </details>
+          </section>
+          <section>
+            <h2>Glosario</h2>
+            <input id="search" type="search" placeholder="Buscar término o alias" />
+            <div id="glossary"></div>
+            <details>
+              <summary>Proponer término</summary>
+              <form id="glossary-form">
+                <input name="term" required placeholder="Término canónico" /><textarea
+                  name="definition"
+                  required
+                  placeholder="Definición"
+                ></textarea
+                ><input name="source" required placeholder="Procedencia" /><input
+                  name="storyId"
+                  required
+                  placeholder="Story de origen"
+                /><button>Previsualizar diff</button>
+              </form>
+              <pre id="glossary-preview"></pre>
+              <button id="glossary-apply" hidden>Aprobar cambio canónico</button>
+            </details>
+          </section>
+        </main>
+        <script src="/app.js" defer></script>
+      </body>
+    </html>`;
 }
 function dashboardScript(): string {
   return `const params = new URLSearchParams(location.hash.slice(1));
@@ -405,5 +579,16 @@ function metric(value) { return value.value == null ? 'unavailable' : value.valu
 function esc(value) { const element = document.createElement('div'); element.textContent = String(value); return element.innerHTML; }`;
 }
 function dashboardCss(): string {
-  return `:root{color-scheme:dark;background:#07100d;color:#e9fff6;font:16px/1.5 system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#173d30 0,transparent 38%),#07100d}header,main{max-width:1100px;margin:auto;padding:2rem}header p,small{color:#72d5aa;letter-spacing:.12em}h1{font-size:clamp(2.4rem,7vw,5.5rem);line-height:.95;margin:.4rem 0 1rem}section{margin:2.5rem 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem}article,details{background:#0d1c17;border:1px solid #254f40;border-radius:14px;padding:1rem;margin:.7rem 0}.grid b{display:block;font-size:2rem}.grid span,.meta{color:#9dbbad}summary,button{cursor:pointer}form{display:grid;gap:.7rem;margin:1rem 0}input,textarea,button{width:100%;padding:.8rem;border-radius:10px;border:1px solid #376b58;background:#091511;color:inherit}button{background:#1d674c;font-weight:700}textarea{min-height:6rem;resize:vertical}pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#b8e7d3}@media(max-width:600px){header,main{padding:1.2rem}}`;
+  return (
+    ":root{color-scheme:dark;background:#07100d;color:#e9fff6;font:16px/1.5 " +
+    "system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 80% 0,#173d30 0,transparent " +
+    "38%),#07100d}header,main{max-width:1100px;margin:auto;padding:2rem}header " +
+    "p,small{color:#72d5aa;letter-spacing:.12em}h1{font-size:clamp(2.4rem,7vw,5.5rem);line-height:.95;margin:.4rem 0 1rem}section{margin:2.5rem " +
+    "0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem}article,details{background:#0d1c17;border:1px solid " +
+    "#254f40;border-radius:14px;padding:1rem;margin:.7rem 0}.grid b{display:block;font-size:2rem}.grid " +
+    "span,.meta{color:#9dbbad}summary,button{cursor:pointer}form{display:grid;gap:.7rem;margin:1rem " +
+    "0}input,textarea,button{width:100%;padding:.8rem;border-radius:10px;border:1px solid " +
+    "#376b58;background:#091511;color:inherit}button{background:#1d674c;font-weight:700}textarea{min-height:6rem;resize:vertical}pre{white-space:" +
+    "pre-wrap;overflow-wrap:anywhere;color:#b8e7d3}@media(max-width:600px){header,main{padding:1.2rem}}"
+  );
 }

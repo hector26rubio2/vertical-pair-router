@@ -145,3 +145,11 @@ aditivos y quedarán documentados. La decisión de routing nueva permanecerá en
    y decisiones en sombra, integración del medidor e informe ampliado.
 4. Campaña estratificada con semilla y presupuestos explícitamente estimados.
    Ninguna corrida de modelos se iniciará sin aprobación del owner.
+
+## Bloque 0.2 — legibilidad y equivalencia (2026-11-19)
+
+- Etapas privadas con nombre, integradas con la consolidación autorizada de la otra sesión: el punto público es ahora `routeWorkflow` y su caracterización conserva 12 decisiones. `routeRequest` sigue siendo routing de adaptadores. No se restauran los módulos eliminados por esa sesión.
+- Plantilla, CSS y comportamiento del informe separados en `tools/lib/benchmark-dashboard-template.mjs`, `.css` y `.client.js`. Formato legible en fuentes de tools/packages; los textos de fixtures y prompts se conservan mediante concatenaciones.
+- Control `pnpm lint:source`: máximo 300 caracteres por línea y 250 instrucciones por función. Excluye explícitamente node_modules, dist, generated y .tmp; se ejecuta en Husky y CI. El propio control está tipado y cubierto por pruebas.
+- Validación real: build incluido en test, typecheck verde, 222 pruebas aprobadas tras integrar el handoff (3.184 s del runner), control de tamaño sin hallazgos. summary.json y analysis.json iguales antes/después excluyendo únicamente `at`; 27 hashes originales intactos. Evidencia local: `.tmp/experiment-review/refactor-equivalence.json` y `refactor-tests-final.log`.
+- No se ejecutaron proveedores. `.vpr/profile.json` queda fuera de estos commits. No se borró ni archivó contenido.
