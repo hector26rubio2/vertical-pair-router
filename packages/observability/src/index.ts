@@ -13,3 +13,4 @@ export { verifyModelReceipt } from './model-receipt.js';
 export { estimateApiReferenceCost, type ModelPriceCatalog, type TokenPriceTier } from './reference-cost.js';
 export { measureSubscriptionQuota, type SubscriptionSnapshot } from './subscription-usage.js';
 export {NativeSessionMeter, type NativeSessionSnapshot, type NativeRequestCounter} from './native-session-meter.mjs';
+export {inferOperation, labelNativeSnapshot} from './operation-meter.js';

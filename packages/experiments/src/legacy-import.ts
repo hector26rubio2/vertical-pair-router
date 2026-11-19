@@ -1,3 +1,5 @@
+import {inferOperation} from '@vpr/observability';
+export {inferOperation} from '@vpr/observability';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { validateEvidence, type EvidenceRecord, type EvidenceOperation, type WorkFeatures } from '@vpr/contracts';
@@ -13,23 +15,6 @@ const hash = (value: unknown): string | null => typeof value === 'string' && /^[
 const level = (value: unknown): WorkFeatures['designComplexity'] =>
   value === 'simple' || value === 'normal' || value === 'complex' ? value : null;
 
-export function inferOperation(input: {readonly phase?: string; readonly tools?: readonly string[]}): EvidenceOperation {
-  const operations = new Set<EvidenceOperation>();
-  for (const tool of input.tools ?? []) {
-    if (/graphify/iu.test(tool)) operations.add('explorar_grafo');
-    else if (/^(Grep|Glob|Search)$/iu.test(tool)) operations.add('buscar_codigo');
-    else if (/^Read$/iu.test(tool)) operations.add('leer_archivo');
-    else if (/^(Write|Edit|MultiEdit)$/iu.test(tool)) operations.add('implementar');
-    else operations.add('desconocida');
-  }
-  if (operations.size) return operations.size === 1 ? [...operations][0]! : 'desconocida';
-  const phases: Record<string, EvidenceOperation> = {
-    triage: 'triar', plan: 'disenar', design: 'disenar', architecture: 'disenar',
-    'technical-plan': 'disenar', stories: 'crear_historias', implement: 'implementar',
-    repair: 'corregir', review: 'revisar', test: 'escribir_tests',
-  };
-  return phases[input.phase ?? ''] ?? 'desconocida';
-}
 function features(task: Json): WorkFeatures {
   const supplied = obj(task.features);
   return {

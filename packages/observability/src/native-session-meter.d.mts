@@ -3,6 +3,7 @@ export interface NativeRequestCounter {
   readonly model: string;
   readonly parentToolUseId: string | null;
   readonly atMs: number;
+  readonly cacheWriteReported?: boolean;
   readonly inputTokens: number;
   readonly outputTokens: number;
   readonly cacheReadTokens: number;
@@ -11,6 +12,9 @@ export interface NativeRequestCounter {
   readonly cacheWrite1hTokens: number | null;
 }
 export interface NativeToolMetadata {
+  readonly requestId?: string;
+  readonly pathHash?: string | null;
+  readonly returnedTextBytes?: number | null;
   readonly id: string;
   readonly name: string;
   readonly parentToolUseId: string | null;

@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 const count = (value) => (Number.isSafeInteger(value) && value >= 0 ? value : null);
 const duration = (value) =>
   typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
@@ -95,6 +96,8 @@ export class NativeSessionMeter {
           parentToolUseId: event.parent_tool_use_id ?? null,
           atMs,
           ...merged,
+          cacheWriteReported: previous?.cacheWriteReported === true
+            || Number.isSafeInteger(message.usage?.cache_creation_input_tokens),
           cacheWrite5mTokens:
             count(message.usage?.cache_creation?.ephemeral_5m_input_tokens) ??
             previous?.cacheWrite5mTokens ??
@@ -110,6 +113,10 @@ export class NativeSessionMeter {
           this.tools.set(part.id, {
             id: part.id,
             name: part.name,
+            requestId: message.id,
+            pathHash: typeof (part.input?.file_path ?? part.input?.path) === 'string'
+              ? createHash('sha256').update(part.input.file_path ?? part.input.path).digest('hex') : null,
+            returnedTextBytes: null,
             parentToolUseId: event.parent_tool_use_id ?? null,
             startMs: atMs,
             endMs: null,
@@ -126,6 +133,7 @@ export class NativeSessionMeter {
           if (tool) {
             tool.endMs = atMs;
             tool.failed = part.is_error === true;
+            if (tool.name === 'Read' && typeof part.content === 'string') tool.returnedTextBytes = Buffer.byteLength(part.content);
           }
         }
     if (event.type === "result") {
