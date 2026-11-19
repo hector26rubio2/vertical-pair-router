@@ -168,7 +168,6 @@ async function executeTask(
         maxOutputBytes: profile.policy.maxOutputBytes ?? 1_048_576,
         signal: controller.signal,
       });
-      // Persist metadata only: arbitrary repository output may contain source or secrets.
       await storage.appendEvent({
         schemaVersion: 1,
         eventId: nextId("evt"),
