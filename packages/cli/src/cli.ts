@@ -9,7 +9,14 @@ import { spawn } from "node:child_process";
 import { BacklogService, createStoryDraftFromGrill } from "@vpr/backlog";
 import type { EntityId, Run } from "@vpr/contracts";
 import { createDashboardServer } from "@vpr/dashboard";
-import { applyProjectProfile, parseProjectProfile, proposeProjectProfile } from "@vpr/config";
+import {
+  applyProjectProfile,
+  applySetupSelection,
+  assertOrchestratorProvider,
+  parseProjectProfile,
+  proposeOrchestrationProfile,
+  proposeProjectProfile,
+} from "@vpr/config";
 import { createSafeProcessRunner } from "@vpr/quality";
 import { CapabilityRegistry, executeCheckRun, resolveExecutable } from "@vpr/runtime";
 import { SqliteStorage } from "@vpr/storage-sqlite";
@@ -429,31 +436,15 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
   const integrationsAt = args.indexOf("--integrations"),
     technologiesAt = args.indexOf("--technologies");
   if (integrationsAt >= 0 || technologiesAt >= 0) {
-    const selected =
-      integrationsAt < 0 ? null : args[integrationsAt + 1]?.split(",").map((value) => value.trim());
-    if (
-      selected &&
-      selected.some((value) => !["husky", "graphify", "archify", "none"].includes(value))
-    )
-      throw new TypeError("Integrations: husky,graphify,archify or none");
-    if (integrationsAt >= 0 && !selected?.length)
-      throw new TypeError("--integrations needs a value");
-    const previous = proposal.profile.setup;
-    const profile = parseProjectProfile({
-      ...proposal.profile,
-      setup: {
-        technologies:
-          technologiesAt < 0
-            ? (previous?.technologies ?? [])
-            : (args[technologiesAt + 1] ?? "").split(",").filter(Boolean),
-        integrations: selected
-          ? {
-              husky: selected.includes("husky"),
-              graphify: selected.includes("graphify"),
-              archify: selected.includes("archify"),
-            }
-          : (previous?.integrations ?? { husky: false, graphify: false, archify: false }),
-      },
+    const profile = applySetupSelection(proposal.profile, {
+      ...(technologiesAt < 0
+        ? {}
+        : { technologies: (args[technologiesAt + 1] ?? "").split(",").filter(Boolean) }),
+      ...(integrationsAt < 0
+        ? {}
+        : {
+            integrations: args[integrationsAt + 1]?.split(",").map((value) => value.trim()) ?? [],
+          }),
     });
     const content = JSON.stringify(profile, null, 2) + "\n";
     proposal = {
@@ -493,15 +484,13 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
       const provider = (
         await interview.question("Proveedor orquestador (claude/codex/copilot): ")
       ).trim();
-      if (!["claude", "codex", "copilot"].includes(provider))
-        throw new TypeError("Unknown orchestrator provider");
+      assertOrchestratorProvider(provider);
       const detectedPlan = await detectSubscriptionPlan(provider);
       const planAnswer = (
         await interview.question(
           `Plan de suscripción (ej. claude-pro, codex-business-standard, copilot-pro) [${detectedPlan ?? "desconocido"}]: `,
         )
       ).trim();
-      const planId = planAnswer || detectedPlan;
       const model = (
         await interview.question("Modelo del orquestador (alias o ID de tu cuenta): ")
       ).trim();
@@ -523,43 +512,18 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
             "Objetivo (reference-cost/tokens/subscription-quota) [reference-cost]: ",
           )
         ).trim() || "reference-cost";
-      if (!["subscription-quota", "reference-cost", "tokens"].includes(objective))
-        throw new TypeError("Invalid routing objective");
-      const profile = parseProjectProfile({
-        ...proposal.profile,
-        setup: { technologies, integrations },
-        ...(planId
-          ? {
-              subscriptions: [
-                { provider, planId, source: planAnswer ? "user_reported" : "provider_reported" },
-              ],
-            }
-          : {}),
-        policy: { ...proposal.profile.policy, allowedProviders: ["local", provider] },
-        orchestration: {
-          orchestratorId: "coordinator",
-          maxWorkers: 2,
-          allowLightCoding,
-          objective,
-          models: [
-            { id: "coordinator", provider, model, tier: "standard", roles: ["orchestrator"] },
-            {
-              id: "light-worker",
-              provider,
-              model: light,
-              tier: "light",
-              roles: ["inventory", "coding"],
-            },
-            {
-              id: "standard-worker",
-              provider,
-              model: standard,
-              tier: "standard",
-              roles: ["coding", "review"],
-            },
-            { id: "high-worker", provider, model: high, tier: "high", roles: ["coding", "review"] },
-          ],
-        },
+      const profile = proposeOrchestrationProfile(proposal.profile, {
+        technologies,
+        integrations,
+        provider,
+        planId: planAnswer || detectedPlan,
+        planSource: planAnswer ? "user_reported" : "provider_reported",
+        model,
+        light,
+        standard,
+        high,
+        allowLightCoding,
+        objective,
       });
       const content = JSON.stringify(profile, null, 2) + "\n";
       proposal = {

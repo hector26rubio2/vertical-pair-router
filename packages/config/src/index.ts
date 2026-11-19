@@ -15,3 +15,10 @@ export {
 } from "./profile-policy.js";
 
 export {loadRoutingPolicy} from './routing-policy.js';
+export {
+  applySetupSelection,
+  assertOrchestratorProvider,
+  proposeOrchestrationProfile,
+  type OrchestrationAnswers,
+  type SetupSelection
+} from "./orchestration-profile.js";
