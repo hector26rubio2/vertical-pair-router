@@ -11,10 +11,10 @@ import { measureSubscriptionQuota, type SubscriptionSnapshot } from "@vpr/observ
 import { detectSubscriptionPlan } from "./subscription-detection.js";
 import { parseProjectProfile } from "@vpr/config";
 import {
-  decideAgentWorkflow,
+  routeWorkflow,
   inspectCodexAccount,
   inspectProvider,
-  type WorkflowRequest,
+  type WorkflowRoutingRequest,
   type WorkflowCase,
 } from "@vpr/runtime";
 
@@ -99,11 +99,11 @@ export async function runModelEvidenceCommand(args: readonly string[], io: CliIo
     const policy = profile.orchestration;
     const content = await readFile(resolve(input), "utf8");
     if (Buffer.byteLength(content) > 1_048_576) throw new Error("Workflow request exceeds 1 MiB");
-    let request = JSON.parse(content) as WorkflowRequest;
+    let request = JSON.parse(content) as WorkflowRoutingRequest;
     if (
       !request ||
       !["currentModelId", "preferredExecutorId", "plannerId", "advancedPlannerId"].every(
-        (key) => typeof request[key as keyof WorkflowRequest] === "string",
+        (key) => typeof request[key as keyof WorkflowRoutingRequest] === "string",
       ) ||
       !Array.isArray(request.allowedProviders) ||
       !request.allowedProviders.every((value) => typeof value === "string") ||
@@ -279,7 +279,7 @@ export async function runModelEvidenceCommand(args: readonly string[], io: CliIo
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     }
-    const result = decideAgentWorkflow(policy, {
+    const result = routeWorkflow(policy, {
       ...request,
       history: [...(request.history as readonly WorkflowCase[]), ...localHistory],
       allowedProviders: request.allowedProviders.filter((provider) =>

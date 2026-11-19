@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  decideAgentWorkflow,
+  routeWorkflow,
+  type AgentRoutingPolicy,
   type WorkflowCase,
-  type WorkflowRequest,
+  type WorkflowRoutingRequest,
 } from "./workflow-routing.js";
-import type { AgentRoutingPolicy } from "./agent-routing.js";
 const policy: AgentRoutingPolicy = {
   orchestratorId: "sonnet",
   allowLightCoding: true,
@@ -35,7 +35,7 @@ const policy: AgentRoutingPolicy = {
     { id: "terra", provider: "codex", model: "gpt-6.1-terra", tier: "standard", roles: ["coding"] },
   ],
 };
-const request: WorkflowRequest = {
+const request: WorkflowRoutingRequest = {
   kind: "feature",
   taskSignature: "feature-v1",
   complexity: "simple",
@@ -52,7 +52,7 @@ const request: WorkflowRequest = {
   now: "2026-11-16T12:00:00Z",
 };
 test("easy checked work bypasses planner without a model routing call", () => {
-  const result = decideAgentWorkflow(policy, request);
+  const result = routeWorkflow(policy, request);
   assert.equal(result.executorId, "haiku");
   assert.equal(result.plannerId, null);
   assert.equal(result.phases.length, 1);
@@ -60,7 +60,7 @@ test("easy checked work bypasses planner without a model routing call", () => {
   assert.equal(result.dispatchPerformed, false);
 });
 test("normal planning keeps source edits with light worker and review with planner", () => {
-  const result = decideAgentWorkflow(policy, {
+  const result = routeWorkflow(policy, {
     ...request,
     complexity: "normal",
     needsPlanning: true,
@@ -74,7 +74,7 @@ test("normal planning keeps source edits with light worker and review with plann
   assert.equal(result.workerCount, 1);
 });
 test("advanced analysis escalates planner without promoting the implementation worker", () => {
-  const result = decideAgentWorkflow(policy, {
+  const result = routeWorkflow(policy, {
     ...request,
     kind: "refactor",
     complexity: "complex",
@@ -87,7 +87,7 @@ test("advanced analysis escalates planner without promoting the implementation w
 });
 
 test("explicit three-stage route keeps Opus architecture, Sonnet refinement and review, and Haiku writes", () => {
-  const result = decideAgentWorkflow(policy, {
+  const result = routeWorkflow(policy, {
     ...request,
     complexity: "complex",
     risk: "high",
@@ -111,18 +111,18 @@ test("explicit three-stage route keeps Opus architecture, Sonnet refinement and 
 });
 
 test("auto mode does not add a technical model just because it is configured, and cannot widen provider access", () => {
-  const input: WorkflowRequest = {
+  const input: WorkflowRoutingRequest = {
     ...request,
     complexity: "complex",
     needsPlanning: true,
     technicalPlannerId: "sonnet",
   };
-  const result = decideAgentWorkflow(policy, input);
+  const result = routeWorkflow(policy, input);
   assert.equal(result.technicalPlannerId, null);
   assert.equal(result.phases.length, 3);
   assert.equal(result.candidates.length, 2);
   assert.equal(
-    decideAgentWorkflow(policy, {
+    routeWorkflow(policy, {
       ...input,
       technicalPlannerId: "terra",
       planningMode: "three-stage",
@@ -130,7 +130,7 @@ test("auto mode does not add a technical model just because it is configured, an
     "blocked",
   );
   assert.equal(
-    decideAgentWorkflow(policy, {
+    routeWorkflow(policy, {
       ...input,
       technicalPlannerId: "sonnet",
       verifiedModelIds: ["opus", "haiku"],
@@ -155,7 +155,7 @@ test("two-stage evidence cannot establish a three-stage price; reviewed direct e
     usdMax: 0.001,
     pricesExpireAt: "2026-12-01",
   }));
-  const result = decideAgentWorkflow(policy, {
+  const result = routeWorkflow(policy, {
     ...request,
     complexity: "complex",
     needsPlanning: true,
@@ -173,7 +173,7 @@ test("two-stage evidence cannot establish a three-stage price; reviewed direct e
     reviewerId: "sonnet",
   }));
   assert.ok(
-    decideAgentWorkflow(policy, {
+    routeWorkflow(policy, {
       ...request,
       complexity: "normal",
       history: reviewed,
@@ -182,22 +182,20 @@ test("two-stage evidence cannot establish a three-stage price; reviewed direct e
 });
 test("light implementation needs acceptance and opt-in; cross-provider needs policy and verified model", () => {
   assert.equal(
-    decideAgentWorkflow(policy, { ...request, needsPlanning: true, hasAcceptanceChecks: false })
+    routeWorkflow(policy, { ...request, needsPlanning: true, hasAcceptanceChecks: false }).status,
+    "blocked",
+  );
+  assert.equal(
+    routeWorkflow({ ...policy, allowLightCoding: false }, { ...request, needsPlanning: true })
       .status,
     "blocked",
   );
   assert.equal(
-    decideAgentWorkflow({ ...policy, allowLightCoding: false }, { ...request, needsPlanning: true })
-      .status,
+    routeWorkflow(policy, { ...request, preferredExecutorId: "terra", needsPlanning: true }).status,
     "blocked",
   );
   assert.equal(
-    decideAgentWorkflow(policy, { ...request, preferredExecutorId: "terra", needsPlanning: true })
-      .status,
-    "blocked",
-  );
-  assert.equal(
-    decideAgentWorkflow(policy, {
+    routeWorkflow(policy, {
       ...request,
       preferredExecutorId: "terra",
       needsPlanning: true,
@@ -206,7 +204,7 @@ test("light implementation needs acceptance and opt-in; cross-provider needs pol
     "terra",
   );
   assert.equal(
-    decideAgentWorkflow(policy, {
+    routeWorkflow(policy, {
       ...request,
       verifiedModelIds: ["sonnet", "opus"],
       needsPlanning: true,
@@ -245,13 +243,13 @@ test("whole workflow evidence may retain current model when delegation costs mor
       pricesExpireAt: "2026-12-01",
     },
   ]).flat();
-  const result = decideAgentWorkflow(policy, { ...request, complexity: "normal", history });
+  const result = routeWorkflow(policy, { ...request, complexity: "normal", history });
   assert.equal(result.status, "historical-forecast");
   assert.equal(result.mode, "direct-current");
   assert.equal(result.workerCount, 0);
   assert.equal(result.estimatedReferenceUsdPerAccepted, 0.01);
   assert.equal(
-    decideAgentWorkflow(policy, {
+    routeWorkflow(policy, {
       ...request,
       complexity: "normal",
       history: [...history, ...history],
@@ -274,7 +272,7 @@ test("unrelated or incomplete cases do not establish savings", () => {
     usdMax: 0,
     pricesExpireAt: "2026-12-01",
   };
-  const result = decideAgentWorkflow(policy, { ...request, history: [row] });
+  const result = routeWorkflow(policy, { ...request, history: [row] });
   assert.equal(result.status, "rule-based");
   assert.equal(result.estimatedReferenceUsdPerAccepted, null);
 });
@@ -296,19 +294,19 @@ test("a proven light direct executor may beat a planning workflow on matched nor
       pricesExpireAt: "2026-12-01",
     })),
   );
-  const result = decideAgentWorkflow(policy, { ...request, complexity: "normal", history });
+  const result = routeWorkflow(policy, { ...request, complexity: "normal", history });
   assert.equal(result.status, "historical-forecast");
   assert.equal(result.executorId, "haiku");
   assert.equal(result.plannerId, null);
   assert.equal(
-    decideAgentWorkflow(policy, { ...request, complexity: "normal", needsPlanning: true, history })
+    routeWorkflow(policy, { ...request, complexity: "normal", needsPlanning: true, history })
       .plannerId,
     "sonnet",
   );
 });
 
 test("does not spawn a duplicate of the same configured active model", () => {
-  const result = decideAgentWorkflow(
+  const result = routeWorkflow(
     { ...policy, models: [...policy.models, { ...policy.models[1]!, id: "same-worker" }] },
     {
       ...request,
@@ -336,7 +334,7 @@ test("proven bounded complex work does not force planning when the task needs no
     usdMax: 0.02,
     pricesExpireAt: "2026-12-01",
   }));
-  const result = decideAgentWorkflow(policy, {
+  const result = routeWorkflow(policy, {
     ...request,
     kind: "refactor",
     taskSignature: "refactor-v1",
@@ -350,7 +348,7 @@ test("proven bounded complex work does not force planning when the task needs no
   assert.equal(result.phases.length, 1);
   assert.equal(result.estimatedReferenceUsdPerAccepted, null);
   assert.equal(
-    decideAgentWorkflow(policy, {
+    routeWorkflow(policy, {
       ...request,
       kind: "refactor",
       taskSignature: "refactor-v1",
@@ -372,27 +370,26 @@ test("compares explicit Codex executors without widening provider or availabilit
       { id: "luna", provider: "codex", model: "gpt-6-luna", tier: "light", roles: ["coding"] },
     ],
   };
-  const input: WorkflowRequest = {
+  const input: WorkflowRoutingRequest = {
     ...request,
     needsPlanning: true,
     executorModelIds: ["terra", "sol", "luna"],
     allowedProviders: ["claude", "codex"],
     verifiedModelIds: [...request.verifiedModelIds, "sol"],
   };
-  const result = decideAgentWorkflow(extended, input);
+  const result = routeWorkflow(extended, input);
   assert.deepEqual(
     result.candidates.map((candidate) => candidate.executorId),
     ["haiku", "terra", "sol"],
   );
   assert.deepEqual(
-    decideAgentWorkflow(extended, { ...input, allowedProviders: ["claude"] }).candidates.map(
+    routeWorkflow(extended, { ...input, allowedProviders: ["claude"] }).candidates.map(
       (candidate) => candidate.executorId,
     ),
     ["haiku"],
   );
   assert.throws(
-    () =>
-      decideAgentWorkflow(extended, { ...input, executorModelIds: "terra" as unknown as string[] }),
+    () => routeWorkflow(extended, { ...input, executorModelIds: "terra" as unknown as string[] }),
     /Invalid executor/,
   );
 });
@@ -414,7 +411,7 @@ test("ranks the full cost of multiple confirmed delegated model alternatives", (
       pricesExpireAt: "2026-12-01",
     })),
   );
-  const result = decideAgentWorkflow(policy, {
+  const result = routeWorkflow(policy, {
     ...request,
     needsPlanning: true,
     executorModelIds: ["terra"],
@@ -442,7 +439,7 @@ test("review requires its own configured role and never grants source writes or 
     usdMax: 0.001,
     pricesExpireAt: "2026-12-01",
   }));
-  const result = decideAgentWorkflow(policy, { ...request, executionRole: "review", history });
+  const result = routeWorkflow(policy, { ...request, executionRole: "review", history });
   assert.equal(result.executorId, "sonnet");
   assert.equal(result.phases[0]?.phase, "review");
   assert.equal(result.phases[0]?.writeFiles, false);
@@ -464,19 +461,14 @@ test("excludes freshly exhausted providers without treating stale or absent quot
     providerCapacity: [capacity],
   };
   assert.ok(
-    decideAgentWorkflow(policy, input).candidates.every(
-      (candidate) => candidate.executorId !== "terra",
-    ),
+    routeWorkflow(policy, input).candidates.every((candidate) => candidate.executorId !== "terra"),
   );
-  const stale = decideAgentWorkflow(policy, {
+  const stale = routeWorkflow(policy, {
     ...input,
     providerCapacity: [{ ...capacity, observedAt: "2026-11-15T00:00:00Z" }],
   });
   assert.equal(stale.quotaChecks.find((check) => check.provider === "codex")?.state, "unknown");
-  assert.equal(
-    decideAgentWorkflow(policy, { ...input, requireKnownCapacity: true }).status,
-    "blocked",
-  );
+  assert.equal(routeWorkflow(policy, { ...input, requireKnownCapacity: true }).status, "blocked");
 });
 
 test("resolves omitted roles from eligible models and skips providers that reached their limit", () => {
@@ -495,16 +487,13 @@ test("resolves omitted roles from eligible models and skips providers that reach
       },
     ],
   };
-  const result = decideAgentWorkflow(policy, input);
+  const result = routeWorkflow(policy, input);
   assert.equal(result.plannerId, "sonnet");
   assert.equal(result.executorId, "haiku");
   assert.deepEqual(
     [...new Set(result.candidates.map((candidate) => candidate.executorId))],
     ["haiku", "sonnet", "opus"],
   );
-  assert.deepEqual(
-    decideAgentWorkflow(policy, { ...input, complexity: "complex" }).plannerId,
-    "opus",
-  );
+  assert.deepEqual(routeWorkflow(policy, { ...input, complexity: "complex" }).plannerId, "opus");
   assert.ok(currentModelId && preferredExecutorId && plannerId && advancedPlannerId);
 });

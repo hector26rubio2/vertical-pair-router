@@ -6,12 +6,12 @@ import { homedir } from "node:os";
 import { parseProjectProfile, parseGlobalProfile, profilePolicyLayers } from "@vpr/config";
 import {
   evaluatePolicy,
-  decideAgentWorkflow,
+  routeWorkflow,
   inspectProvider,
   filterNativeModels,
   runNativeAgent,
   resolveProgramCommand,
-  type WorkflowRequest,
+  type WorkflowRoutingRequest,
   type NativeAgentRequest,
 } from "@vpr/runtime";
 import type { CliIo } from "./cli.js";
@@ -54,7 +54,7 @@ export async function runAgentCommand(
   if (!policy) throw Error("Configure orchestration in init before native execution");
   const content = await readFile(resolve(file), "utf8");
   if (Buffer.byteLength(content) > 65536) throw Error("Task input exceeds 64 KiB");
-  const task = JSON.parse(content) as Partial<WorkflowRequest> & {
+  const task = JSON.parse(content) as Partial<WorkflowRoutingRequest> & {
     prompt?: string;
     title?: string;
     allowedPaths?: string[];
@@ -116,7 +116,7 @@ export async function runAgentCommand(
     selectionFilters.some((item) => item.modelId === model.id && item.eligible),
   );
   const role = task.executionRole ?? "coding";
-  const request: WorkflowRequest = {
+  const request: WorkflowRoutingRequest = {
     kind: task.kind ?? "feature",
     complexity: task.complexity ?? "normal",
     risk: task.risk ?? "medium",
@@ -150,7 +150,7 @@ export async function runAgentCommand(
     })),
   };
   const history = await loadWorkflowCases(root, policy);
-  const decision = decideAgentWorkflow(policy, { ...request, history });
+  const decision = routeWorkflow(policy, { ...request, history });
   if (args[0] === "detect" || args.includes("--preview") || decision.status === "blocked") {
     io.stdout(JSON.stringify({ dispatched: false, decision, statuses, selectionFilters }) + "\n");
     return decision.status === "blocked" ? 3 : 0;
