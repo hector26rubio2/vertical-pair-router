@@ -16,3 +16,11 @@ test('coverage distinguishes untested, legacy acceptance and minimum quality gat
   assert.equal(result.tasks[0].cells.find(c=>c.arm==='opus-sonnet-haiku').minimumPassed,1);
   assert.equal(result.tasks[0].cells.find(c=>c.arm==='sonnet-haiku').attempts,0);
 });
+
+test('coverage includes Codex and does not paint open medium findings as quality-passed',()=>{
+  const tasks=[{id:'F',name:'Task',level:'medio-alto',testCount:9}];
+  const rows=[{taskId:'F',arm:'sonnet-codex-6.1-sol-reviewed',status:'accepted',semanticReview:'passed',checks:{external:{exitCode:0,passed:9}},minimumStandard:{passed:true,reviewEvidenceValid:true},qualityReview:{approved:true,findings:[{severity:'medium'}]},phases:[{phase:'review',receipt:{terminalReceipt:{success:true}}}]}];
+  const result=measuredCoverage(tasks,rows);assert.ok(result.arms.includes('sonnet-codex-terra'));
+  const cell=result.tasks[0].cells.find(c=>c.arm==='sonnet-codex-sol');assert.equal(cell.attempts,1);assert.equal(cell.qualityPassed,0);assert.equal(cell.reviewOpen,true);
+  assert.equal(result.tasks[0].cells.find(c=>c.arm==='sonnet-codex-terra').attempts,0);
+});

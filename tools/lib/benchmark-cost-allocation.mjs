@@ -1,4 +1,6 @@
 const e=value=>String(value??'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
+import {canonicalRecipe,qualityEvidence} from './benchmark-verdict.mjs';
+import {comparisonSelection} from './benchmark-analysis.mjs';
 const money=value=>value==null?'N/D':value.toFixed(8);
 const palette=['#198266','#336dc4','#8855b4','#b4761c','#d45467','#3a8f9d'];
 export const phaseLabel=value=>({'architecture':'Arquitectura','technical-plan':'Plan técnico','plan':'Análisis y plan','implement':'Ejecución','repair':'Corrección','review':'Revisión común'})[value]??value;
@@ -21,13 +23,15 @@ export function allocationPanel(task,rows,armLabel){
 }
 
 export function measuredCoverage(tasks,rows){
-  const arms=['haiku-solo','sonnet-solo','opus-solo','sonnet-haiku','opus-haiku','opus-sonnet-haiku'];
+  const arms=[...new Set(['haiku-solo','sonnet-solo','opus-solo','sonnet-haiku','opus-haiku','opus-sonnet-haiku','sonnet-codex-terra','sonnet-codex-sol','opus-codex-terra','opus-codex-sol',...rows.map(r=>canonicalRecipe(r.strategyArm??r.arm))])];
   return {arms,tasks:tasks.map(task=>({id:task.id,name:task.name,level:task.level,protocol:task.protocol??'native-legacy',cells:arms.map(arm=>{
-    const samples=rows.filter(r=>r.taskId===task.id&&(r.strategyArm??r.arm).replace(/-(?:attempt|repeat)-\d+$/u,'').replace(/-reviewed$/u,'')===arm);
-    return {arm,attempts:samples.length,minimumPassed:samples.filter(r=>r.minimumStandard?.passed===true).length,accepted:samples.filter(r=>r.status==='accepted').length};
+    const samples=rows.filter(r=>r.taskId===task.id&&canonicalRecipe(r.strategyArm??r.arm)===arm);
+    const comparable=comparisonSelection(task,rows).selected.filter(r=>canonicalRecipe(r.strategyArm??r.arm)===arm);
+    return {arm,attempts:samples.length,comparableAttempts:comparable.length,minimumPassed:samples.filter(r=>r.minimumStandard?.passed===true).length,accepted:samples.filter(r=>r.status==='accepted').length,
+      qualityPassed:comparable.filter(r=>qualityEvidence(r,task).qualified).length,reviewOpen:comparable.some(r=>qualityEvidence(r,task).band==='quality-open')};
   })}))};
 }
 export function coveragePanel(tasks,rows,armLabel){
   const data=measuredCoverage(tasks,rows);
-  return `<section id="coverage"><h2>Cobertura real por tarea, nivel y combinación</h2><p>Verde: cumple el mínimo nuevo (checks + revisión fresca verificable). Azul: aceptación del contrato anterior; no equivale al nuevo mínimo. Rojo: intentos sin aceptación. Gris: no ejecutado. Cada fila conserva su protocolo; no se mezclan mediciones antiguas con revisión nueva.</p><div class="table"><table class="coverage-table"><thead><tr><th>Tarea y nivel</th>${data.arms.map(arm=>`<th>${e(armLabel(arm))}</th>`).join('')}</tr></thead><tbody>${data.tasks.map(t=>`<tr><th><a href="#case-${e(t.id.toLowerCase())}">${e(t.id)} · ${e(t.name)}</a><small>${e(t.level)} · ${e(t.protocol)}</small></th>${t.cells.map(c=>`<td class="coverage-${!c.attempts?'missing':c.minimumPassed?'passed':c.accepted?'legacy':'failed'}">${!c.attempts?'No probado':c.minimumPassed?'Mínimo: '+c.minimumPassed+'/'+c.attempts:c.accepted?'Contrato: '+c.accepted+'/'+c.attempts:'Sin aceptación: 0/'+c.attempts}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p>La triple combinación no se declara mejor por tener más modelos. Sólo puede recomendarse para el contrato medido si cumple los gates y mejora costo/tiempo frente a las alternativas comparables. Una muestra no demuestra rendimiento general.</p></section>`;
+  return `<section id="coverage"><h2>Cobertura real por tarea, nivel y combinación</h2><p>Verde: checks y revisión fresca verificable sin hallazgos medios/altos/críticos pendientes. Amarillo: revisión con observaciones abiertas. Azul: sólo aceptación del contrato; no prueba calidad equivalente. Rojo: intentos sin aceptación. Gris: no probado. Se muestran también Codex y los intentos incompletos; no probado no significa que falló.</p><div class="table"><table class="coverage-table"><thead><tr><th>Tarea y nivel</th>${data.arms.map(arm=>`<th>${e(armLabel(arm))}</th>`).join('')}</tr></thead><tbody>${data.tasks.map(t=>`<tr><th><a href="#case-${e(t.id.toLowerCase())}">${e(t.id)} · ${e(t.name)}</a><small>${e(t.level)} · ${e(t.protocol)}</small></th>${t.cells.map(c=>`<td class="coverage-${!c.attempts?'missing':c.qualityPassed?'passed':c.reviewOpen?'open':c.accepted?'legacy':'failed'}">${!c.attempts?'No probado':c.qualityPassed?'Calidad: '+c.qualityPassed+'/'+c.comparableAttempts:c.reviewOpen?'Calidad pendiente':c.accepted?'Sólo contrato: '+c.accepted+'/'+c.attempts:'Intentado sin aprobar'}${c.attempts?`<small>${c.attempts} intentos históricos; ${c.comparableAttempts} en el protocolo comparado.</small>`:''}</td>`).join('')}</tr>`).join('')}</tbody></table></div><p>Esta cobertura es de combinaciones experimentadas, no de líneas de código ni de todos los proyectos del mismo nivel. La triple combinación no se declara mejor por tener más modelos. Las rutas no disponibles por cuenta/política quedan fuera del enrutamiento, aunque aparezcan como no probadas aquí.</p></section>`;
 }

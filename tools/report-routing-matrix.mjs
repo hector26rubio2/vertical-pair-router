@@ -5,7 +5,8 @@ import { officialCostBreakdown } from './lib/official-cost-breakdown.mjs';
 import {codexReferenceCost} from './lib/codex-reference-cost.mjs';
 import { scenarioComparisonTable } from './lib/scenario-comparison-table.mjs';
 import { benchmarkDashboard } from './lib/benchmark-dashboard.mjs';
-import { contextEvidence } from './lib/benchmark-analysis.mjs';
+import {contextEvidence,comparisonSelection} from './lib/benchmark-analysis.mjs';
+import {qualityEvidence,evaluationMethodology,taskVerdict,canonicalRecipe} from './lib/benchmark-verdict.mjs';
 const at = process.argv.indexOf('--report');
 if (at < 0 || !process.argv[at + 1]) throw new Error('--report <report.json> required');
 const path = resolve(process.argv[at + 1]);
@@ -57,7 +58,7 @@ const usd = value => !value ? 'N/D' : Math.abs(value.min - value.max) < 1e-10 ? 
 const short = model => model?.replace('claude-', '') ?? '—';
 const armLabel=id=>{
   const attempt=id.match(/-(?:attempt|repeat)-(\d+)$/u),base=id.replace(/-(?:attempt|repeat)-\d+$/u,'');
-  const label=({'haiku-solo':'Haiku solo','sonnet-solo':'Sonnet solo','opus-solo':'Opus solo','sonnet-haiku':'Sonnet → Haiku','haiku-sonnet':'Haiku → Sonnet','opus-haiku':'Opus → Haiku','haiku-codex-terra':'Haiku → Codex Terra','opus-codex-terra':'Opus → Codex Terra'})[base]??base;
+  const label=({'opus-sonnet-haiku':'Opus → Sonnet → Haiku','haiku-solo':'Haiku solo','sonnet-solo':'Sonnet solo','opus-solo':'Opus solo','sonnet-haiku':'Sonnet → Haiku','haiku-sonnet':'Haiku → Sonnet','opus-haiku':'Opus → Haiku','haiku-codex-terra':'Haiku → Codex Terra','opus-codex-terra':'Opus → Codex Terra','opus-codex-sol':'Opus → Codex Sol','sonnet-codex-terra':'Sonnet → Codex Terra','sonnet-codex-sol':'Sonnet → Codex Sol'})[base]??base;
   if(base.endsWith('-reviewed')){
     const recipe=base.slice(0,-9),cross=recipe.match(/^(sonnet|opus)-codex-(terra|sol)$/u);
     const readable=cross?cross[1][0].toUpperCase()+cross[1].slice(1)+' → Codex '+cross[2][0].toUpperCase()+cross[2].slice(1):recipe.replace('-solo','').split('-').map(name=>name[0].toUpperCase()+name.slice(1)).join(' → ');
@@ -111,27 +112,7 @@ descriptions.R01='Revisar una función sintética de reservas de inventario sumi
 descriptions.F01='Investigar una instantánea real de Finanzas (Angular, API .NET/PostgreSQL e importador Python) y convertir la solicitud existente de importación JSON en un plan de desarrollo full stack. Distinguir código existente y propuesta; justificar riesgos con citas exactas, detallar tareas por capa, dependencias, decisiones, migración, rollback y pruebas. No implementa la feature. Las ocho comprobaciones automáticas validan el artefacto y sus citas; la calidad del diseño necesita revisión semántica.';
 descriptions.F01B=descriptions.F01+' Nueva serie: roles separados por fases y la MISMA revisión fresca Sonnet incluida en el costo de todas las recetas. No mezclar causalmente con F01: cambian el protocolo y los límites por fase.';
 descriptions.F02='Corregir en el frontend Angular real la importación de movimientos: cuenta y signo en duplicados, cambio de cuenta en vista previa, identidad estable de filas y reintentos tras fallos parciales sin reenviar éxitos. Se conserva el contrato API y máximo cuatro peticiones. Se exige compilar toda la aplicación, preservar 12 regresiones, aprobar nueve pruebas externas y pasar revisión fresca del diff. Usa API simulada: no prueba persistencia ni atomicidad de PostgreSQL.';
-const comparisons = report.tasks.map(task => {
-  const rows = report.rows.filter(row => row.taskId === task.id);
-  const strategy=row=>row.strategyArm??row.arm.replace(/-(?:attempt|repeat)-\d+$/u,'');
-  const strategies=[...new Set(rows.map(strategy))].map(arm=>{
-    const samples=rows.filter(row=>strategy(row)===arm),accepted=samples.filter(row=>row.status==='accepted').length;
-    const complete=samples.every(row=>(!row.semanticReview||row.semanticReview==='passed')&&row.totalCost&&row.receipt?.completeAccounting&&row.models.every(model=>!model.cost?.modelIdentityCaveat));
-    return {arm,samples:samples.length,accepted,qualityRate:accepted/samples.length,
-      totalCost:accepted&&complete?{min:samples.reduce((sum,row)=>sum+row.totalCost.min,0)/accepted,max:samples.reduce((sum,row)=>sum+row.totalCost.max,0)/accepted}:null};
-  });
-  const baseline = strategies.find(row => row.arm === 'sonnet-solo' && row.accepted);
-  const sonnetHaiku = strategies.find(row=>row.arm==='sonnet-haiku'&&row.accepted);
-  const best = strategies.filter(row => row.accepted && row.qualityRate>=.8 && row.totalCost).sort((a,b) => a.totalCost.max-b.totalCost.max)[0];
-  const light = strategies.find(row=>row.arm==='haiku-solo'&&row.accepted);
-  const opus = strategies.find(row => row.arm === 'opus-solo' && row.accepted);
-  const opusHaiku = strategies.find(row => row.arm === 'opus-haiku' && row.accepted);
-  const compare = (a,b) => a?.totalCost && b?.totalCost ? { min: 100*(1-b.totalCost.max/a.totalCost.min), max: 100*(1-b.totalCost.min/a.totalCost.max) } : null;
-  return { taskId: task.id, accepted: rows.filter(row => row.status === 'accepted').length, attempted: rows.length, cheapestAccepted: best?.arm ?? null,strategies,
-    savingAgainstSonnetPercent: compare(baseline,best), opusDelegationSavingPercent: compare(opus,opusHaiku),
-    sonnetDelegationSavingPercent:compare(baseline,sonnetHaiku),
-    planningOverheadVsHaikuPercent: light?.totalCost&&opusHaiku?.totalCost ? {min:100*(opusHaiku.totalCost.min/light.totalCost.max-1),max:100*(opusHaiku.totalCost.max/light.totalCost.min-1)}:null };
-});
+const comparisons=report.tasks.map(task=>{const verdict=taskVerdict(task,report.rows);return {taskId:task.id,cheapestAccepted:verdict.pilotChoice,decisionBasis:'Quality gate before whole-workflow reference cost; pilot only',conditional:verdict.pilotPriceConditional,automaticRoutingReady:verdict.autoRoutingReady,savingAgainstSonnetPercent:verdict.savingAgainstSonnetPercent,strategies:verdict.cells};});
 const costs = report.rows.filter(row => row.totalCost).map(row => row.totalCost);
 const knownModelCosts = report.rows.flatMap(row=>row.models.map(model=>model.cost?.totalUsd).filter(Boolean));
 const summary = { source: path, sources, at: new Date().toISOString(), tasks: report.tasks, comparisons, repetitions: report.repetitions,
@@ -168,17 +149,22 @@ if(caseAt>=0){
   try{existing=JSON.parse(await readFile(libraryPath,'utf8')).rows;if(!Array.isArray(existing))throw Error('Invalid case library');}catch(error){if(error.code!=='ENOENT')throw error;}
   const prices=JSON.parse(await readFile('docs/research/model-price-catalog.json','utf8'));
   const hash=value=>createHash('sha256').update(value).digest('hex');
+  const eligibleRows=new Set(report.tasks.flatMap(task=>comparisonSelection(task,report.rows).selected));
+  const qualityByTask=new Map(report.tasks.map(task=>[task.id,taskVerdict(task,report.rows)]));
   const cases=report.rows.flatMap(row=>{
     const task=report.tasks.find(task=>task.id===row.taskId),wanted=[row.coordinatorModel,row.executorModel].filter(Boolean);
+    const group=qualityByTask.get(task.id)?.cells.find(cell=>cell.recipe===canonicalRecipe(row.strategyArm??row.arm));
+    if(!eligibleRows.has(row)||!row.minimumStandard||!group?.observedCostComplete||!group.contractsKnown||!group.protocol)return [];
     if(['pending','reviewed-draft'].includes(row.semanticReview)||!row.totalCost||!row.receipt?.completeAccounting||row.models.some(model=>!model.model.startsWith('claude-')||model.cost?.modelIdentityCaveat||(model.model.includes('haiku')&&model.maxObservedPromptTokens>=90000))||!wanted.every(id=>row.models.some(model=>model.model===id)))return [];
     return [{caseId:hash((row.evidenceSource??path)+'|'+row.taskId+'|'+row.arm),taskKind:task.kind??'feature',taskSignature:hash(task.requirement+'|'+(row.acceptanceHash??'')),
       executionRole:row.executionRole??'coding',complexity:task.level.includes('complejo')?'complex':task.level==='simple'?'simple':'normal',risk:task.level==='simple'?'low':'medium',
       plannerId:row.coordinatorModel??null,technicalPlannerId:row.technicalPlannerModel??null,reviewerId:row.reviewerModel??null,executorId:row.executorModel,plannerProvider:row.coordinatorModel?'claude':null,executorProvider:'claude',plannerEffort:row.coordinatorModel?'medium':undefined,executorEffort:'medium',effortVerification:'requested-only',
       technicalPlannerProvider:row.technicalPlannerModel?'claude':null,technicalPlannerEffort:row.technicalPlannerModel?'medium':undefined,reviewerProvider:row.reviewerModel?'claude':null,reviewerEffort:row.reviewerModel?'medium':undefined,
-      accepted:row.status==='accepted'&&(!row.semanticReview||row.semanticReview==='passed')&&(!row.minimumStandard||row.minimumStandard.passed)&&!row.qualityReview?.findings?.some(f=>['critical','high','medium'].includes(f.severity)),modelConfirmed:true,completeAccounting:true,usdMax:row.totalCost.max,pricesExpireAt:prices.expiresAt,
+      accepted:qualityEvidence(row,task).qualified,qualityVerification:'external-checks-and-fresh-review-no-open-medium-high-critical',modelConfirmed:true,completeAccounting:true,usdMax:row.totalCost.max,pricesExpireAt:prices.expiresAt,
       source:row.evidenceSource??path,classificationSource:'manual bounded benchmark; match task signature before comparison'}];
   });
-  const byId=new Map([...existing,...cases].map(row=>[row.caseId,row]));await mkdir(dirname(libraryPath),{recursive:true});await writeFile(libraryPath,JSON.stringify({schemaVersion:1,rows:[...byId.values()]},null,2)+'\n');
+  const preserved=existing.filter(row=>row.classificationSource!=='manual bounded benchmark; match task signature before comparison');
+  const byId=new Map([...preserved,...cases].map(row=>[row.caseId,row]));await mkdir(dirname(libraryPath),{recursive:true});await writeFile(libraryPath,JSON.stringify({schemaVersion:1,rows:[...byId.values()]},null,2)+'\n');
 }
 const routingPanel=`<section id="routing"><h2>Cómo se filtra y se elige la ruta</h2>
 <p>La selección local no llama a un modelo. La dificultad y el riesgo se reciben de la tarea; las fichas documentadas orientan los candidatos y los resultados medidos permiten comparar el costo del flujo completo.</p>
@@ -195,6 +181,8 @@ try { profile = JSON.parse(await readFile('.vpr/profile.json','utf8')); } catch 
 let campaign = null;
 try { campaign = JSON.parse(await readFile(join(output,'finanzas-campaign.json'),'utf8')); } catch(error) { if(error.code !== 'ENOENT') throw error; }
 const dashboard = benchmarkDashboard({report, descriptions, armLabel, comparisonTable, routingPanel, summary, profile, campaign, claudePrices: currentPrices,openaiPrices});
-await writeFile(join(output,'analysis.json'),JSON.stringify({at:summary.at, tasks:dashboard.analyses},null,2)+'\n');
+await writeFile(join(output,'analysis.json'),JSON.stringify({at:summary.at,tasks:dashboard.analyses,conclusions:dashboard.verdicts,methodology:evaluationMethodology},null,2)+'\n');
+await writeFile(join(output,'decisiones.json'),JSON.stringify({at:summary.at,methodologyVersion:1,tasks:dashboard.verdicts},null,2)+'\n');
+await writeFile(join(output,'metodologia.json'),JSON.stringify(evaluationMethodology,null,2)+'\n');
 await writeFile(join(output,'informe.html'),dashboard.html);
 console.log(JSON.stringify({report:join(output,'informe.html'), tasks:report.tasks.length, executions:report.rows.length, totalReferenceUsd:summary.totalReferenceUsd}));
