@@ -159,8 +159,8 @@ export class NativeSessionMeter {
     }
   }
   snapshot(wallMs) {
-    const requests = [...this.requests.values()];
-    const tools = [...this.tools.values()];
+    const requests = [...this.requests.values()].map(row => ({...row}));
+    const tools = [...this.tools.values()].map(row => ({...row}));
     const delegates = tools.filter(
       (tool) => tool.name === "Agent" && tool.parentToolUseId === null,
     );

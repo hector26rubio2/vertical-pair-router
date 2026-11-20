@@ -14,6 +14,9 @@ importers:
       '@vpr/backlog':
         specifier: workspace:*
         version: link:packages/backlog
+      '@vpr/cli':
+        specifier: workspace:*
+        version: link:packages/cli
       '@vpr/config':
         specifier: workspace:*
         version: link:packages/config
@@ -26,9 +29,18 @@ importers:
       '@vpr/experiments':
         specifier: workspace:*
         version: link:packages/experiments
+      '@vpr/knowledge':
+        specifier: workspace:*
+        version: link:packages/knowledge
       '@vpr/observability':
         specifier: workspace:*
         version: link:packages/observability
+      '@vpr/quality':
+        specifier: workspace:*
+        version: link:packages/quality
+      '@vpr/runtime':
+        specifier: workspace:*
+        version: link:packages/runtime
       '@vpr/storage-sqlite':
         specifier: workspace:*
         version: link:packages/storage-sqlite
@@ -147,9 +159,15 @@ importers:
       '@vpr/core':
         specifier: workspace:*
         version: link:../core
+      '@vpr/knowledge':
+        specifier: workspace:*
+        version: link:../knowledge
       '@vpr/observability':
         specifier: workspace:*
         version: link:../observability
+      '@vpr/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@vpr/storage-sqlite':
         specifier: workspace:*
         version: link:../storage-sqlite
@@ -179,6 +197,9 @@ importers:
       '@vpr/core':
         specifier: workspace:*
         version: link:../core
+      '@vpr/observability':
+        specifier: workspace:*
+        version: link:../observability
     devDependencies:
       '@vpr/storage-sqlite':
         specifier: workspace:*

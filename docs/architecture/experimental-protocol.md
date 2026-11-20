@@ -1,6 +1,6 @@
 # Protocolo experimental: implementación incremental
 
-Las nuevas primitivas tipadas están en @vpr/experiments. No llaman proveedores.
+Los protocolos tipados están en @vpr/experiments. Las validaciones y simulaciones no llaman modelos; el adaptador nativo exige aprobación explícita.
 
 - freezeHandoff valida el JSON Schema antes de producir bytes, hash y campos
   completos. El tamaño en tokens queda N/D si no hay recibo del contador.
@@ -30,7 +30,12 @@ hash alterado, handoff incompleto, orden reproducible, ciclos y archivos
 compartidos, asignación por recibos, prefijos y bloqueo de llamadas nativas.
 No son ensayos de calidad o rendimiento de Haiku/Sonnet/Opus/Codex.
 
-Siguen pendientes el coordinador completo factorial y jerárquico, emisión de
-TaskDraft por BacklogService, límite por intento/modelo y recibos de cancelación.
-No se ha conectado esta capa al despacho del plugin; no se deben presentar
-estas primitivas como una campaña real ya ejecutada.
+El coordinador factorial y jerárquico, TaskDraft por BacklogService, el límite
+de un reintento y la preservación de recibos parciales están implementados y
+cubiertos por simulaciones. createNativeCampaignPorts enlaza con los CLI nativos
+mediante verificación de modelo, contexto y carpeta aislada.
+
+El CLI experimental permite generar informes y validar handoffs. Falta demostrar
+el recorrido integral de los recibos al store, su lectura en sombra y el informe
+de resultados nuevos. No se ha activado esta política en el despacho normal.
+Ver [el estado del cierre](../operations/2026-11-20-branch-status.md).

@@ -43,6 +43,8 @@ test('static prefix stays identical across stories and changes when role context
   const prefix = {tools: ['Read'], system: 'Executor', staticContext: 'Conventions'};
   const a = stableRolePrompt(prefix, 'Story A'), b = stableRolePrompt(prefix, 'Story B');
   assert.equal(a.prefixHash, b.prefixHash); assert.notEqual(a.prompt, b.prompt);
+  assert.ok(a.prefix.indexOf('TOOLS') < a.prefix.indexOf('SYSTEM'));
+  assert.ok(a.prefix.indexOf('SYSTEM') < a.prefix.indexOf('STATIC CONTEXT'));
   assert.notEqual(a.prefixHash, stableRolePrompt({...prefix, system: 'Reviewer'}, 'Story A').prefixHash);
 });
 test('executor boundary validates before calling and blocks native experiments without explicit authorization', async () => {

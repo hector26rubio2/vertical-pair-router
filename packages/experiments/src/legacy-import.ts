@@ -14,6 +14,7 @@ const bool = (value: unknown): boolean | null => typeof value === 'boolean' ? va
 const hash = (value: unknown): string | null => typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value) ? value : null;
 const level = (value: unknown): WorkFeatures['designComplexity'] =>
   value === 'simple' || value === 'normal' || value === 'complex' ? value : null;
+const stringList = (value: unknown): string[] | null => Array.isArray(value) && value.every(v => typeof v === 'string') ? value : null;
 
 function features(task: Json): WorkFeatures {
   const supplied = obj(task.features);
@@ -21,15 +22,18 @@ function features(task: Json): WorkFeatures {
     kind: text(task.kind) ?? 'unknown', role: text(task.executionRole) ?? 'unknown',
     designComplexity: level(supplied.designComplexity), executionComplexity: level(supplied.executionComplexity),
     risk: supplied.risk === 'low' || supplied.risk === 'medium' || supplied.risk === 'high' ? supplied.risk : null,
-    files: null, modules: null, publicApi: bool(supplied.publicApi), persistence: bool(supplied.persistence),
+    files: stringList(supplied.files), modules: stringList(supplied.modules), publicApi: bool(supplied.publicApi), persistence: bool(supplied.persistence),
     transactions: bool(supplied.transactions), security: bool(supplied.security), money: bool(supplied.money),
     invariants: number(supplied.invariants), existingTests: number(supplied.existingTests),
-    expectedDiffLines: number(supplied.expectedDiffLines), dependencies: null,
+    expectedDiffLines: number(supplied.expectedDiffLines), dependencies: stringList(supplied.dependencies),
   };
 }
-function emptyRecord(source: EvidenceRecord['source'], row: Json, task: Json, runId: string): EvidenceRecord {
+function emptyRecord(source: EvidenceRecord['source'], row: Json, task: Json, id: string): EvidenceRecord {
+  const firstRequest = list(obj(row.receipt).requests).map(obj).find(request => text(request.id));
+  const identity = text(row.runId) ?? text(row.sessionId) ?? text(row.project) ?? text(firstRequest?.id);
+  const runId = identity ? createHash('sha256').update(JSON.stringify([identity, row.taskId, row.arm, row.protocol])).digest('hex') : id;
   return {
-    schemaVersion: 1, id: runId, granularity: 'run', runId, storyId: null, callId: null,
+    schemaVersion: 1, id, granularity: 'run', runId, storyId: null, callId: null,
     taskId: text(row.taskId) ?? 'unknown', protocol: text(row.protocol), acceptanceContractHash: hash(row.acceptanceHash),
     recipe: text(row.arm) ?? 'unknown', phase: null, operation: 'desconocida',
     model: null, provider: null, modelIdentity: 'unknown', features: features(task),
@@ -42,7 +46,8 @@ function emptyRecord(source: EvidenceRecord['source'], row: Json, task: Json, ru
     wallMs: null, checksMs: null, calls: null, turns: null, tools: null,
     files: {readCount: null, readBytes: null, readTokens: null, writtenCount: null, writtenBytes: null},
     cacheCondition: 'unknown', promptPrefixHash: null, handoffHash: null, failureReason: null,
-    triageEscalated: null, escalationRequired: null, shadowRecipe: null, source, unavailable: {},
+    triageEscalated: null, escalationRequired: null, shadowRecipe: null, source,
+    unavailable: identity ? {} : {runId: 'Only import identity available; independence of the physical execution is unverified'},
   };
 }
 function withMissingReasons(record: EvidenceRecord, special: Record<string, string> = {}): EvidenceRecord {
@@ -63,12 +68,26 @@ function runRecord(base: EvidenceRecord, row: Json): EvidenceRecord {
   const receipt = obj(row.receipt), totals = obj(receipt.totals), cost = obj(row.totalCost);
   const codex = list(row.models).some(model => obj(model).provider === 'codex');
   const external = obj(obj(row.checks).external);
+  const standard = obj(row.minimumStandard), review = obj(row.qualityReview);
+  const findings = list(review.findings).map(obj);
+  const reviewKnown = Array.isArray(review.findings);
+  const severities = (name: string) => reviewKnown ? findings.filter(f => f.severity === name).length : null;
+  const cited = bool(standard.reviewEvidenceValid);
+  const fresh = cited === true && list(row.phases).some(p => obj(p).phase === 'review'
+    && obj(obj(obj(p).receipt).terminalReceipt).success === true);
+  const engineering = typeof standard.passed === 'boolean' && reviewKnown
+    ? standard.passed && fresh && review.approved === true && row.semanticReview === 'passed'
+      && !findings.some(f => ['critical', 'high', 'medium'].includes(String(f.severity))) : null;
   return withMissingReasons({...base,
+    snapshotHash: hash(row.fixtureHash ?? row.snapshotHash),
     tokens: {...base.tokens, input: number(totals.inputTokens), output: number(totals.outputTokens),
       cacheRead: number(totals.cacheReadTokens), cacheWrite: codex ? null : number(totals.cacheWriteTokens)},
     cost: {...base.cost, totalMinUsd: number(cost.min), totalMaxUsd: number(cost.max),
       complete: bool(row.completeModelAccounting ?? receipt.completeAccounting)},
     accepted: text(row.status) === 'accepted' ? true : row.status ? false : null,
+    engineeringQuality: engineering,
+    review: {fresh: cited === null ? null : fresh, citationsVerified: cited,
+      critical: severities('critical'), high: severities('high'), medium: severities('medium'), low: severities('low')},
     checks: {...base.checks, external: typeof external.exitCode === 'number' ? external.exitCode === 0 : null},
     wallMs: number(obj(receipt.timings).wallMs),
     checksMs: number(row.localChecksTotalMs),
@@ -78,8 +97,8 @@ function callRecord(base: EvidenceRecord, request: Json, index: number): Evidenc
   const input = number(request.inputTokens), read = number(request.cacheReadTokens), write = number(request.cacheWriteTokens);
   const context = input !== null && read !== null && write !== null ? input + read + write : null;
   const phase = text(request.phase);
-  return withMissingReasons({...base, id: base.runId + ':call:' + index, granularity: 'call',
-    callId: text(request.id) ?? String(index), model: text(request.model),
+  return withMissingReasons({...base, id: base.id + ':call:' + index, granularity: 'call',
+    callId: text(request.id), model: text(request.model),
     source: {...base.source, pointer: base.source.pointer + '/receipt/requests/' + index},
     phase, operation: inferOperation(phase ? {phase} : {}),
     tokens: {input, output: number(request.outputTokens), cacheRead: read, cacheWrite: write,

@@ -198,7 +198,7 @@ function checkProviderQuota(provider: string, input: Request) {
   };
 }
 
-function eligibleModels(policy: AgentRoutingPolicy, input: Request) {
+export function eligibleWorkflowModels(policy: AgentRoutingPolicy, input: Request) {
   const quotaChecks = [...new Set(policy.models.map((model) => model.provider))].map((provider) =>
     checkProviderQuota(provider, input),
   );
@@ -560,7 +560,7 @@ function describeReason(selected: Candidate | undefined, comparable: boolean) {
 
 export function routeWorkflow(policy: AgentRoutingPolicy, input: Request) {
   const executionRole = validateRequest(policy, input);
-  const { eligible, quotaChecks } = eligibleModels(policy, input);
+  const { eligible, quotaChecks } = eligibleWorkflowModels(policy, input);
   const roles = resolveRoles(policy, input, eligible, executionRole);
   const resolved: ResolvedRequest = {
     ...input,

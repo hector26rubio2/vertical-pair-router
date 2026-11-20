@@ -2,7 +2,7 @@ import { mkdir, cp, readFile, writeFile, readdir, symlink } from "node:fs/promis
 import { resolve, join, dirname } from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
+import { resolveExecutable } from "@vpr/runtime";
 import {
   measuredRecipes as claudeRecipes,
   codexMeasuredRecipes,

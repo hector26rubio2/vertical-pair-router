@@ -1,2 +1,2 @@
-import {securityMain} from '../packages/quality/src/staged-security.mjs';
+import {securityMain} from './lib/bootstrap-quality.mjs';
 process.exitCode=securityMain();

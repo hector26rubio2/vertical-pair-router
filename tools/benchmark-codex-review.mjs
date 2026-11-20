@@ -4,8 +4,8 @@ import { createHash } from "node:crypto";
 import { runMeasuredClaude } from "./lib/run-measured-claude.mjs";
 import { officialCostBreakdown } from "./lib/official-cost-breakdown.mjs";
 import { codexReferenceCost } from "./lib/codex-reference-cost.mjs";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
-import { runCli } from "../packages/cli/dist/index.js";
+import { resolveExecutable } from "@vpr/runtime";
+import { runCli } from "@vpr/cli";
 if (!process.argv.includes("--approve-provider"))
   throw Error("Explicit cross-provider native usage approval required");
 const root = resolve("."),

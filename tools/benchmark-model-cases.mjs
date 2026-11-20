@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Script, createContext } from "node:vm";
 import { createHash } from "node:crypto";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
+import { resolveExecutable } from "@vpr/runtime";
 import { probeClaude } from "./lib/native-claude-probe.mjs";
 
 if (!process.argv.includes("--approve-provider")) throw new Error("--approve-provider required");

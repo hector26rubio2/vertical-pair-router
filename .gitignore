@@ -16,6 +16,7 @@ evals/results/
 .vpr/*.tmp
 .vpr/graphify/
 .vpr/benchmarks/
+.vpr/reports/
 .vpr/runs/
 .vpr/native-run.lock
 .vpr/usage/

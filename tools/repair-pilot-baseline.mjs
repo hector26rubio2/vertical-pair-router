@@ -2,7 +2,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve, join, dirname } from "node:path";
 import { spawn } from "node:child_process";
 import { runMeasuredClaude } from "./lib/run-measured-claude.mjs";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
+import { resolveExecutable } from "@vpr/runtime";
 
 const at = process.argv.indexOf("--report");
 if (!process.argv.includes("--approve-provider") || at < 0)

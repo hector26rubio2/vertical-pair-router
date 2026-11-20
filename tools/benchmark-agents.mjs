@@ -5,8 +5,8 @@ import { resolve, join } from "node:path";
 import { Script, createContext } from "node:vm";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
-import { verifyModelReceipt } from "../packages/observability/dist/index.js";
+import { resolveExecutable } from "@vpr/runtime";
+import { verifyModelReceipt } from "@vpr/observability";
 
 if (!process.argv.includes("--approve-provider"))
   throw new Error("Use --approve-provider to authorize this bounded Claude account experiment");

@@ -18,7 +18,7 @@ try{
   const manifest=JSON.parse(await readFile(join(isolatedPlugin,'package.json'),'utf8'));
   assert.deepEqual(lock.packages[''].dependencies,manifest.dependencies);
   // Reproduce the no-scripts, frozen dependency install used by Claude's cache.
-  const {resolveProgramCommand}=await import('../packages/runtime/dist/package-manager.js');
+  const {resolveProgramCommand}=await import('@vpr/runtime');
   const npm=await resolveProgramCommand('npm');assert.ok(npm,'npm must be available for the cached plugin install');
   execFileSync(npm.program,[...npm.prefix,'ci','--ignore-scripts','--no-audit','--no-fund'],{cwd:isolatedPlugin,windowsHide:true,timeout:120000,maxBuffer:1048576});
   const cachedCli=join(isolatedPlugin,'bin/vpr.mjs');

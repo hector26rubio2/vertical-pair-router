@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { resolve, dirname, join } from "node:path";
-import { estimateApiReferenceCost } from "../packages/observability/dist/index.js";
+import { estimateApiReferenceCost } from "@vpr/observability";
 const at = process.argv.indexOf("--report");
 if (at < 0 || !process.argv[at + 1]) throw new Error("--report required");
 const path = resolve(process.argv[at + 1]);

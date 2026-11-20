@@ -54,7 +54,7 @@ export interface EvidenceRecord {
   readonly snapshotHash?: string | null;
   readonly schemaVersion: 1;
   readonly id: string;
-  readonly granularity: 'run' | 'story' | 'call';
+  readonly granularity: 'run' | 'story' | 'call' | 'phase';
   readonly runId: string;
   readonly storyId: string | null;
   readonly callId: string | null;
@@ -157,7 +157,7 @@ export const evidenceSchema = {
   $id: 'https://vpr.local/schemas/evidence-v1',
   ...object({
     snapshotHash: hashOrNull,
-    schemaVersion: {const: 1}, id: text, granularity: {enum: ['run', 'story', 'call']},
+    schemaVersion: {const: 1}, id: text, granularity: {enum: ['run', 'story', 'call', 'phase']},
     runId: text, storyId: textOrNull, callId: textOrNull, taskId: text,
     protocol: textOrNull, acceptanceContractHash: hashOrNull, recipe: text,
     phase: textOrNull, operation: {enum: evidenceOperations}, model: textOrNull, provider: textOrNull,

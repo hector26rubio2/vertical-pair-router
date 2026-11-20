@@ -1,7 +1,7 @@
 import { mkdir, cp, readFile, writeFile, readdir } from "node:fs/promises";
 import { resolve, join, dirname, basename } from "node:path";
 import { createHash } from "node:crypto";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
+import { resolveExecutable } from "@vpr/runtime";
 import { runMeasuredClaude } from "./lib/run-measured-claude.mjs";
 import { officialCostBreakdown } from "./lib/official-cost-breakdown.mjs";
 import { verifyFinanzasAnalysis } from "./lib/finanzas-analysis-acceptance.mjs";

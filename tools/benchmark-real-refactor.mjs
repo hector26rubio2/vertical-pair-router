@@ -2,8 +2,8 @@ import { mkdir, cp, readFile, writeFile, readdir, symlink, stat } from "node:fs/
 import { resolve, join, dirname, basename } from "node:path";
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
-import { runCli } from "../packages/cli/dist/index.js";
+import { resolveExecutable } from "@vpr/runtime";
+import { runCli } from "@vpr/cli";
 import { runMeasuredClaude } from "./lib/run-measured-claude.mjs";
 import { officialCostBreakdown } from "./lib/official-cost-breakdown.mjs";
 if (!process.argv.includes("--approve-provider")) throw Error("Native provider approval required");

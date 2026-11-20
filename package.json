@@ -18,7 +18,8 @@
     "typecheck": "tsc -b --pretty false && tsc -p tools/tsconfig.check.json",
     "check": "pnpm test",
     "vpr": "node ./packages/cli/dist/bin.js",
-    "lint:source": "node tools/check-source-size.mts"
+    "lint:source": "node tools/check-source-size.mts",
+    "lint:boundaries": "node tools/check-import-boundaries.mts"
   },
   "devDependencies": {
     "@types/node": "24.10.1",
@@ -32,7 +33,11 @@
     "esbuild": "0.28.2",
     "husky": "9.1.7",
     "prettier": "3.10.1",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@vpr/runtime": "workspace:*",
+    "@vpr/quality": "workspace:*",
+    "@vpr/knowledge": "workspace:*",
+    "@vpr/cli": "workspace:*"
   },
   "bin": {
     "vpr": "./packages/cli/dist/bin.js"

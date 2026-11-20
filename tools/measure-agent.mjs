@@ -3,10 +3,10 @@ import { createInterface } from 'node:readline';
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
 import { readFile } from 'node:fs/promises';
-import { parseAgentUsage } from '../packages/observability/dist/index.js';
-import { SqliteStorage } from '../packages/storage-sqlite/dist/index.js';
-import {subscriptionEnvironment} from '../packages/runtime/dist/native-providers.js';
-import {codexLaunchEnvironment} from '../packages/runtime/dist/codex-launch.js';
+import { parseAgentUsage } from '@vpr/observability';
+import { SqliteStorage } from '@vpr/storage-sqlite';
+import {subscriptionEnvironment} from '@vpr/runtime';
+import {codexLaunchEnvironment} from '@vpr/runtime';
 
 const args = process.argv.slice(2);
 const option = name => { const index = args.indexOf(name); return index < 0 ? undefined : args[index + 1]; };

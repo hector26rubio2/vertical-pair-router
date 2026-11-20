@@ -2,11 +2,11 @@ import { spawn } from "node:child_process";
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve, join, dirname } from "node:path";
 import { createHash, randomUUID } from "node:crypto";
-import { runCli } from "../packages/cli/dist/index.js";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
-import { BacklogService, createStoryDraftFromGrill } from "../packages/backlog/dist/index.js";
-import { SqliteStorage } from "../packages/storage-sqlite/dist/index.js";
-import { createContextPack } from "../packages/knowledge/dist/index.js";
+import { runCli } from "@vpr/cli";
+import { resolveExecutable } from "@vpr/runtime";
+import { BacklogService, createStoryDraftFromGrill } from "@vpr/backlog";
+import { SqliteStorage } from "@vpr/storage-sqlite";
+import { createContextPack } from "@vpr/knowledge";
 import { runMeasuredClaude } from "./lib/run-measured-claude.mjs";
 import { officialCostBreakdown } from "./lib/official-cost-breakdown.mjs";
 

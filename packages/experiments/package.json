@@ -11,7 +11,9 @@
     "@vpr/backlog": "workspace:*",
     "@vpr/contracts": "workspace:*",
     "@vpr/core": "workspace:*",
+    "@vpr/knowledge": "workspace:*",
     "@vpr/observability": "workspace:*",
+    "@vpr/runtime": "workspace:*",
     "@vpr/storage-sqlite": "workspace:*"
   }
 }

@@ -30,9 +30,13 @@ son propiedades editables de la política.
 - routeWork en sombra, con trazabilidad de etapas, versión y hash.
 - Verificación por hash de las copias generadas del ledger y seguridad.
 
-Siguen pendientes: conectar runner factorial y jerárquico, medidor único,
-integración al backlog, informe ampliado, generación de agentes de proyecto y
-campaña presupuestada. No se declara completado el ADR ni se habilita enforce.
+El runner factorial y jerárquico, el medidor único, la integración de TaskDraft
+con backlog, el informe ampliado, la generación de agentes y la campaña
+presupuestada ya tienen implementación y pruebas locales. Sigue pendiente
+demostrar su recorrido integral y conectar la evidencia canónica al consumidor
+normal en sombra. No se declara completado el ADR ni se habilita enforce.
+El detalle verificable y los siguientes pasos están en
+`docs/operations/2026-11-20-branch-status.md`.
 
 Cambiar a enforce requerirá evidencia compatible de al menos tres corridas y
 80 % de calidad aceptada, además de autorización explícita y protecciones del

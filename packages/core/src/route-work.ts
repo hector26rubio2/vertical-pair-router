@@ -3,7 +3,7 @@ import {
   validateRoutingPolicy, validateEvidence, isComparableEvidence,
   type EvidenceRecord, type EvidenceCohort, type RoutingPolicy, type EvidenceOperation,
 } from '@vpr/contracts';
-import {routeWorkflow, type AgentRoutingPolicy, type WorkflowRoutingRequest} from './workflow-routing.js';
+import {routeWorkflow, eligibleWorkflowModels, type AgentRoutingPolicy, type WorkflowRoutingRequest} from './workflow-routing.js';
 
 export interface RouteWorkRequest extends EvidenceCohort {
   readonly policy: RoutingPolicy;
@@ -67,17 +67,25 @@ export function routeWork(input: RouteWorkRequest) {
   const contextAction = input.activeModel?.toLowerCase().includes('haiku') && (input.contextTokens ?? 0) >= 90_000
     ? 'compact-required' : 'none';
   trace.push({stage: 'politica-protegida', rule: 'provider-authorization;haiku-90000;no-enforce'});
-  const eligibleModels = input.agentPolicy.models.filter(model => input.task.verifiedModelIds.includes(model.id)
-    && input.task.allowedProviders.includes(model.provider));
   trace.push({stage: 'capacidades-verificadas', rule: 'verified-model-id-and-provider'});
-  const active = input.agentPolicy.models.find(model => model.id === input.task.currentModelId);
+  const active = input.agentPolicy.models.find(model => model.id === (input.task.currentModelId ?? input.agentPolicy.orchestratorId));
   const providers = input.task.allowedProviders.filter(provider => !input.localOnly || provider === active?.provider);
   trace.push({stage: 'privacidad', rule: input.localOnly ? 'same-provider-only' : 'explicit-provider-allowlist'});
-  const workflow = routeWorkflow(input.agentPolicy, {...input.task, allowedProviders: providers});
+  const available = eligibleWorkflowModels(input.agentPolicy, {...input.task, allowedProviders: providers}).eligible;
+  const inventory = input.operation !== undefined && ['explorar_grafo', 'buscar_codigo', 'leer_archivo'].includes(input.operation);
+  const role = inventory ? 'inventory' : input.task.executionRole ?? 'coding';
+  const pick = (tier: string | undefined, requiredRole: 'orchestrator' | 'inventory' | 'coding' | 'review') =>
+    available.filter(model => model.tier === tier && model.roles.includes(requiredRole)).sort((a, b) => a.id.localeCompare(b.id))[0]?.id;
+  const planner = input.task.plannerId ?? pick(input.policy.phases.design, 'orchestrator');
+  const advanced = input.task.advancedPlannerId ?? pick(input.policy.phases['advanced-design'] ?? 'high', 'orchestrator');
+  const executor = inventory ? pick(input.policy.operations[input.operation!] ?? 'light', 'inventory')
+    : input.task.preferredExecutorId ?? pick(input.policy.phases.implement, role);
+  const reviewer = input.task.reviewerId ?? pick(input.policy.phases.review, 'review');
+  const workflow = routeWorkflow({...input.agentPolicy, maxWorkers: Math.min(input.agentPolicy.maxWorkers, input.policy.limits.maxWorkers)},
+    {...input.task, allowedProviders: providers, executionRole: role, ...inventory ? {needsPlanning: false} : {},
+      ...planner ? {plannerId: planner} : {}, ...advanced ? {advancedPlannerId: advanced} : {},
+      ...executor ? {preferredExecutorId: executor} : {}, ...reviewer ? {reviewerId: reviewer} : {}});
   trace.push({stage: 'calidad-riesgo', rule: 'workflow-guards-and-engineering-quality-before-cost'});
-  const available = eligibleModels.filter(model => providers.includes(model.provider)
-    && workflow.quotaChecks.some(check => check.provider === model.provider && check.state !== 'limit-reached'
-      && (!input.task.requireKnownCapacity || check.state === 'available')));
   const candidates = rankEvidence(input, available.map(model => model.id));
   trace.push({stage: 'evidencia', rule: 'same-protocol-acceptance-features;n>=3;acceptance>=80%'});
   const selected = workflow.status === 'blocked' || contextAction !== 'none' ? undefined

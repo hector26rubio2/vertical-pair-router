@@ -2,24 +2,25 @@ import { readFile, writeFile, mkdir, open, unlink } from "node:fs/promises";
 import { join, resolve, dirname, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID, createHash } from "node:crypto";
-import { homedir } from "node:os";
-import { parseProjectProfile, parseGlobalProfile, profilePolicyLayers } from "@vpr/config";
 import {
-  evaluatePolicy,
   routeWorkflow,
   inspectProvider,
   filterNativeModels,
   runNativeAgent,
+  executeNativeRun,
+  nativeWorkspace,
+  type NativeCheckOutcome,
+  type NativeRunOutcome,
   resolveProgramCommand,
   type WorkflowRoutingRequest,
   type NativeAgentRequest,
 } from "@vpr/runtime";
 import type { CliIo } from "./cli.js";
+import { readEffectiveProfile } from "./project-workspace.js";
 import { loadWorkflowCases } from "./workflow-cases.js";
 import { createSafeProcessRunner } from "@vpr/quality";
-import { secretFindings } from "../../quality/src/staged-security.mjs";
+import { secretFindings } from "@vpr/quality/staged-security";
 import { graphContext } from "./graph-context.js";
-import { nativeWorkspace, verifyNativeWorkspace } from "./native-workspace.js";
 
 /** Actual bounded native execution. Inspection never persists account credentials. */
 export async function runAgentCommand(
@@ -40,16 +41,7 @@ export async function runAgentCommand(
     io.stderr("Usage: vpr agent <detect|run> --input <task.json> [--project <path>] [--preview]\n");
     return 2;
   }
-  let profile = parseProjectProfile(
-    JSON.parse(await readFile(join(root, ".vpr/profile.json"), "utf8")),
-  );
-  const globalPath = process.env.VPR_GLOBAL_PROFILE ?? join(homedir(), ".vpr/global.json");
-  try {
-    const global = parseGlobalProfile(JSON.parse(await readFile(globalPath, "utf8")));
-    profile = { ...profile, policy: evaluatePolicy(profilePolicyLayers(global, profile)) };
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
+  const profile = await readEffectiveProfile(root);
   const policy = profile.orchestration;
   if (!policy) throw Error("Configure orchestration in init before native execution");
   const content = await readFile(resolve(file), "utf8");
@@ -190,66 +182,6 @@ export async function runAgentCommand(
     deadlineReached = true;
     controller.abort();
   }, totalTimeoutMs);
-  const result: {
-    runId: string;
-    decision: typeof decision;
-    statuses: typeof statuses;
-    phases: unknown[];
-    checks: unknown[];
-    state: string;
-    workspace?: ReturnType<typeof verifyNativeWorkspace>;
-    retrieval?: { state: string; inferenceTokens: number; characters: number };
-  } = { runId, decision, statuses, phases: [], checks: [], state: "RUNNING" };
-  const save = () => writeFile(join(directory, "receipt.json"), JSON.stringify(result, null, 2));
-  let handoff = "";
-  let reviewSummary = "";
-  let verifyAfterChecks = async () => true;
-  const runChecks = async (attempt: number) => {
-    let passed = true,
-      feedback = "";
-    for (const name of task.requiredChecks!) {
-      const command = profile.checks[name]!,
-        executable = checkPrograms.get(name)!;
-      const check = await createSafeProcessRunner([executable.program])({
-        program: executable.program,
-        args: [...executable.prefix, ...command.args],
-        cwd: root,
-        timeoutMs: command.timeoutMs ?? 60000,
-        maxOutputBytes: profile.policy.maxOutputBytes ?? 1048576,
-        signal: controller.signal,
-      });
-      const accepted =
-        check.exitCode === 0 && !check.timedOut && !check.cancelled && !check.outputTruncated;
-      result.checks.push({
-        name,
-        passed: accepted,
-        attempt,
-        exitCode: check.exitCode,
-        timedOut: check.timedOut,
-        cancelled: check.cancelled,
-        outputTruncated: check.outputTruncated,
-        durationMs: check.durationMs,
-      });
-      if (!accepted) {
-        passed = false;
-        const output = check.stdout + "\n" + check.stderr;
-        feedback +=
-          name +
-          " failed. " +
-          (secretFindings("check-output", output).length
-            ? "Output withheld: sensitive pattern detected."
-            : output.slice(-8000)) +
-          "\n";
-      }
-      if (controller.signal.aborted) break;
-    }
-    if (!(await verifyAfterChecks())) {
-      result.state = "SCOPE_CHANGED";
-      passed = false;
-    }
-    await save();
-    return { passed, feedback: feedback.slice(-8000) };
-  };
   const parentSessionId = task.parentSessionId ?? process.env.VPR_PARENT_SESSION;
   let codexPrices: NativeAgentRequest["codexPrices"];
   const local = dirname(fileURLToPath(import.meta.url));
@@ -261,7 +193,9 @@ export async function runAgentCommand(
       codexPrices = JSON.parse(await readFile(path, "utf8"));
       break;
     } catch {}
-  try {
+  const allowedPaths = task.allowedPaths;
+  const requiredChecks = task.requiredChecks;
+  const resolveProtectedPaths = async () => {
     const existingManifest = await readFile(join(root, "package.json")).then(
       () => true,
       (error) => {
@@ -269,209 +203,80 @@ export async function runAgentCommand(
         throw error;
       },
     );
-    const protectedPaths = [
+    return [
       ".vpr/profile.json",
       ...(!task.allowPackageChanges && existingManifest ? ["package.json"] : []),
       relative(root, resolve(file)).replaceAll("\\", "/"),
-      ...task.requiredChecks
+      ...requiredChecks
         .flatMap((name) => profile.checks[name]!.args)
         .filter((arg) => !arg.startsWith("-") && arg.includes(".")),
     ];
-    const before = await nativeWorkspace(root, protectedPaths);
-    let baseline = before;
-    const verifyWorkspace = async () => {
-      const after = await nativeWorkspace(root, protectedPaths),
-        scope = verifyNativeWorkspace(baseline, after, task.allowedPaths!, protectedPaths, true),
-        integrity = verifyNativeWorkspace(
-          before,
-          after,
-          ["."],
-          protectedPaths,
-          task.allowExistingTestChanges,
-        );
-      result.workspace = {
-        passed: scope.passed && integrity.passed,
-        changedPaths: [
-          ...new Set([...(result.workspace?.changedPaths ?? []), ...scope.changedPaths]),
-        ],
-        rejectedPaths: [...new Set([...scope.rejectedPaths, ...integrity.rejectedPaths])],
-      };
-      baseline = after;
-      await save();
-      return result.workspace.passed;
-    };
-    verifyAfterChecks = async () => {
-      const after = await nativeWorkspace(root, protectedPaths),
-        integrity = verifyNativeWorkspace(
-          before,
-          after,
-          ["."],
-          protectedPaths,
-          task.allowExistingTestChanges,
-        );
-      baseline = after;
-      if (!integrity.passed)
-        result.workspace = {
-          ...integrity,
-          changedPaths: [
-            ...new Set([...(result.workspace?.changedPaths ?? []), ...integrity.changedPaths]),
-          ],
-        };
-      return integrity.passed;
-    };
-    const context = profile.setup?.integrations.graphify
-      ? await graphContext(root, task.prompt, controller.signal)
-      : { state: "disabled", text: "", inferenceTokens: 0 };
-    result.retrieval = {
-      state: context.state,
-      inferenceTokens: context.inferenceTokens,
-      characters: context.text.length,
-    };
-    await save();
-    for (const phase of decision.phases) {
-      if (controller.signal.aborted) {
-        result.state = "CANCELLED";
-        break;
-      }
-      const model = policy.models.find((model) => model.id === phase.modelId)!;
-      if (model.provider === "codex" && phase.writeFiles && !profile.policy.allowShell)
-        throw Error("Codex requires project shell permission");
-      const response = await services.runNativeAgent({
-        model,
+  };
+  const runCheck = async (name: string, signal: AbortSignal): Promise<NativeCheckOutcome> => {
+    const command = profile.checks[name]!,
+      executable = checkPrograms.get(name)!;
+    return createSafeProcessRunner([executable.program])({
+      program: executable.program,
+      args: [...executable.prefix, ...command.args],
+      cwd: root,
+      timeoutMs: command.timeoutMs ?? 60000,
+      maxOutputBytes: profile.policy.maxOutputBytes ?? 1048576,
+      signal,
+    });
+  };
+  const taskPrompt = task.prompt;
+  let outcome: NativeRunOutcome;
+  try {
+    outcome = await executeNativeRun(
+      {
+        runId,
         cwd: root,
-        prompt:
-          task.prompt +
-          "\n" +
-          context.text +
-          "\nAcceptance checks: " +
-          task.requiredChecks.join(", ") +
-          "\n" +
-          (phase.phase === "plan"
-            ? "Return a concise plan, at most 6000 characters, with paths, invariants and checks. Do not implement."
-            : phase.phase === "technical-plan"
-              ? "Refine the architecture into a concise technical handoff, at most 6000 characters. Read only. Do not edit.\nArchitecture:\n" +
-                handoff
-              : phase.phase === "review"
-                ? "Review the actual current source against the task and report concrete concerns with paths/lines. Do not edit. Executed check receipts: " +
-                  JSON.stringify(result.checks)
-                : "Implement the task. Preserve existing user work and protected acceptance tests. Plan from the preceding phases:\n" +
-                  handoff),
-        ...(typeof task.title === "string" ? { task: task.title.slice(0, 120) } : {}),
-        ...(codexPrices ? { codexPrices } : {}),
-        sessionId: runId,
-        ...(parentSessionId ? { parentSessionId } : {}),
-        accountKey:
-          statuses.find((status) => status.provider === model.provider)?.accountKey ?? null,
-        phase: phase.phase as NativeAgentRequest["phase"],
-        writeFiles: phase.writeFiles,
-        allowedPaths: task.allowedPaths,
+        decision,
+        statuses,
+        models: policy.models,
+        role,
+        prompt: taskPrompt,
+        title: task.title,
+        requiredChecks,
+        allowedPaths,
         allowShell: profile.policy.allowShell === true,
-        timeoutMs: phaseTimeoutMs,
+        allowExistingTestChanges: task.allowExistingTestChanges,
+        phaseTimeoutMs,
+        parentSessionId,
+        codexPrices,
+      },
+      {
         signal: controller.signal,
-      });
-      result.phases.push({
-        phase: phase.phase,
-        model: model.id,
-        success: response.success,
-        wallMs: response.wallMs,
-        usage: response.usage,
-        failure: response.failure,
-        ...(response.diagnostic ? { diagnostic: response.diagnostic } : {}),
-      });
-      await save();
-      if (!(await verifyWorkspace())) {
-        result.state = "SCOPE_CHANGED";
-        break;
-      }
-      if (!response.success) {
-        result.state = controller.signal.aborted ? "CANCELLED" : "INCOMPLETE";
-        break;
-      }
-      if (phase.phase === "plan" || phase.phase === "technical-plan") {
-        if (response.answerTruncated || handoff.length + response.answer.length + 1 > 24000) {
-          result.state = "HANDOFF_TOO_LARGE";
-          break;
-        }
-        handoff += "\n" + response.answer;
-      }
-      if (phase.phase === "review") reviewSummary = response.answer;
-      if (phase.writeFiles) {
-        let validation = await runChecks(0);
-        if (result.state !== "RUNNING") break;
-        if (
-          !validation.passed &&
-          !controller.signal.aborted &&
-          decision.maxImplementationRetries > 0
-        ) {
-          const repair = await services.runNativeAgent({
-            model,
-            cwd: root,
-            prompt:
-              task.prompt +
-              "\nApply one bounded correction to the previous implementation. Preserve user work and all protected acceptance tests. Modify only authorized paths. Do not run commands, install, commit or delegate.\nPlan:\n" +
-              handoff +
-              "\nExecuted check feedback (not a claim by the model):\n" +
-              validation.feedback,
-            ...(typeof task.title === "string" ? { task: task.title.slice(0, 120) } : {}),
-            sessionId: runId,
-            ...(parentSessionId ? { parentSessionId } : {}),
-            accountKey:
-              statuses.find((status) => status.provider === model.provider)?.accountKey ?? null,
-            phase: "repair",
-            writeFiles: true,
-            allowedPaths: task.allowedPaths!,
-            allowShell: profile.policy.allowShell === true,
-            timeoutMs: phaseTimeoutMs,
-            signal: controller.signal,
-            ...(codexPrices ? { codexPrices } : {}),
-          });
-          result.phases.push({
-            phase: "repair",
-            model: model.id,
-            success: repair.success,
-            wallMs: repair.wallMs,
-            usage: repair.usage,
-            failure: repair.failure,
-            ...(repair.diagnostic ? { diagnostic: repair.diagnostic } : {}),
-          });
-          await save();
-          if (!(await verifyWorkspace())) {
-            result.state = "SCOPE_CHANGED";
-            break;
-          }
-          if (!repair.success) {
-            result.state = controller.signal.aborted ? "CANCELLED" : "INCOMPLETE";
-            break;
-          }
-          validation = await runChecks(1);
-          if (result.state !== "RUNNING") break;
-        }
-        if (controller.signal.aborted) result.state = "CANCELLED";
-        else if (!validation.passed) result.state = "CHECKS_FAILED";
-        if (result.state !== "RUNNING") break;
-      }
-    }
-    if (result.state === "RUNNING")
-      result.state = role === "coding" ? "CHECKED_AWAITING_REVIEW" : "FINISHED";
-  } catch {
-    result.state = controller.signal.aborted ? "CANCELLED" : "INCOMPLETE";
+        deadlineReached: () => deadlineReached,
+        runAgent: services.runNativeAgent,
+        runCheck,
+        resolveProtectedPaths,
+        snapshotWorkspace: (protectedPaths) => nativeWorkspace(root, protectedPaths),
+        graphContext: async (signal) =>
+          profile.setup?.integrations.graphify
+            ? graphContext(root, taskPrompt, signal)
+            : { state: "disabled", text: "", inferenceTokens: 0 },
+        hasSecret: (output) => secretFindings("check-output", output).length > 0,
+        saveReceipt: (receipt) =>
+          writeFile(join(directory, "receipt.json"), JSON.stringify(receipt, null, 2)),
+      },
+    );
   } finally {
     clearTimeout(deadline);
-    if (deadlineReached) result.state = "DEADLINE";
     process.removeListener("SIGINT", cancel);
     process.removeListener("SIGTERM", cancel);
-    await save();
     await lock.close();
     const owner = JSON.parse(await readFile(lockPath, "utf8"));
     if (owner.runId === runId) await unlink(lockPath);
   }
+  const { receipt, reviewSummary } = outcome;
   io.stdout(
     JSON.stringify({
-      ...result,
+      ...receipt,
       ...(reviewSummary ? { reviewSummary } : {}),
       receipt: join(directory, "receipt.json"),
       dispatchPerformed: true,
     }) + "\n",
   );
-  return ["CHECKED_AWAITING_REVIEW", "FINISHED"].includes(result.state) ? 0 : 1;
+  return ["CHECKED_AWAITING_REVIEW", "FINISHED"].includes(receipt.state) ? 0 : 1;
 }

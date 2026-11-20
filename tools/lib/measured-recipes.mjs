@@ -103,7 +103,7 @@ export async function measuredRecipePhase({
   onSnapshot,
 }) {
   if (model.startsWith("gpt-")) {
-    const { runNativeAgent } = await import("../../packages/runtime/dist/native-agent.js");
+    const { runNativeAgent } = await import("@vpr/runtime");
     const catalog = JSON.parse(
       await readFile(
         new URL("../../docs/research/openai-model-price-catalog.json", import.meta.url),

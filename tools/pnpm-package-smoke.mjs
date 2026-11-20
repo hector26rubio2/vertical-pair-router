@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp,writeFile,readFile,realpath,rm} from 'node:fs/promises';
 import {join,resolve,relative} from 'node:path';
 import {tmpdir} from 'node:os';
-import {resolveProgramCommand} from '../packages/runtime/dist/index.js';
+import {resolveProgramCommand} from '@vpr/runtime';
 const archive=resolve(process.argv[2]),pnpm=await resolveProgramCommand('pnpm');assert.ok(pnpm);
 const root=await mkdtemp(join(tmpdir(),'vpr-pnpm-install-'));
 try{

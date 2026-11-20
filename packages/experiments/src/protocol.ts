@@ -86,7 +86,7 @@ export function allocateSharedDesign(cost: {readonly min: number; readonly max: 
       ? {min: cost.min / consumerReceiptIds.length, max: cost.max / consumerReceiptIds.length} : null};
 }
 export function stableRolePrompt(prefix: {readonly tools: readonly string[]; readonly system: string; readonly staticContext: string}, task: string) {
-  const serialized = canonicalJson({tools: prefix.tools, system: prefix.system, staticContext: prefix.staticContext});
+  const serialized = 'TOOLS\n' + canonicalJson(prefix.tools) + '\nSYSTEM\n' + prefix.system + '\nSTATIC CONTEXT\n' + prefix.staticContext;
   return {prefix: serialized, prefixHash: sha256(serialized), prompt: serialized + '\nTASK\n' + task};
 }
 export interface FrozenExecutor<T> {

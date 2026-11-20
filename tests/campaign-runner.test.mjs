@@ -38,6 +38,19 @@ test('native phase is never invoked without explicit campaign approval', async (
     reviewer: 'sonnet', repetitions: 3, seed: 1, cacheConditions: ['cold-requested'], limits: handoff.limits}, p), /approval/);
   assert.equal(p.seen.length, 0);
 });
+test('A delegates exploration explicitly and includes its cost; B leaves reading in the current phase', async () => {
+  const a = ports(), normal = a.phase;
+  a.phase = async input => ({...await normal(input), ...input.phase === 'explore' ? {explorationContext: 'src/ledger.ts: preserve key'} : {}});
+  const spec = {taskId: 'F02', designers: ['sonnet'], executors: ['sonnet'], reviewer: 'sonnet',
+    repetitions: 3, seed: 1, cacheConditions: ['cold-requested'], limits: handoff.limits};
+  const withHaiku = await runFactorialCampaign({...spec, explorationMode: 'haiku', explorerId: 'haiku'}, a);
+  const b = ports(), samePhase = await runFactorialCampaign({...spec, explorationMode: 'phase-model'}, b);
+  assert.equal(a.seen.filter(p => p.phase === 'explore').length, 3);
+  assert.equal(b.seen.filter(p => p.phase === 'explore').length, 0);
+  assert.ok(a.seen.filter(p => p.phase === 'implement').every(p => p.explorationContext));
+  assert.ok(withHaiku.cost.max > samePhase.cost.max); // Synthetic protocol cost, not a model-efficiency claim.
+  assert.equal(withHaiku.designAllocations[0].actualConsumers, 3);
+});
 test('one repair maximum and a fresh review are included in accounting', async () => {
   const p = ports(), normal = p.phase;
   p.phase = async input => {

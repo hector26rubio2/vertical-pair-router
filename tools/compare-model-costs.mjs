@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve, dirname, join } from 'node:path';
-import { estimateApiReferenceCost } from '../packages/observability/dist/index.js';
+import { estimateApiReferenceCost } from '@vpr/observability';
 const args = process.argv.slice(2);
 const at = args.indexOf('--report');
 if (at < 0 || !args[at + 1]) throw new Error('--report requires measured model-cases JSON');

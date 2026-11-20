@@ -371,3 +371,7 @@ Consulta [el flujo local](docs/operations/local-workflow.md),
 [portabilidad](docs/operations/portability.md) y
 [el estado de ejecución](docs/backlog/execution.md).
 
+El [cierre de la rama experimental](docs/operations/2026-11-20-branch-status.md)
+separa lo implementado, las pruebas realizadas y lo que falta verificar antes
+de activar decisiones basadas en ahorro o preparar otra publicación.
+

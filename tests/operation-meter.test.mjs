@@ -19,3 +19,11 @@ test('a missing path or defaulted cache zero cannot become an observed file coun
   const [call] = labelNativeSnapshot(meter.snapshot(2));
   assert.equal(call.contextMax, null); assert.equal(call.cacheHitRatio, null); assert.equal(call.readCount, null);
 });
+test('captured metadata snapshots remain immutable while streaming counters and tool results advance', () => {
+  const meter = new NativeSessionMeter();
+  meter.observe({type: 'stream_event', event: {type: 'message_start', message: {id: 'r', model: 'sonnet',
+    usage: {input_tokens: 1, output_tokens: 0}}}}, 1);
+  const before = meter.snapshot(1);
+  meter.observe({type: 'stream_event', event: {type: 'message_delta', usage: {output_tokens: 100}}}, 2);
+  assert.equal(before.requests[0].outputTokens, 0); assert.equal(meter.snapshot(2).requests[0].outputTokens, 100);
+});

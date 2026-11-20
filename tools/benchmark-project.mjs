@@ -3,16 +3,16 @@ import { cp, mkdir, readFile, writeFile, stat } from "node:fs/promises";
 import { resolve, join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash, randomUUID } from "node:crypto";
-import { runCli } from "../packages/cli/dist/index.js";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
-import { BacklogService, createStoryDraftFromGrill } from "../packages/backlog/dist/index.js";
-import { SqliteStorage } from "../packages/storage-sqlite/dist/index.js";
-import { createContextPack } from "../packages/knowledge/dist/index.js";
+import { runCli } from "@vpr/cli";
+import { resolveExecutable } from "@vpr/runtime";
+import { BacklogService, createStoryDraftFromGrill } from "@vpr/backlog";
+import { SqliteStorage } from "@vpr/storage-sqlite";
+import { createContextPack } from "@vpr/knowledge";
 import {
   verifyModelReceipt,
   estimateApiReferenceCost,
-} from "../packages/observability/dist/index.js";
-import { detectSubscriptionPlan } from "../packages/cli/dist/subscription-detection.js";
+} from "@vpr/observability";
+import { detectSubscriptionPlan } from "@vpr/cli";
 
 // Deliberately opt-in: coding runs use the user's native Claude subscription.
 if (!process.argv.includes("--approve-provider"))

@@ -1,8 +1,8 @@
 import { mkdir, cp, readFile, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
-import { inspectCodexAccount } from "../packages/runtime/dist/codex-account-status.js";
+import { resolveExecutable } from "@vpr/runtime";
+import { inspectCodexAccount } from "@vpr/runtime";
 import { runMeasuredClaude } from "./lib/run-measured-claude.mjs";
 import { officialCostBreakdown } from "./lib/official-cost-breakdown.mjs";
 import { codexReferenceCost } from "./lib/codex-reference-cost.mjs";

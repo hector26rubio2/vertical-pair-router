@@ -1,5 +1,5 @@
 import type {EvidenceOperation} from '@vpr/contracts';
-import type {NativeSessionSnapshot} from './native-session-meter.mjs';
+import type {NativeSessionSnapshot} from './native-session-types.js';
 
 export function inferOperation(input: {readonly phase?: string; readonly tools?: readonly string[]}): EvidenceOperation {
   const operations = new Set<EvidenceOperation>();

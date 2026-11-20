@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtemp, mkdir, cp, readFile, writeFile, realpath, rm } from "node:fs/promises";
 import { join, resolve, relative, basename } from "node:path";
 import { tmpdir } from "node:os";
-import { resolveExecutable, resolveProgramCommand } from "../packages/runtime/dist/index.js";
+import { resolveExecutable, resolveProgramCommand } from "@vpr/runtime";
 const packageRoot = resolve(
   process.argv[2] ?? ".tmp/package-smoke/node_modules/vertical-pair-router",
 );

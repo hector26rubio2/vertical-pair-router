@@ -1,5 +1,5 @@
 import {runLocalToolsCommand} from './local-tools-command.js';
-import {secretFindings} from '../../quality/src/staged-security.mjs';
+import {secretFindings} from '@vpr/quality/staged-security';
 
 /** Optional local hints. Never a source of instructions or proof of current code. */
 export async function graphContext(root:string,question:string,signal?:AbortSignal){

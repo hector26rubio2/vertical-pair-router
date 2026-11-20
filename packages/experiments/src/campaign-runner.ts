@@ -3,13 +3,14 @@ import {freezeHandoff, validateFrozenHandoff, randomizeCells, scheduleStories,
   allocateSharedDesign, type FrozenHandoff, type ExperimentStory} from './protocol.js';
 
 type Limits = Handoff['limits'];
-type Phase = 'triage' | 'design' | 'implement' | 'repair' | 'review';
+type Phase = 'triage' | 'design' | 'explore' | 'implement' | 'repair' | 'review';
 export const escalationReasons = ['security', 'public-api', 'cross-module', 'invariant-ambiguity', 'risk-high'] as const;
 export interface PhaseInput {
   readonly phase: Phase; readonly model: string; readonly taskId: string;
   readonly cellId: string; readonly limits: Limits; readonly designer?: string;
   readonly frozenPlan?: FrozenHandoff; readonly story?: ExperimentStory;
   readonly cacheCondition?: string; readonly repaired?: boolean;
+  readonly explorationContext?: string;
 }
 export interface PhaseOutput {
   readonly status: 'passed' | 'failed' | 'escalate' | 'cancelled';
@@ -19,6 +20,7 @@ export interface PhaseOutput {
   readonly escalate?: boolean;
   readonly escalationReason?: typeof escalationReasons[number];
   readonly reason?: string;
+  readonly explorationContext?: string;
 }
 export interface CampaignPorts {
   readonly mode: 'simulation' | 'native';
@@ -36,7 +38,12 @@ function authorize(ports: CampaignPorts, control: Control) {
 async function phase(input: PhaseInput, ports: CampaignPorts, control: Control): Promise<PhaseOutput> {
   if (!Number.isSafeInteger(input.limits.wallMs) || input.limits.wallMs < 1 || input.limits.wallMs > 300_000
     || !Number.isSafeInteger(input.limits.turns) || input.limits.turns < 1) throw new Error('Invalid phase limits');
-  if (input.frozenPlan) validateFrozenHandoff(input.frozenPlan);
+  if (input.frozenPlan) {
+    const limits = validateFrozenHandoff(input.frozenPlan).limits;
+    input = {...input, limits: {turns: Math.min(limits.turns, input.limits.turns),
+      wallMs: Math.min(limits.wallMs, input.limits.wallMs),
+      inputContextTokens: Math.min(limits.inputContextTokens, input.limits.inputContextTokens)}};
+  }
   const controller = new AbortController();
   const signal = control.signal ? AbortSignal.any([controller.signal, control.signal]) : controller.signal;
   let last: EvidenceRecord | null = null;
@@ -57,7 +64,7 @@ async function phase(input: PhaseInput, ports: CampaignPorts, control: Control):
     if (output.record?.turns !== null && output.record?.turns !== undefined && output.record.turns > input.limits.turns) {
       return {...output, status: 'failed', reason: 'turnos_agotados'};
     }
-    if (input.model.toLowerCase().includes('haiku') && (output.record?.tokens.contextMax ?? 0) >= 90_000) {
+    if ((output.record?.model ?? input.model).toLowerCase().includes('haiku') && (output.record?.tokens.contextMax ?? 0) >= 90_000) {
       return {...output, status: 'failed', reason: 'context_guard_violation'};
     }
     return output;
@@ -89,6 +96,7 @@ function quality(review: PhaseOutput): boolean {
 async function reviewedExecution(input: Omit<PhaseInput, 'phase' | 'model'> & {readonly executor: string; readonly reviewer: string},
   ports: CampaignPorts, control: Control) {
   const implemented = await phase({...input, phase: 'implement', model: input.executor}, ports, control);
+  let execution = implemented;
   const outputs = [implemented];
   if (implemented.status === 'cancelled' || implemented.status === 'escalate') {
     return {accepted: false, phases: outputs, cost: costs(outputs), escalation: implemented.status === 'escalate'};
@@ -97,6 +105,7 @@ async function reviewedExecution(input: Omit<PhaseInput, 'phase' | 'model'> & {r
   outputs.push(review);
   if (!quality(review) || implemented.status !== 'passed') {
     const repair = await phase({...input, phase: 'repair', model: input.executor}, ports, control);
+    execution = repair;
     outputs.push(repair);
     if (repair.status === 'passed') {
       review = await phase({...input, phase: 'review', model: input.reviewer, repaired: true}, ports, control);
@@ -105,9 +114,8 @@ async function reviewedExecution(input: Omit<PhaseInput, 'phase' | 'model'> & {r
   }
   const sessions = outputs.map(output => output.record?.runId).filter((id): id is string => !!id);
   const fresh = sessions.length === outputs.length && new Set(sessions).size === sessions.length;
-  const implementedLast = outputs.findLast(output => output.record?.phase === 'repair') ?? implemented;
-  const checks = implementedLast.record?.checks;
-  return {accepted: fresh && quality(review) && implementedLast.status === 'passed'
+  const checks = execution.record?.checks;
+  return {accepted: fresh && quality(review) && execution.status === 'passed'
     && checks?.external === true && checks.regression === true && checks.build === true,
     phases: outputs, cost: costs(outputs), escalation: outputs.some(output => output.status === 'escalate')};
 }
@@ -115,11 +123,14 @@ export interface FactorialCampaignSpec {
   readonly taskId: string; readonly designers: readonly string[]; readonly executors: readonly string[];
   readonly reviewer: string; readonly repetitions: number; readonly seed: number;
   readonly cacheConditions: readonly ('cold-requested' | 'warm-requested')[]; readonly limits: Limits;
+  readonly explorationMode?: 'haiku' | 'phase-model'; readonly explorerId?: string;
 }
 export async function runFactorialCampaign(spec: FactorialCampaignSpec, ports: CampaignPorts, control: Control = {}) {
   authorize(ports, control);
+  if (spec.explorationMode === 'haiku' && !spec.explorerId) throw new Error('Explicit explorer model required');
   if (!Number.isSafeInteger(spec.repetitions) || spec.repetitions < 3 || spec.repetitions > 20
     || !spec.designers.length || !spec.executors.length || !spec.cacheConditions.length
+    || new Set(spec.cacheConditions).size !== spec.cacheConditions.length
     || new Set(spec.designers).size !== spec.designers.length
     || new Set(spec.executors).size !== spec.executors.length) throw new Error('Invalid factorial campaign');
   const designs = new Map<string, {output: PhaseOutput; frozen: FrozenHandoff | null}>();
@@ -139,20 +150,27 @@ export async function runFactorialCampaign(spec: FactorialCampaignSpec, ports: C
   for (const [order, cell] of randomizeCells(cells, spec.seed).entries()) {
     const plan = designs.get(cell.designer)!;
     const cellId = `${spec.taskId}:${cell.designer}:${cell.executor}:${cell.cacheCondition}:${cell.repeat}`;
-    const result = plan.frozen ? await reviewedExecution({taskId: spec.taskId, cellId, designer: cell.designer,
+    const exploration = plan.frozen && spec.explorationMode === 'haiku' ? await phase({taskId: spec.taskId, cellId,
+      designer: cell.designer, model: spec.explorerId!, phase: 'explore', frozenPlan: plan.frozen, limits: spec.limits}, ports, control) : null;
+    const result = plan.frozen && (!exploration || exploration.status === 'passed' && exploration.explorationContext)
+      ? await reviewedExecution({taskId: spec.taskId, cellId, designer: cell.designer,
       executor: cell.executor, reviewer: spec.reviewer, frozenPlan: plan.frozen,
+      ...exploration?.explorationContext ? {explorationContext: exploration.explorationContext} : {},
       cacheCondition: cell.cacheCondition, limits: spec.limits}, ports, control)
       : {accepted: false, phases: [], cost: unavailableCost(), escalation: true};
+    if (exploration) {result.phases.unshift(exploration); result.cost = costs(result.phases);}
     trials.push({...cell, cellId, order, handoffHash: plan.frozen?.sha256 ?? null, ...result});
   }
   const designAllocations = [...designs].map(([designer, design]) => {
     const cost = costs([design.output]);
-    const consumers = trials.filter(trial => trial.designer === designer && trial.phases[0]?.record)
-      .map(trial => trial.phases[0]!.record!.id);
+    const consumers = trials.filter(trial => trial.designer === designer)
+      .flatMap(trial => {const receipt = trial.phases.find(p => p.record?.phase === 'implement')?.record; return receipt ? [receipt.id] : [];});
     return {designer, ...allocateSharedDesign(cost.complete ? {min: cost.min!, max: cost.max!} : null, consumers)};
   });
   const total = costs([...designs.values()].map(value => value.output).concat(trials.flatMap(trial => trial.phases)));
   return {status: ports.mode, protocol: 'frozen-factorial-v1', seed: spec.seed, trials, designAllocations,
+    explorationMode: spec.explorationMode ?? 'phase-model',
+    outcome: control.signal?.aborted ? 'cancelled' : trials.every(t => t.phases.length > 0) ? 'completed' : 'incomplete',
     completeAccounting: total.complete, cost: total};
 }
 export interface HierarchicalPorts extends CampaignPorts {

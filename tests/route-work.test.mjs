@@ -51,4 +51,13 @@ test('repository YAML loads through the public parser and stays in shadow mode',
   const policy = await loadRoutingPolicy(new URL('../.vpr/routing-policy.yaml', import.meta.url));
   assert.equal(policy.mode, 'shadow'); assert.equal(policy.evidence.minimumSamples, 3);
 });
+test('phase policy changes the shadow planner and operation routing uses the eligible inventory tier', () => {
+  const base = request();
+  const {plannerId, advancedPlannerId, preferredExecutorId, ...task} = base.task;
+  const result = routeWork({...base, task: {...task, needsPlanning: true, complexity: 'normal', risk: 'medium'},
+    policy: {...routingPolicy, phases: {...routingPolicy.phases, design: 'high'}}});
+  assert.equal(result.workflow.plannerId, 'advanced');
+  const read = routeWork({...base, task, operation: 'leer_archivo'});
+  assert.equal(read.workflow.executorId, 'light'); assert.equal(read.workflow.phases[0].writeFiles, false);
+});
 

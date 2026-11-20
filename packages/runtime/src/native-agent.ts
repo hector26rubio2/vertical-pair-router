@@ -4,6 +4,8 @@ import { dirname, relative, resolve, isAbsolute } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import { CopilotClient, RuntimeConnection } from "@microsoft/copilot-sdk";
 import type { AgentModel } from "@vpr/core";
+import {NativeSessionMeter, type NativeSessionSnapshot} from '@vpr/observability';
+import {normalizeCodexTokenUsage} from './codex-usage.js';
 import { resolveExecutable } from "./resolve-executable.js";
 import { subscriptionEnvironment, resolveProviderExecutable } from "./native-providers.js";
 import { recordUsage } from "./usage-ledger.mjs";
@@ -28,6 +30,8 @@ export interface NativeAgentRequest {
   allowedPaths: readonly string[];
   allowShell: boolean;
   timeoutMs: number;
+  maxTurns?: number;
+  onSnapshot?: (receipt: NativeSessionSnapshot) => Promise<void>;
   signal?: AbortSignal;
   task?: string;
   codexPrices?: {
@@ -36,6 +40,7 @@ export interface NativeAgentRequest {
   };
 }
 export interface NativeAgentResult {
+  receipt?: NativeSessionSnapshot;
   success: boolean;
   answer: string;
   answerTruncated?: boolean;
@@ -91,6 +96,7 @@ export async function runNativeAgent(input: NativeAgentRequest): Promise<NativeA
     };
   if (
     !Number.isInteger(input.timeoutMs) ||
+    (input.maxTurns !== undefined && (!Number.isSafeInteger(input.maxTurns) || input.maxTurns < 1 || input.maxTurns > 100)) ||
     input.timeoutMs < 1000 ||
     input.timeoutMs > 300000 ||
     input.prompt.length > 60000 ||
@@ -143,6 +149,7 @@ export async function runNativeAgent(input: NativeAgentRequest): Promise<NativeA
       role: input.phase,
       task: input.task,
     };
+  const meter = input.model.provider === 'claude' ? new NativeSessionMeter() : null;
   let storageFailed = false;
   const record = (
     id: string,
@@ -324,7 +331,7 @@ export async function runNativeAgent(input: NativeAgentRequest): Promise<NativeA
           "--effort",
           input.model.effort ?? "medium",
           "--max-turns",
-          "20",
+          String(input.maxTurns ?? 20),
           "--output-format",
           "stream-json",
           "--verbose",
@@ -424,6 +431,11 @@ export async function runNativeAgent(input: NativeAgentRequest): Promise<NativeA
         } catch {
           return;
         }
+        if (meter) {
+          meter.observe(event, Math.round(performance.now() - started));
+          if (input.onSnapshot) writes.push(input.onSnapshot(meter.snapshot(Math.round(performance.now() - started)))
+            .catch(() => {storageFailed = true;}));
+        }
         if (claude && event.type === "result") {
           const text = String(event.result ?? "");
           answer = text.slice(0, 12000);
@@ -464,15 +476,10 @@ export async function runNativeAgent(input: NativeAgentRequest): Promise<NativeA
           answerTruncated = text.length > 12000;
         }
         if (!claude && event.type === "turn.completed") {
-          const u = event.usage,
-            read = integer(u?.cached_input_tokens),
-            total = integer(u?.input_tokens),
-            write = integer(u?.cache_write_input_tokens) ?? 0;
-          const uncached =
-              total !== null && read !== null && total >= read + write
-                ? total - read - write
-                : null,
-            output = integer(u?.output_tokens),
+          const normalized = normalizeCodexTokenUsage(event.usage),
+            read = normalized.cacheRead, total = normalized.inputIncludingCache, write = normalized.cacheWrite;
+          const uncached = normalized.input,
+            output = normalized.output,
             prices = input.codexPrices,
             card = prices?.cards.find((card) => card.model === input.model.model);
           let cost = null;
@@ -484,6 +491,7 @@ export async function runNativeAgent(input: NativeAgentRequest): Promise<NativeA
             (total <= 100000 || card.longContext) &&
             uncached !== null &&
             output !== null &&
+            write !== null &&
             read !== null
           ) {
             const tiers = total > 100000 ? [card, card.longContext!] : [card];
@@ -522,6 +530,7 @@ export async function runNativeAgent(input: NativeAgentRequest): Promise<NativeA
             input.model.model,
             {
               inputTokens: uncached,
+              inputIncludingCacheTokens: total,
               outputTokens: output,
               cacheReadTokens: read,
               cacheWriteTokens: write,
@@ -571,6 +580,7 @@ export async function runNativeAgent(input: NativeAgentRequest): Promise<NativeA
   if (storageFailed) failure ??= "usage-store-unavailable";
   return {
     success: success && !failure,
+    ...(meter ? {receipt: meter.snapshot(Math.round(performance.now() - started))} : {}),
     answer,
     answerTruncated,
     model: input.model.model,

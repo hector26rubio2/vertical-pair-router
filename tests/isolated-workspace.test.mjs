@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdir, writeFile, readFile, access} from 'node:fs/promises';
+import {resolve, join} from 'node:path';
+import {randomUUID} from 'node:crypto';
+import {createIsolatedWorkspaceFactory} from '@vpr/experiments';
+test('workspaces clone only code and preserve the frozen source while excluding secrets and search noise', async () => {
+  const root = resolve('.tmp/experiment-review/workspaces-' + randomUUID()), frozen = join(root, 'frozen');
+  await mkdir(join(frozen, 'src'), {recursive: true}); await mkdir(join(frozen, '.tmp'), {recursive: true});
+  await writeFile(join(frozen, 'src/app.ts'), 'export const value = 1;');
+  await writeFile(join(frozen, '.env'), 'PRIVATE'); await writeFile(join(frozen, 'appsettings.json'), '{}');
+  await writeFile(join(frozen, '.tmp/noise.ts'), 'noise');
+  const make = createIsolatedWorkspaceFactory(frozen, join(root, 'isolated'));
+  const cwd = await make({cellId: 'cell:1'});
+  assert.equal(await readFile(join(cwd, 'src/app.ts'), 'utf8'), 'export const value = 1;');
+  await assert.rejects(access(join(cwd, '.env'))); await assert.rejects(access(join(cwd, 'appsettings.json')));
+  await assert.rejects(access(join(cwd, '.tmp')));
+  await writeFile(join(cwd, 'src/app.ts'), 'modified');
+  assert.equal(await readFile(join(frozen, 'src/app.ts'), 'utf8'), 'export const value = 1;');
+  assert.equal(await make({cellId: 'cell:1'}), cwd);
+  await assert.rejects(createIsolatedWorkspaceFactory(frozen, join(frozen, 'inside'))({cellId: 'bad'}), /overlap/);
+});

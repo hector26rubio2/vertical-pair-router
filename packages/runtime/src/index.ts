@@ -1,4 +1,8 @@
 export {resolveProgramCommand} from './package-manager.js';
+export {normalizeCodexTokenUsage} from './codex-usage.js';
+export {subscriptionEnvironment} from './native-providers.js';
+export {codexLaunchEnvironment} from './codex-launch.js';
+export {prepareGuardedClaude} from './claude-guard-launch.mjs';
 export {
   executeCheckRun,
   redactSecrets,
@@ -49,3 +53,14 @@ export {
   type WorkerOutput
 } from "./orchestration.js";
 
+export {
+  executeNativeRun,
+  type NativeCheckOutcome,
+  type NativeRunInput,
+  type NativeRunOutcome,
+  type NativeRunPorts,
+  type NativeRunReceipt,
+  type NativeRunWorkspaceReport,
+  type NativeWorkflowDecision
+} from "./native-run.js";
+export { nativeWorkspace, verifyNativeWorkspace } from "./native-workspace.js";

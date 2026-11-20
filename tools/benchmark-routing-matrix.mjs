@@ -6,8 +6,8 @@ import { benchmarkTasks, acceptanceSource } from "./lib/benchmark-tasks.mjs";
 import { workflowTasks, workflowAcceptance } from "./lib/workflow-benchmark-tasks.mjs";
 import { runMeasuredClaude } from "./lib/run-measured-claude.mjs";
 import { officialCostBreakdown } from "./lib/official-cost-breakdown.mjs";
-import { resolveExecutable } from "../packages/runtime/dist/index.js";
-import { runCli } from "../packages/cli/dist/index.js";
+import { resolveExecutable } from "@vpr/runtime";
+import { runCli } from "@vpr/cli";
 
 if (!process.argv.includes("--approve-provider"))
   throw new Error("Explicit --approve-provider required for native subscription execution");
