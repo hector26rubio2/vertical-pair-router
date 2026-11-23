@@ -1,5 +1,7 @@
 # Orchestration and Git isolation
 
+> Status: not implemented. A prototype lived in `packages/runtime/src/orchestration.ts` until commit 6be87f6; recover it with `git show 6be87f6:packages/runtime/src/orchestration.ts`. The native Run (`packages/runtime/src/native-run.ts`) uses a file lock and manual recovery instead.
+
 VPR has one coordinator. An adapter may start a bounded worker for an assigned
 Task, but worker output that delegates the full plan to another router is
 rejected.

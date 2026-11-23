@@ -29,29 +29,6 @@ export {
 export { CycleDetector, type CycleObservation } from "./cycle-detector.js";
 export { routeWorkflow, type WorkflowRoutingRequest, type WorkflowRoles, type WorkflowCase } from '@vpr/core';
 export {evaluatePolicy} from '@vpr/core';
-export {
-  EffectInDoubtError,
-  ExecutionEngine,
-  LeaseConflictError,
-  terminalStateFromObservation,
-  type ApprovalRequest,
-  type ExecutionEngineOptions,
-  type ExecutionResumeState,
-  type RunCheckpoint,
-  type TerminalObservation
-} from "./execution-engine.js";
-export {
-  CoordinationError,
-  OrchestrationRegistry,
-  PathLockManager,
-  assessCleanup,
-  assessIntegration,
-  selectRunnableTasks,
-  validateWorkerOutput,
-  type AssignmentRecord,
-  type WorkerAssignment,
-  type WorkerOutput
-} from "./orchestration.js";
 
 export {
   executeNativeRun,
