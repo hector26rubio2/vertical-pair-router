@@ -20,13 +20,6 @@ export { inspectProvider, filterNativeModels, type NativeProviderStatus } from '
 export {runNativeAgent, allowedProjectPath, type NativeAgentRequest, type NativeAgentResult} from './native-agent.js';
 export {readUsage,formatUsage,recordUsage,accountKey,readAccountObservation} from './usage-ledger.mjs';
 export { builtInAdapterDescriptors } from "./adapter-descriptors.js";
-export {
-  ExecutionBudget,
-  ExecutionLimitError,
-  type ExecutionLimits,
-  type UsageObservability
-} from "./execution-budget.js";
-export { CycleDetector, type CycleObservation } from "./cycle-detector.js";
 export { routeWorkflow, type WorkflowRoutingRequest, type WorkflowRoles, type WorkflowCase } from '@vpr/core';
 export {evaluatePolicy} from '@vpr/core';
 
