@@ -26,7 +26,6 @@ export interface OrchestrationAnswers {
 
 const knownIntegrations = ["husky", "graphify", "archify", "none"];
 const knownProviders = ["claude", "codex", "copilot"];
-const knownObjectives = ["subscription-quota", "reference-cost", "tokens"];
 
 export function assertOrchestratorProvider(provider: string): void {
   if (!knownProviders.includes(provider)) throw new TypeError("Unknown orchestrator provider");
@@ -66,7 +65,7 @@ export function proposeOrchestrationProfile(
 ): ProjectProfileV1 {
   const { provider, planId, planSource, model, light, standard, high, objective } = answers;
   assertOrchestratorProvider(provider);
-  if (!knownObjectives.includes(objective)) throw new TypeError("Invalid routing objective");
+  if (objective !== "reference-cost") throw new TypeError("Routing objective must be reference-cost; tokens and subscription-quota are not ranked yet");
   return parseProjectProfile({
     ...base,
     setup: { technologies: answers.technologies, integrations: answers.integrations },

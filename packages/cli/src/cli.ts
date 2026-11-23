@@ -502,12 +502,6 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
       const allowLightCoding = await yes(
         "¿Permitir modelo ligero en código simple de bajo riesgo con checks?",
       );
-      const objective =
-        (
-          await interview.question(
-            "Objetivo (reference-cost/tokens/subscription-quota) [reference-cost]: ",
-          )
-        ).trim() || "reference-cost";
       const profile = proposeOrchestrationProfile(proposal.profile, {
         technologies,
         integrations,
@@ -519,7 +513,7 @@ async function runInit(args: readonly string[], io: CliIo): Promise<number> {
         standard,
         high,
         allowLightCoding,
-        objective,
+        objective: "reference-cost",
       });
       const content = JSON.stringify(profile, null, 2) + "\n";
       proposal = {

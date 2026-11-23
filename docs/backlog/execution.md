@@ -77,8 +77,8 @@ The corporate machine must validate its own permitted models and execution.
 
 ## Deferred routing objectives — 2026-11-19
 
-The `tokens` and `subscription-quota` objectives are accepted in the profile, but
-`routeWorkflow` only ranks candidates for `reference-cost`; the other objectives
-fall back to the rule-based decision. `decideLocalExecution` used to cover them
-and was removed because it had no callers. Pending: add token and quota figures to
+The `tokens` and `subscription-quota` objectives are now rejected by the profile
+parser, because `routeWorkflow` only ranks candidates for `reference-cost` and the
+other objectives would silently fall back to the rule-based decision. `decideLocalExecution` used to cover
+them and was removed because it had no callers. Pending: add token and quota figures to
 `WorkflowCase` if ranking by those objectives is needed.

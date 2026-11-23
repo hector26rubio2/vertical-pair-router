@@ -7,7 +7,7 @@ export interface AgentModel {
   readonly roles: readonly ("orchestrator" | "inventory" | "coding" | "review")[];
 }
 export interface AgentRoutingPolicy {
-  readonly objective?: "tokens" | "reference-cost" | "subscription-quota";
+  readonly objective?: "reference-cost";
   readonly orchestratorId: string;
   readonly maxWorkers: number;
   readonly allowLightCoding: boolean;
@@ -481,7 +481,6 @@ function rankCandidates(
     .filter((row) => row.samples >= minimumComparableSamples && row.usdPerAccepted !== null)
     .sort((a, b) => a.usdPerAccepted! - b.usdPerAccepted! || isDelegated(a) - isDelegated(b));
   const comparable =
-    (policy.objective ?? "reference-cost") === "reference-cost" &&
     usable.length > 1 &&
     ranked.length === usable.length;
   return { usable, ranked, comparable };

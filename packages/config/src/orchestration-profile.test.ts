@@ -9,6 +9,7 @@ import {
   proposeOrchestrationProfile,
   type OrchestrationAnswers,
 } from "./orchestration-profile.js";
+import { parseProjectProfile } from "./profile-policy.js";
 import { proposeProjectProfile } from "./project-profile.js";
 
 async function baseProfile(context: test.TestContext) {
@@ -29,7 +30,7 @@ const answers: OrchestrationAnswers = {
   standard: "sonnet",
   high: "opus-max",
   allowLightCoding: true,
-  objective: "tokens",
+  objective: "reference-cost",
 };
 
 test("builds coordinator and worker template with provider policy", async (context) => {
@@ -42,7 +43,7 @@ test("builds coordinator and worker template with provider policy", async (conte
   assert.equal(profile.orchestration?.orchestratorId, "coordinator");
   assert.equal(profile.orchestration?.maxWorkers, 2);
   assert.equal(profile.orchestration?.allowLightCoding, true);
-  assert.equal(profile.orchestration?.objective, "tokens");
+  assert.equal(profile.orchestration?.objective, "reference-cost");
   assert.deepEqual(
     profile.orchestration?.models.map((model) => [model.id, model.model, model.tier, model.roles]),
     [
@@ -74,8 +75,25 @@ test("rejects unknown provider and objective", async (context) => {
   );
   assert.throws(
     () => proposeOrchestrationProfile(base, { ...answers, objective: "speed" }),
-    new TypeError("Invalid routing objective"),
+    new TypeError("Routing objective must be reference-cost; tokens and subscription-quota are not ranked yet"),
   );
+});
+
+test("rejects routing objectives that are not ranked", async (context) => {
+  const base = await baseProfile(context);
+  const message = "Routing objective must be reference-cost; tokens and subscription-quota are not ranked yet";
+  for (const objective of ["tokens", "subscription-quota"]) {
+    assert.throws(
+      () => proposeOrchestrationProfile(base, { ...answers, objective }),
+      new TypeError(message),
+    );
+    const accepted = proposeOrchestrationProfile(base, answers);
+    const unranked = {
+      ...accepted,
+      orchestration: { ...accepted.orchestration!, objective },
+    };
+    assert.throws(() => parseProjectProfile(unranked), new TypeError(message));
+  }
 });
 
 test("applies setup selection and keeps previous values for omitted parts", async (context) => {
