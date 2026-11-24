@@ -9,7 +9,7 @@
   "types": "./dist/index.d.ts",
   "dependencies": {
     "@vpr/contracts": "workspace:*",
-    "@vpr/core": "workspace:*"
+    "@vpr/core": "workspace:*",
+    "yaml": "2.8.1"
   }
 }
-

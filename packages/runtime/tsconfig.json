@@ -6,10 +6,20 @@
     "tsBuildInfoFile": "dist/.tsbuildinfo"
   },
   "references": [
-    { "path": "../contracts" },
-    { "path": "../core" },
-    { "path": "../storage-sqlite" }
+    {
+      "path": "../contracts"
+    },
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../storage-sqlite"
+    },
+    {
+      "path": "../observability"
+    }
   ],
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }
-

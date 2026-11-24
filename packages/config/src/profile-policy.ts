@@ -79,7 +79,7 @@ function validateOrchestration(value: unknown): void {
   if (!isRecord(value) || typeof value.orchestratorId !== 'string' ||
       !Number.isInteger(value.maxWorkers) || (value.maxWorkers as number) < 1 || (value.maxWorkers as number) > 2 ||
       typeof value.allowLightCoding !== 'boolean' || !Array.isArray(value.models)) throw new TypeError('Invalid orchestration profile');
-  if (value.objective !== undefined && !['tokens', 'reference-cost', 'subscription-quota'].includes(String(value.objective))) throw new TypeError('Invalid routing objective');
+  if (value.objective !== undefined && value.objective !== 'reference-cost') throw new TypeError('Routing objective must be reference-cost; tokens and subscription-quota are not ranked yet');
   const ids = new Set<string>();
   for (const model of value.models) {
     if (!isRecord(model) || typeof model.id !== 'string' || ids.has(model.id) ||

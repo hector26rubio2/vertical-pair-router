@@ -1,50 +1,564 @@
-import {analyzeTask, contextEvidence,comparisonSelection,executionBlocker} from './benchmark-analysis.mjs';
-import {allocationPanel,coveragePanel,phaseLabel} from './benchmark-cost-allocation.mjs';
-const e = v => String(v ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-const n = v => v == null ? 'N/D' : Number(v).toLocaleString('es-CO',{maximumFractionDigits:3});
-const usd = v => !v ? 'N/D' : Math.abs(v.max-v.min)<1e-10 ? v.min.toFixed(8) : `${v.min.toFixed(8)}–${v.max.toFixed(8)}`;
-const color = model => model==='time'?'time':model.startsWith('gpt-')?'codex':model.includes('haiku')?'haiku':model.includes('opus')?'opus':'sonnet';
+import { renderDashboardDocument } from "./benchmark-dashboard-template.mjs";
+import {
+  analyzeTask,
+  contextEvidence,
+  comparisonSelection,
+  executionBlocker,
+} from "./benchmark-analysis.mjs";
+import { allocationPanel, coveragePanel, phaseLabel } from "./benchmark-cost-allocation.mjs";
+import { taskVerdict } from "./benchmark-verdict.mjs";
+import {
+  taskDecisionPanel,
+  conclusionOverview,
+  methodologyPanel,
+} from "./benchmark-verdict-view.mjs";
+const e = (v) =>
+  String(v ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+const n = (v) =>
+  v == null ? "N/D" : Number(v).toLocaleString("es-CO", { maximumFractionDigits: 3 });
+const usd = (v) =>
+  !v
+    ? "N/D"
+    : Math.abs(v.max - v.min) < 1e-10
+      ? v.min.toFixed(8)
+      : `${v.min.toFixed(8)}–${v.max.toFixed(8)}`;
+const color = (model) =>
+  model === "time"
+    ? "time"
+    : model.startsWith("gpt-")
+      ? "codex"
+      : model.includes("haiku")
+        ? "haiku"
+        : model.includes("opus")
+          ? "opus"
+          : "sonnet";
 
-export function benchmarkDashboard({report,descriptions,armLabel,comparisonTable,routingPanel,summary,profile,campaign,claudePrices,openaiPrices}) {
-  const orderedTasks=[...report.tasks].sort((a,b)=>(['F02','F01B','F01'].indexOf(a.id)<0?99:['F02','F01B','F01'].indexOf(a.id))-(['F02','F01B','F01'].indexOf(b.id)<0?99:['F02','F01B','F01'].indexOf(b.id)));
-  const analyses = report.tasks.map(task=>analyzeTask(task,report.rows));
-  const sections = orderedTasks.map(task=>{
-    const selection=comparisonSelection(task,report.rows),rows=selection.selected,a=analyses.find(a=>a.taskId===task.id);
-    const analysisTask=task.executionRole==='inventory'||task.id==='F01',staged=task.protocol==='staged-recipe-v1';
-    const metrics = [{id:'cost',title:'Costo total de cada ejecución · USD',value:r=>r.totalCost?.max??r.observedModelCost?.max},
-      {id:'tokens',title:'Tokens totales de cada ejecución · todos los modelos',value:r=>r.models.length?r.receipt?.totals?.totalTokens:null},
-      {id:'time',title:'Duración total · segundos, agentes + checks',value:r=>r.receipt?.timings?.wallMs == null?null:(r.receipt.timings.wallMs+(r.localChecksTotalMs??((r.checks?.own?.durationMs??0)+(r.checks?.external?.durationMs??0))))/1000},{id:'checks',title:analysisTask?'Estructura y citas comprobadas · no equivale a calidad general':'Criterios externos aprobados · alcance limitado al contrato',value:r=>r.checks?.external?.passed}];
-    const charts=metrics.map(metric=>{
-      const max=metric.id==='checks'?task.testCount:Math.max(...rows.map(r=>metric.value(r)??0),.000001);
-      return `<article class="chart-card"><h3>${metric.title}</h3>${rows.map(row=>{
-        const value=metric.value(row), complete=row.completeModelAccounting??row.receipt?.completeAccounting;
-        const parts=metric.id==='cost'?row.models.map(m=>({model:m.model,value:m.cost?.totalUsd?.max})):metric.id==='tokens'?row.models.map(m=>({model:m.model,value:m.totalTokens})):[{model:'time',value}];
-        return `<div class="bar-row"><div>${e(armLabel(row.arm))}<small>${row.status==='accepted'?(row.semanticReview&&row.semanticReview!=='passed'?'Estructura/citas aprobadas · '+(row.semanticReview==='changes-requested'?'requiere correcciones':row.semanticReview==='reviewed-draft'?'borrador revisado, sin validar implementación':'revisión pendiente'):row.qualityReview?.findings?.some(f=>['critical','high','medium'].includes(f.severity))?'Contrato aprobado · observaciones abiertas':'Aceptó el contrato'):'INCOMPLETO'}${row.models.some(m=>m.cost?.modelIdentityCaveat)?' · precio condicional':''}</small></div><div class="track">${value==null?'':parts.map(p=>`<span class="bar ${color(p.model)}" style="width:${100*(p.value??0)/max}%" title="${e(p.model)}: ${e(metric.id==='cost'?usd({min:p.value??0,max:p.value??0}):n(p.value))}"></span>`).join('')}</div><strong>${value==null?'N/D':metric.id==='cost'?'USD '+usd(row.totalCost??row.observedModelCost):metric.id==='checks'?n(value)+' / '+task.testCount:n(value)}${!complete&&value!=null&&metric.id!=='checks'?(metric.id==='time'?' · flujo incompleto':' · subtotal, total N/D'):''}</strong></div>`;
-      }).join('')}${a.missing.filter(arm=>!a.strategies.some(s=>s.arm===arm)).map(arm=>`<div class="bar-row"><div>${e(armLabel(arm))}</div><div class="track missing"></div><strong>Sin probar · N/D</strong></div>`).join('')}</article>`;
-    }).join('');
-    const baseline=a.strategies.find(s=>s.arm===(task.protocol==='staged-recipe-v1'?'sonnet-solo-reviewed':'sonnet-solo')&&s.costPerAccepted&&!s.conditional);
-    const relative=s=>!baseline||!s.costPerAccepted||s.conditional||a.contractConflict?'N/D':`${n(100*(s.costPerAccepted.min/baseline.costPerAccepted.max-1))}% a ${n(100*(s.costPerAccepted.max/baseline.costPerAccepted.min-1))}%`;
-    const ranked=a.strategies.map(s=>`<tr><th>${e(armLabel(s.arm))}</th><td>${s.accepted}/${s.attempts}${s.semanticReview==='pending-or-failed'?'<small>Calidad pendiente, rechazada u observaciones sin resolver</small>':''}<small>${n(s.acceptanceRate*100)}% de intentos observados</small></td><td>${s.costPerAccepted?'USD '+usd(s.costPerAccepted):'N/D'}${s.conditional?'<small>Condicionado al modelo solicitado; fuera del ranking confirmado</small>':''}</td><td>${relative(s)}<small>Negativo = menor costo; positivo = mayor</small></td><td>${n(s.meanAcceptedMs==null?null:s.meanAcceptedMs/1000)} s</td><td>${s.attempts<3?s.attempts+' muestra(s) · evidencia escasa':'Muestras: '+s.attempts}<small>Sin equivalencia de calidad demostrada</small></td></tr>`).join('');
-    const context=rows.map(row=>row.models.map(model=>{
-      const c=contextEvidence(row,model);
-      return `<tr><th>${e(armLabel(row.arm))}</th><td>${e(model.model)}</td><td>${n(c.observedMax)}</td><td>${n(c.upperBound)}</td><td>${c.completePromptCoverage?'Prompts cubiertos por contadores':'Cobertura incompleta o no informada'}<small>${n(c.requestCount)} llamadas con contexto registrado</small></td></tr>`;
-    }).join('')).join('');
-    const audit=analysisTask||staged?`<details><summary>Qué ocurrió y qué falló en cada intento</summary><div class="table"><table><thead><tr><th>Ejecución</th><th>Resultado comprobado</th><th>Revisión del borrador</th></tr></thead><tbody>${rows.map(row=>{
-      const reason=executionBlocker(row)??(row.minimumStandard&&!row.minimumStandard.passed?'No cumple el mínimo: '+row.minimumStandard.reasons.join('; '):row.receipt?.stopped==='deadline'?'Se agotó el límite de tiempo sin entregar el artefacto; consumo observado parcial.':row.codexReceipt?.modelDispatched===false?'El conector rechazó el plan antes de iniciar Codex. No es una prueba de su capacidad.':row.executorModel?.startsWith('gpt-')&&!row.codexReceipt?'No hay recibo de Codex; no se confirma su ejecución ni se supone consumo cero.':row.codexReceipt?.completed&&row.codexReceipt?.artifactValid===false?'Codex respondió, pero no se pudo obtener un artefacto JSON válido.':row.checks?.external?.exitCode!==0?'El artefacto no cumple todas las comprobaciones externas. Ver las referencias y criterios de la revisión.':'Se verificaron estructura, citas y preservación del código; no demuestra implementación correcta.');
-      return `<tr><th>${e(armLabel(row.arm))}</th><td>${e(reason)}<small>${n(row.checks?.external?.passed)} / ${task.testCount} comprobaciones</small>${row.originalStatus&&row.originalStatus!==row.status?'<small>Se corrigió el validador para permitir tareas de decisión sin archivos. Se conserva el resultado original en los datos.</small>':''}</td><td>${e(row.semanticAssessment?.conclusion??'Sin aprobación de calidad de ingeniería.')}</td></tr>`;
-    }).join('')}</tbody></table></div></details>`:'';
-    const contexts=rows.flatMap(row=>row.models.map(model=>({row,model,c:contextEvidence(row,model)})));
-    const contextMax=Math.max(...contexts.map(v=>v.c.observedMax??0),1);
-    const contextChart=`<article class="chart-card"><h3>Contexto máximo observado por llamada · cada modelo separado</h3><p>No se suman contextos de modelos o llamadas. N/D significa que no hay una medición exacta por llamada.</p>${contexts.map(({row,model,c})=>`<div class="bar-row"><div>${e(armLabel(row.arm))}<small>${e(model.model)} · ${e(model.role)}</small></div><div class="track">${c.observedMax==null?'':`<span class="bar ${color(model.model)}" style="width:${100*c.observedMax/contextMax}%"></span>`}</div><strong>${n(c.observedMax)} tokens${model.model.includes('haiku')&&c.observedMax>100000?'<small>Supera 100.000; aplica tarifa de contexto largo</small>':''}</strong></div>`).join('')}</article>`;
-    const reviews=rows.filter(r=>r.semanticAssessment).map(r=>`<article class="quality"><h3>Revisión del borrador · ${e(armLabel(r.arm))}</h3><p><b>${e(r.semanticAssessment.conclusion)}</b></p><p>Fortalezas observadas: ${e((r.semanticAssessment.strengths??[]).join(' · '))}</p><ul>${(r.semanticAssessment.findings??[]).map(f=>`<li><b>${e(f.severity)}</b>: ${e(f.issue)}</li>`).join('')}</ul></article>`).join('');
-    const recommended=task.level==='simple'?'Haiku directo sólo si el cambio es de bajo riesgo, está acotado y tiene checks externos. Escalar al fallar.':task.level.includes('complejo')?'Opus para planificar y revisar; Haiku para implementar con límites de archivos y checks. Comparar con Sonnet→Haiku antes de atribuir ahorro.':'Sonnet para planificar y revisar; Haiku para implementar. La revisión debe comprobar el resultado antes de integrarlo.';
-    return `<section class="task-panel" id="case-${e(task.id.toLowerCase())}" data-task-panel="${e(task.id)}"><div class="eyebrow">${e(task.id)} · ${e(task.level)} · clasificación manual</div><h2>${e(task.name)}</h2><p>Protocolo comparado: ${e(selection.policy)}. ${n(selection.excluded.length)} intentos de depuración u otro protocolo quedan fuera del ranking y conservan su costo en la tabla y exportaciones. ${n(selection.technicalBlocked)} bloqueos de integración/proveedor no se interpretan como calidad del modelo.</p><p>${e(descriptions[task.id]??task.requirement)}</p><div class="decision-grid"><article><h3>Menor costo observado con aceptación</h3><strong>${a.cheapestObserved?e(armLabel(a.cheapestObserved)):'Sin candidato confirmado'}</strong><p>Considera el costo completo por resultado aceptado, incluidos intentos fallidos con contabilidad completa. No acredita mejor código.</p></article><article><h3>${analysisTask?'Más rápido en completar estructura y citas':'Más rápido entre los aceptados'}</h3><strong>${a.fastestObserved?e(armLabel(a.fastestObserved)):'Sin resultado'}</strong><p>Promedio de duración de los intentos aceptados. Caché, orden y tamaño del contexto pueden influir.</p></article><article><h3>Recomendación operativa provisional</h3><p>${staged?(a.cheapestObserved?'Menor costo que cumple el mínimo de esta muestra: '+e(armLabel(a.cheapestObserved))+'. Una ejecución por receta no demuestra fiabilidad general; se requiere repetición antes de convertirlo en ruta predeterminada.':'Aún no hay una receta con aceptación y contabilidad completa para recomendar. Ver los gates fallidos; no se elige por costo solamente.'):analysisTask?(a.nextTrialCandidate?'Primera candidata para la siguiente prueba: '+e(armLabel(a.nextTrialCandidate.arm))+'. Es la de menor costo observado entre los borradores revisados por el coordinador. No es una selección autónoma ni una garantía de calidad equivalente; requiere revisar el repositorio completo e implementar una Story con tests.':'No recomendar por precio hasta revisar la corrección del diseño full stack y los riesgos críticos. Plan aprobado antes de delegar implementación.'):task.id==='R01'?'Codex sólo quedó validado para esta revisión acotada. No extrapolar el resultado a implementación ni seguridad general.':recommended}</p><strong>Confianza: ${a.comparativeConfidence==='exploratory'?'exploratoria':a.comparativeConfidence==='incompatible-contracts'?'contratos incompatibles':'repetida para este contrato'}</strong></article></div>${a.conditionalEngineeringCandidate?`<div class="quality"><h3>Alternativa condicional para la siguiente validación</h3><p><b>${e(armLabel(a.conditionalEngineeringCandidate.arm))}</b>: USD ${usd(a.conditionalEngineeringCandidate.cost)} por resultado aceptado en esta muestra. Cumplió los checks y la revisión sin hallazgos medios, altos o críticos. El precio depende del modelo solicitado y del intervalo de contexto disponible; no confirma el modelo servido ni calidad general. Repetir antes de convertirla en ruta predeterminada.</p></div>`:""}<div class="quality"><h3>Qué calidad está comprobada y qué falta</h3><p>${analysisTask?'Esta tarea no implementa código. Las ocho comprobaciones verifican estructura, referencias, dependencias y preservación. Las recetas nuevas incluyen además revisión semántica fresca; su aprobación se indica por ejecución. ':''}Aprobar el contrato con observaciones medias abiertas no habilita una recomendación de calidad ni un caso positivo para el routing. La aceptación indicada corresponde a ${task.testCount} criterios externos de esta tarea${task.id==='P02'?', más compilación y la prueba original sin modificar':task.id==='F02'?', más 12 regresiones conservadas y compilación de toda la app Angular':''}. Las pruebas escritas por el propio agente no sustituyen los criterios externos ni la revisión fresca.</p><p><b>Alcance de revisión:</b> ${staged?'la sesión fresca de Sonnet está incluida en el costo y se verifican las citas de sus hallazgos. No es una revisión humana ni una garantía general.':'no se midió una revisión independiente de diseño o mantenibilidad.'} No se midieron seguridad completa ni defectos posteriores. Aprobar estos checks no garantiza equivalencia con Opus o Sonnet ni ausencia de errores.</p></div>${reviews}${audit}<div class="charts">${charts}${contextChart}</div>${allocationPanel(task,rows,armLabel)}<p class="legend">Colores por modelo: <b class="haiku">Haiku</b> <b class="sonnet">Sonnet</b> <b class="opus">Opus</b> <b class="codex">Codex</b>. Las barras de costo usan el extremo superior del rango. Los intentos fallidos conservan su consumo.</p><div class="table"><table><caption>Comparación por estrategia · costo acumulado / resultados aceptados</caption><thead><tr><th>Combinación</th><th>Aceptación observada</th><th>Costo por resultado aceptado</th><th>Diferencia frente a Sonnet solo</th><th>Tiempo medio aceptado</th><th>Alcance de evidencia</th></tr></thead><tbody>${ranked}</tbody></table></div><h3>Contexto usado por modelo</h3><p>${task.sourceFiles?`Instantánea: ${n(task.sourceFiles)} archivos reales seleccionados · ${n(task.sourceCharacters)} bytes. Es una copia parcial, no todo el proyecto. `:''}Máximo registrado de entrada de una llamada = entrada sin caché + caché leída + caché escrita. No es la suma de tokens de toda la ejecución. Si faltan llamadas se muestra cobertura incompleta; la cota superior no es una medición exacta. El máximo no incluye la salida ni muestra la ocupación en vivo del contexto.</p><div class="table"><table><thead><tr><th>Ejecución</th><th>Modelo</th><th>Máximo observado · tokens</th><th>Cota superior · tokens</th><th>Cobertura</th></tr></thead><tbody>${context||'<tr><td colspan="5">Sin contexto registrado</td></tr>'}</tbody></table></div><div class="pending"><h3>POA · qué falta para decidir con más confianza</h3><p>${a.missing.length?'Completar con el mismo contrato: '+e(a.missing.map(armLabel).join('; '))+'.':'Las rutas previstas cuentan con resultados aceptados dentro de este protocolo.'}</p><ol><li>Repetir cada combinación al menos tres veces desde la misma instantánea, controlando caché y orden. Tres muestras siguen siendo evidencia limitada.</li><li>Añadir revisión independiente de diseño y código, tests adversariales, regresiones y criterios de seguridad adecuados al cambio.</li><li>Comparar costo por resultado aceptado, tiempo y defectos detectados. Preferir la ruta de menor costo que cumpla los criterios de calidad y riesgo.</li></ol></div></section>`;
-  }).join('');
-  const configured=(profile?.orchestration?.models??[]).map(m=>`<li>${e(m.id)}: ${e(m.model)} · ${e(m.effort)} · roles ${e(m.roles.join(', '))}</li>`).join('');
-  const priceRows=claudePrices.cards.filter(c=>/haiku|sonnet|opus/.test(c.model)).flatMap(c=>c.tiers.map(t=>`<tr><th>${e(c.model)}</th><td>${t.maxPromptTokens?'Hasta '+n(t.maxPromptTokens):c.tiers.length>1?'Más de '+n(c.tiers[0].maxPromptTokens):'Todos'}</td><td>${t.input}</td><td>${t.output}</td><td>${t.cacheRead}</td><td>${t.cacheWrite5m} / ${t.cacheWrite1h}<small>5 minutos / 1 hora</small></td></tr>`)).join('');
-  const openaiRateRows=(openaiPrices?.cards??[]).flatMap(c=>[{tier:c,label:'Contexto corto'},...(c.longContext?[{tier:c.longContext,label:'Contexto largo · extremo del intervalo si no se conoce cada petición'}]:[])].map(({tier:t,label})=>`<tr><th>${e(c.model)} (solicitado)</th><td>${label}</td><td>${t.input}</td><td>${t.output}</td><td>${t.cacheRead}</td><td>${t.cacheWrite30m} / ${t.cacheWrite12h}<small>30 minutos / 12 horas</small></td></tr>`)).join('');
-  const campaignPanel=campaign?`<section id="finanzas-campaign"><h2>POA · trabajo real en Finanzas</h2><p>Se preservan los proyectos originales y sus cambios locales. Las mediciones se hacen en copias parciales o completas según cada prueba, sin base de datos real, extractos ni secretos.</p><div class="table"><table><thead><tr><th>Tarea real</th><th>Nivel</th><th>Estado</th><th>Cómo se evaluará la calidad</th></tr></thead><tbody>${campaign.tasks.map(t=>`<tr><th>${e(t.id)} · ${e(t.task)}</th><td>${e(t.level)}</td><td>${report.rows.some(r=>r.taskId===t.id)?'Ver ejecuciones y resultados registrados':t.status==='planned-not-executed'?'Planificada; sin medición':'Preparada / en ejecución; sin resultado aún'}</td><td>${e(Array.isArray(t.quality)?t.quality.join(' · '):t.quality)}</td></tr>`).join('')}</tbody></table></div><p>Los riesgos de código detectados son hipótesis hasta reproducirlos. Las tareas planificadas no cuentan como pruebas ejecutadas ni como ahorros.</p></section>`:'';
-  return {analyses, html:`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>VPR · panel de pruebas y decisiones</title><style>
-body{font:16px system-ui;background:#eef3f8;color:#182c40;margin:0}main{max-width:1500px;margin:auto;padding:28px}h1{font-size:36px}h2{font-size:27px}h3{font-size:18px}p,li{line-height:1.6}section{background:white;padding:28px;border:1px solid #d9e2ed;border-radius:16px;margin:24px 0;scroll-margin-top:120px}header{padding:12px 0}.eyebrow{color:#49647e;font-weight:700}.toolbar{position:sticky;top:0;z-index:4;background:#122f4b;color:white;padding:14px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;border-radius:10px}.toolbar a{color:#d7eaff}.toolbar select{font:inherit;padding:8px;max-width:75vw}.decision-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.decision-grid article,.chart-card{border:1px solid #dbe4ed;border-radius:12px;padding:18px;background:#f9fbfd}.quality,.pending{padding:16px 20px;margin:18px 0;border-left:5px solid #bd8d2f;background:#fff9eb}.charts{display:grid;gap:18px}.bar-row{display:grid;grid-template-columns:240px minmax(140px,1fr) 240px;gap:14px;align-items:center;margin:14px 0}.missing{border:1px dashed #9aabba;background:transparent!important}.track{display:flex;height:24px;background:#e3eaf0}.bar{display:block;height:24px;min-width:0}.time{background:#536a80}.haiku{background:#198266}.sonnet{background:#336dc4}.opus{background:#8855b4}.codex{background:#b4761c}.legend b{color:white;padding:4px 8px;border-radius:4px;display:inline-block}.table{overflow:auto;margin:20px 0}table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;padding:12px;border-bottom:1px solid #d9e2eb;vertical-align:top}thead{background:#e8eff6}caption{text-align:left;font-weight:bold;padding:10px}small{display:block;font-size:12px;color:#52677b;margin-top:4px;white-space:normal}a{color:#235a9a}.total{background:#e9f1f8}.allocation-panel{margin:24px 0}.allocation-selector{font:inherit;padding:8px;max-width:100%}.allocation-pair{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}.pie-layout{display:flex;gap:18px;align-items:center;flex-wrap:wrap}.pie-layout svg{width:180px;height:180px;flex-shrink:0}.pie-layout ul{padding-left:0;list-style:none;flex:1;min-width:160px}.pie-layout li{margin:12px 0;overflow-wrap:anywhere}.pie-layout i{display:inline-block;width:12px;height:12px;margin-right:8px}.coverage-table{min-width:1100px}.coverage-passed{background:#dcf3e5}.coverage-legacy{background:#e4edfa}.coverage-failed{background:#ffe3e1}.coverage-missing{background:#eef1f4;color:#687989}.scenario{min-width:260px}#scenario-comparison{min-width:2100px}#scenario-comparison tbody{border-top:4px solid #8299ad}#scenario-comparison th[rowspan]{background:#f1f6fb;min-width:150px}#comparison select{display:block;width:100%;max-width:100%;box-sizing:border-box;font:inherit;padding:8px}#routing{overflow:auto}#comparison>.table{max-height:75vh;overflow:auto}#scenario-comparison thead{position:sticky;top:0;z-index:2}details>summary{cursor:pointer;font-weight:bold;padding:12px}nav{line-height:2}pre{max-width:100%;overflow:auto}[hidden]{display:none!important}@media(max-width:900px){main{padding:12px}.decision-grid,.allocation-pair{grid-template-columns:1fr}.bar-row{grid-template-columns:1fr}.task-panel{padding:18px}}
-</style><main><header><div class="eyebrow">VPR · análisis exploratorio · datos locales</div><h1>Qué ruta resuelve cada tarea, a qué costo y con qué evidencia</h1><p>${report.tasks.length} tareas · ${report.rows.length} ejecuciones · ${n(summary.totalObservedTokens)} tokens registrados. No se ha vuelto a ejecutar ningún modelo para construir este panel.</p><p><b>Menor costo no significa mejor calidad.</b> Se separan aceptación del contrato, costo, tiempo y contexto. Las recetas nuevas incluyen revisión fresca por Sonnet; las pruebas antiguas no acreditan ese mínimo. En F01 se muestran observaciones del coordinador sobre borradores concretos; esa revisión no fue ciega y el consumo de este chat no forma parte de los recibos. No hay costo completo de revisión independiente.</p></header><div class="toolbar"><label>Tarea <select id="panel-task"><option value="">Todas</option>${orderedTasks.map(t=>`<option value="${e(t.id)}">${e(t.id)} · ${e(t.name)}</option>`).join('')}</select></label><a href="#ledger">Desglose por modelo</a><a href="#coverage">Cobertura por nivel</a><a href="#finanzas-campaign">Plan de pruebas</a><a href="#rack-state">Estado del RAG y routing</a><a href="#prices">Tarifas y auditoría</a></div>${sections}${coveragePanel(report.tasks,report.rows,armLabel)}${campaignPanel}<section id="rack-state"><h2>Cómo está el RAG y el enrutamiento hoy</h2><p>La recuperación local de casos y las reglas no llaman a modelos. El motor actual recibe complejidad, riesgo y necesidad de planificación como metadatos: todavía no demuestra una clasificación autónoma de cualquier petición ni calidad de ingeniería sénior. Las comprobaciones de calidad semántica de F01 están fuera del aprendizaje hasta aprobarse. Se filtra primero por proveedor autorizado, cuenta disponible, modelo/esfuerzo, permisos, rol y cuota informada. Sin evidencia comparable suficiente se aplican reglas de complejidad y riesgo; no se afirma que la ruta sea óptima.</p><p>Para comparar económicamente, el motor exige al menos tres casos válidos de cada candidato viable, con el mismo contrato, tipo, complejidad, riesgo, rol, proveedor/modelo/esfuerzo y precios vigentes. Usa costo total por aceptación, incluidos fallos, y excluye rutas con menos de 80% de aceptación observada cuando tienen suficientes muestras. Ese umbral es una regla del producto, no una garantía estadística de calidad.</p><ul><li>Simple y bajo riesgo, sin planificación necesaria: ejecutor ligero con checks y autorización.</li><li>Necesita planificación: Sonnet o planificador estándar → ejecutor ligero → revisión del planificador.</li><li>Complejo o alto riesgo: Opus o planificador avanzado → ejecutor autorizado → revisión.</li><li>El ejecutor ligero puede trabajar en código sólo con autorización expresa y checks. Un fallo detiene el flujo.</li></ul><h3>Configuración local leída, no una ejecución simulada</h3><p>Proveedores autorizados: ${e((profile?.policy?.allowedProviders??[]).join(', '))||'No disponible'}. Ejecución de checks externos: ${profile?.policy?.allowShell===true?'permitida':'bloqueada en este perfil; requiere un perfil de pruebas autorizado'}. Máximo de trabajadores: ${n(profile?.orchestration?.maxWorkers)}.</p><ul>${configured}</ul><p>Las pruebas controladas no demuestran que el RAG eligiera autónomamente sus combinaciones. Codex aprobó revisión acotada; la implementación sigue incompleta. Copilot está preparado pero sin prueba generativa en esta cuenta. Haiku: política de compactación desde 90.000 tokens y techo de 100.000, tanto principal como subagente. Verificado en la prueba real: dos compactaciones automáticas; máximo de entrada observado de Haiku 54.391 tokens. Una solicitud sintética estimada en 452.168 tokens fue bloqueada antes de generar tokens. El contador oficial es una estimación; se reserva un margen de 10.000. Los entornos corporativos requieren verificar que el host permita esta protección.</p></section><details id="ledger"><summary>Abrir tabla única: tokens y USD por modelo, con sumas de cada ejecución</summary>${comparisonTable}</details><section id="prices"><h2>Por qué tokens parecidos no implican precios iguales</h2><p>El cálculo usa cada categoría por separado: (entrada × tarifa entrada + salida × tarifa salida + lectura × tarifa lectura + escritura × tarifa escritura) / 1.000.000. La mezcla de caché y salida cambia el resultado. Los nombres y las tarifas se muestran explícitamente para no confundir tareas distintas ni precios redondeados.</p><p>Con los mismos contadores y el mismo nivel de contexto, Haiku y Sonnet tienen tarifas distintas. Por ejemplo: 10.000 de entrada sin caché y 1.000 de salida, sin caché, son USD 0,00150000 en Haiku base y USD 0,03000000 en Sonnet según el catálogo comprobado; es una ilustración, no otra prueba ejecutada.</p><div class="table"><table><caption>USD / millón de tokens · <a href="https://platform.claude.com/docs/es/about-claude/pricing">fuente oficial Claude</a> · comprobada ${e(claudePrices.checkedAt)}</caption><thead><tr><th>Modelo</th><th>Contexto por prompt</th><th>Entrada</th><th>Salida</th><th>Lectura caché</th><th>Escritura · plazo corto / largo</th></tr></thead><tbody>${priceRows}${openaiRateRows}</tbody></table></div><p><a href="https://developers.openai.com/api/docs/pricing">Fuente oficial OpenAI</a>; catálogo usado ${e(openaiPrices?.checkedAt)}. El cálculo Codex sólo se aplica si la entrada acumulada permite acotar el contexto corto; no es el límite del modelo.</p><p>Son referencias API, no cargos ni cuota de suscripción. Los rangos conservan incertidumbre de caché. Los modelos Codex son solicitados: el host no confirma la identidad de respuesta, por lo que sus precios son condicionales. Contabilidad ausente se muestra N/D. Subtotal de todos los modelos con contadores disponibles, incluidos componentes de flujos incompletos: USD ${usd(summary.totalKnownModelReferenceUsd??summary.totalReferenceUsd)}. ${summary.hasIncompleteAccounting?'Hay contabilidad incompleta: el total completo es N/D y no se interpreta consumo ausente como cero.':'Contabilidad completa para los contadores incluidos.'}</p><p>Exportaciones: <a href="ejecuciones.csv">CSV por modelo</a> · <a href="analysis.json">Análisis por tarea</a> · <a href="data.json">Contadores originales agregados</a>. Informe generado ${e(summary.at)}.</p></section><details><summary>Detalle adicional de filtros del proveedor</summary>${routingPanel}</details></main><script>const selector=document.getElementById('panel-task');selector.addEventListener('change',event=>{const id=event.target.value;for(const panel of document.querySelectorAll('[data-task-panel]'))panel.hidden=Boolean(id&&panel.dataset.taskPanel!==id);const filter=document.getElementById('task-filter');filter.value=id;filter.dispatchEvent(new Event('change'));});const initial=location.hash.match(/^#case-(.+)$/)?.[1]?.toUpperCase();if(initial&&[...selector.options].some(o=>o.value===initial))selector.value=initial;else for(const id of ['F02','F01B','F01'])if([...selector.options].some(o=>o.value===id)){selector.value=id;break;}selector.dispatchEvent(new Event('change'));for(const allocation of document.querySelectorAll('.allocation-selector'))allocation.addEventListener('change',event=>{for(const chart of document.querySelectorAll('[data-cost-allocation]'))if(chart.dataset.task===allocation.dataset.task)chart.hidden=chart.dataset.index!==event.target.value;});document.querySelector('a[href="#ledger"]').addEventListener('click',()=>{document.getElementById('ledger').open=true;});</script></html>`};
+function renderTaskSection(
+  task,
+  {
+    report,
+    descriptions,
+    armLabel,
+    comparisonTable,
+    routingPanel,
+    summary,
+    profile,
+    campaign,
+    claudePrices,
+    openaiPrices,
+    analyses,
+    verdicts,
+  },
+) {
+  const selection = comparisonSelection(task, report.rows),
+    rows = selection.selected,
+    a = analyses.find((a) => a.taskId === task.id);
+  const verdict = verdicts.find((v) => v.taskId === task.id);
+  const analysisTask = task.executionRole === "inventory" || task.id === "F01",
+    staged = task.protocol === "staged-recipe-v1";
+  const metrics = [
+    {
+      id: "cost",
+      title: "Costo total de cada ejecución · USD",
+      value: (r) => r.totalCost?.max ?? r.observedModelCost?.max,
+    },
+    {
+      id: "tokens",
+      title: "Tokens totales de cada ejecución · todos los modelos",
+      value: (r) => (r.models.length ? r.receipt?.totals?.totalTokens : null),
+    },
+    {
+      id: "time",
+      title: "Duración total · segundos, agentes + checks",
+      value: (r) =>
+        r.receipt?.timings?.wallMs == null
+          ? null
+          : (r.receipt.timings.wallMs +
+              (r.localChecksTotalMs ??
+                (r.checks?.own?.durationMs ?? 0) + (r.checks?.external?.durationMs ?? 0))) /
+            1000,
+    },
+    {
+      id: "checks",
+      title: analysisTask
+        ? "Estructura y citas comprobadas · no equivale a calidad general"
+        : "Criterios externos aprobados · alcance limitado al contrato",
+      value: (r) => r.checks?.external?.passed,
+    },
+  ];
+  const charts = metrics
+    .map((metric) => {
+      const max =
+        metric.id === "checks"
+          ? task.testCount
+          : Math.max(...rows.map((r) => metric.value(r) ?? 0), 0.000001);
+      return /* HTML */ `<article class="chart-card">
+        <h3>${metric.title}</h3>
+        ${
+rows
+
+.map((row) => {
+            const value = metric.value(row),
+              complete = row.completeModelAccounting ??
+row.receipt?.completeAccounting;
+            const parts =
+              metric.id === "cost"
+                ?
+row.models
+.map((m) => ({ model: m.model, value: m.cost?.totalUsd?.max }))
+                :
+metric.id === "tokens"
+                  ?
+row.models
+.map((m) => ({ model: m.model, value: m.totalTokens }))
+                  :
+[{ model: "time", value }];
+            return /* HTML */ `<div class="bar-row">
+              <div>
+                ${e(armLabel(row.arm))}<small
+                  >${row.status === "accepted" ?
+(row.semanticReview && row.semanticReview !== "passed" ?
+"Estructura/citas aprobadas · " + (row.semanticReview === "changes-requested" ?
+"requiere correcciones" :
+row.semanticReview === "reviewed-draft" ?
+"borrador revisado, sin validar implementación" :
+"revisión pendiente") :
+row.qualityReview?.findings?.some((f) => ["critical", "high", "medium"].includes(f.severity)) ?
+"Contrato aprobado · observaciones abiertas" :
+"Aceptó el contrato") :
+"INCOMPLETO"}${row.models.some((m) => m.cost?.modelIdentityCaveat) ?
+" · precio condicional" :
+""}</small
+                >
+              </div>
+              <div class="track">
+                ${value == null ?
+"" :
+parts
+.map((p) => /* HTML */ `<span class="bar ${color(p.model)}" style="width:${(100 * (p.value ??
+0)) / max}%" title="${e(p.model)}: ${e(metric.id === "cost" ?
+usd({ min: p.value ??
+0, max: p.value ??
+0 }) :
+n(p.value))}"></span>`)
+.join("")}
+              </div>
+              <strong
+                >${value == null ?
+"N/D" :
+metric.id === "cost" ?
+"USD " + usd(row.totalCost ??
+row.observedModelCost) :
+metric.id === "checks" ?
+n(value) + " / " + task.testCount :
+n(value)}${!complete && value != null && metric.id !== "checks" ?
+(metric.id === "time" ?
+" · flujo incompleto" :
+" · subtotal, total N/D") :
+""}</strong
+              >
+            </div>`;
+          })
+
+.join("")
+}${a.missing
+          .filter((arm) => !a.strategies.some((s) => s.arm === arm))
+          .map(
+            (arm) => /* HTML */ `<div class="bar-row">
+                <div>${e(armLabel(arm))}</div>
+                <div class="track missing"></div>
+                <strong>Sin probar · N/D</strong>
+              </div>`,
+          )
+          .join("")}
+      </article>`;
+    })
+    .join("");
+  const context = rows
+    .map((row) =>
+      row.models
+        .map((model) => {
+          const c = contextEvidence(row, model);
+          return /* HTML */ `<tr>
+            <th>${e(armLabel(row.arm))}</th>
+            <td>${e(model.model)}</td>
+            <td>${n(c.observedMax)}</td>
+            <td>${n(c.upperBound)}</td>
+            <td>
+              ${c.completePromptCoverage ? "Prompts cubiertos por contadores" : "Cobertura incompleta o no informada"}<small
+                >${n(c.requestCount)} llamadas con contexto registrado</small
+              >
+            </td>
+          </tr>`;
+        })
+        .join(""),
+    )
+    .join("");
+  const audit =
+    analysisTask || staged
+      ? /* HTML */ `<details>
+          <summary>Qué ocurrió y qué falló en cada intento</summary>
+          <div class="table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Ejecución</th>
+                  <th>Resultado comprobado</th>
+                  <th>Revisión del borrador</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${
+rows
+
+.map((row) => {
+                    const reason =
+                      executionBlocker(row) ??
+                      (row.minimumStandard && !row.minimumStandard.passed
+                        ?
+"No cumple el mínimo: " + row.minimumStandard.reasons
+.join("; ")
+                        :
+row.receipt?.stopped === "deadline"
+                          ?
+"Se agotó el límite de tiempo sin entregar el artefacto; consumo observado parcial."
+                          :
+row.codexReceipt?.modelDispatched === false
+                            ?
+"El conector rechazó el plan antes de iniciar Codex. No es una prueba de su capacidad."
+                            :
+row.executorModel?.startsWith("gpt-") && !row.codexReceipt
+                              ?
+"No hay recibo de Codex; no se confirma su ejecución ni se supone consumo cero."
+                              :
+row.codexReceipt?.completed &&
+                                  row.codexReceipt?.artifactValid === false
+                                ?
+"Codex respondió, pero no se pudo obtener un artefacto JSON válido."
+                                :
+row.checks?.external?.exitCode !== 0
+                                  ?
+"El artefacto no cumple todas las comprobaciones externas. Ver las referencias y criterios de la revisión."
+                                  :
+"Se verificaron estructura, citas y preservación del código; no demuestra implementación correcta.");
+                    return /* HTML */ `<tr>
+                      <th>${e(armLabel(row.arm))}</th>
+                      <td>
+                        ${e(reason)}<small
+                          >${n(row.checks?.external?.passed)} / ${task.testCount}
+                          comprobaciones</small
+                        >${row.originalStatus && row.originalStatus !== row.status ?
+"<small>Se corrigió el validador para permitir tareas de decisión sin archivos. Se conserva el resultado original en los datos.</small>" :
+""}
+                      </td>
+                      <td>
+                        ${e(row.semanticAssessment?.conclusion ??
+"Sin aprobación de calidad de ingeniería.")}
+                      </td>
+                    </tr>`;
+                  })
+
+.join("")
+}
+              </tbody>
+            </table>
+          </div>
+        </details>`
+      : "";
+  const contexts = rows.flatMap((row) =>
+    row.models.map((model) => ({ row, model, c: contextEvidence(row, model) })),
+  );
+  const contextMax = Math.max(...contexts.map((v) => v.c.observedMax ?? 0), 1);
+  const contextChart = /* HTML */ `<article class="chart-card">
+    <h3>Contexto máximo observado por llamada · cada modelo separado</h3>
+    <p>
+      No se suman contextos de modelos o llamadas. N/D significa que no hay una medición exacta por
+      llamada.
+    </p>
+    ${contexts
+      .map(
+        ({ row, model, c }) => /* HTML */ `<div class="bar-row">
+            <div>${e(armLabel(row.arm))}<small>${e(model.model)} · ${e(model.role)}</small></div>
+            <div class="track">
+              ${c.observedMax == null ? "" : /* HTML */ `<span class="bar ${color(model.model)}" style="width:${(100 * c.observedMax) / contextMax}%"></span>`}
+            </div>
+            <strong
+              >${n(c.observedMax)}
+              tokens${model.model.includes("haiku") && c.observedMax > 100000 ? "<small>Supera 100.000; aplica tarifa de contexto largo</small>" : ""}</strong
+            >
+          </div>`,
+      )
+      .join("")}
+  </article>`;
+  const reviews = rows
+    .filter((r) => r.semanticAssessment)
+    .map(
+      (r) => /* HTML */ `<article class="quality">
+          <h3>Revisión del borrador · ${e(armLabel(r.arm))}</h3>
+          <p><b>${e(r.semanticAssessment.conclusion)}</b></p>
+          <p>Fortalezas observadas: ${e((r.semanticAssessment.strengths ?? []).join(" · "))}</p>
+          <ul>
+            ${(r.semanticAssessment.findings ?? []).map((f) => /* HTML */ `<li><b>${e(f.severity)}</b>: ${e(f.issue)}</li>`).join("")}
+          </ul>
+        </article>`,
+    )
+    .join("");
+  return /* HTML */ `<section
+    class="task-panel"
+    id="case-${e(task.id.toLowerCase())}"
+    data-task-panel="${e(task.id)}"
+  >
+    <div class="eyebrow">${e(task.id)} · ${e(task.level)} · clasificación manual</div>
+    <h2>${e(task.name)}</h2>
+    <p>
+      Protocolo comparado: ${e(selection.policy)}. ${n(selection.excluded.length)} intentos de
+      depuración u otro protocolo quedan fuera del ranking y conservan su costo en la tabla y
+      exportaciones. ${n(selection.technicalBlocked)} bloqueos de integración/proveedor no se
+      interpretan como calidad del modelo.
+    </p>
+    <p>${e(descriptions[task.id] ?? task.requirement)}</p>
+    ${taskDecisionPanel(verdict, task, armLabel)}
+    <div class="quality">
+      <h3>Qué calidad está comprobada y qué falta</h3>
+      <p>
+        ${
+          analysisTask
+            ? "Esta tarea no implementa código. Las ocho comprobaciones verifican estructura, referencias, dependencias y preservación. Las recetas nuevas incluyen " +
+              "además revisión semántica fresca; su aprobación se indica por ejecución. "
+            : ""
+        }Aprobar
+        el contrato con observaciones medias abiertas no habilita una recomendación de calidad ni un
+        caso positivo para el routing. La aceptación indicada corresponde a ${task.testCount}
+        criterios externos de esta
+        tarea${task.id === "P02" ? ", más compilación y la prueba original sin modificar" : task.id === "F02" ? ", más 12 regresiones conservadas y compilación de toda la app Angular" : ""}.
+        Las pruebas escritas por el propio agente no sustituyen los criterios externos ni la
+        revisión fresca.
+      </p>
+      <p>
+        <b>Alcance de revisión:</b>
+        ${
+staged ?
+"la sesión fresca de Sonnet está incluida en el costo y se verifican las citas de sus hallazgos. No es una revisión humana ni una garantía general." :
+"no se midió una revisión independiente de diseño o mantenibilidad."
+}
+        No se midieron seguridad completa ni defectos posteriores. Aprobar estos checks no garantiza
+        equivalencia con Opus o Sonnet ni ausencia de errores.
+      </p>
+    </div>
+    ${reviews}${audit}
+    <div class="charts">${charts}${contextChart}</div>
+    ${allocationPanel(task, rows, armLabel)}
+    <p class="legend">
+      Colores por modelo: <b class="haiku">Haiku</b> <b class="sonnet">Sonnet</b>
+      <b class="opus">Opus</b> <b class="codex">Codex</b>. Las barras de costo usan el extremo
+      superior del rango. Los intentos fallidos conservan su consumo.
+    </p>
+    <h3>Contexto usado por modelo</h3>
+    <p>
+      ${task.sourceFiles ? `Instantánea: ${n(task.sourceFiles)} archivos reales seleccionados · ${n(task.sourceCharacters)} bytes. Es una copia parcial, no todo el proyecto. ` : ""}Máximo
+      registrado de entrada de una llamada = entrada sin caché + caché leída + caché escrita. No es
+      la suma de tokens de toda la ejecución. Si faltan llamadas se muestra cobertura incompleta; la
+      cota superior no es una medición exacta. El máximo no incluye la salida ni muestra la
+      ocupación en vivo del contexto.
+    </p>
+    <div class="table">
+      <table>
+        <thead>
+          <tr>
+            <th>Ejecución</th>
+            <th>Modelo</th>
+            <th>Máximo observado · tokens</th>
+            <th>Cota superior · tokens</th>
+            <th>Cobertura</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${context || '<tr><td colspan="5">Sin contexto registrado</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+    <div class="pending">
+      <h3>POA · qué falta para decidir con más confianza</h3>
+      <p>
+        ${a.missing.length ? "Completar con el mismo contrato: " + e(a.missing.map(armLabel).join("; ")) + "." : "Las rutas previstas cuentan con resultados aceptados dentro de este protocolo."}
+      </p>
+      <ol>
+        <li>
+          Repetir cada combinación al menos tres veces desde la misma instantánea, controlando caché
+          y orden. Tres muestras siguen siendo evidencia limitada.
+        </li>
+        <li>
+          Añadir revisión independiente de diseño y código, tests adversariales, regresiones y
+          criterios de seguridad adecuados al cambio.
+        </li>
+        <li>
+          Comparar costo por resultado aceptado, tiempo y defectos detectados. Preferir la ruta de
+          menor costo que cumpla los criterios de calidad y riesgo.
+        </li>
+      </ol>
+    </div>
+  </section>`;
+}
+
+export function benchmarkDashboard({
+  report,
+  descriptions,
+  armLabel,
+  comparisonTable,
+  routingPanel,
+  summary,
+  profile,
+  campaign,
+  claudePrices,
+  openaiPrices,
+}) {
+  const orderedTasks = [...report.tasks].sort(
+    (a, b) =>
+      (["F02", "F01B", "F01"].indexOf(a.id) < 0 ? 99 : ["F02", "F01B", "F01"].indexOf(a.id)) -
+      (["F02", "F01B", "F01"].indexOf(b.id) < 0 ? 99 : ["F02", "F01B", "F01"].indexOf(b.id)),
+  );
+  const analyses = report.tasks.map((task) => analyzeTask(task, report.rows));
+  const verdicts = report.tasks.map((task) => taskVerdict(task, report.rows));
+  const sections = orderedTasks
+    .map((task) =>
+      renderTaskSection(task, {
+        report,
+        descriptions,
+        armLabel,
+        comparisonTable,
+        routingPanel,
+        summary,
+        profile,
+        campaign,
+        claudePrices,
+        openaiPrices,
+        analyses,
+        verdicts,
+      }),
+    )
+    .join("");
+  const configured = (profile?.orchestration?.models ?? [])
+    .map(
+      (m) => /* HTML */ `<li>
+          ${e(m.id)}: ${e(m.model)} · ${e(m.effort)} · roles ${e(m.roles.join(", "))}
+        </li>`,
+    )
+    .join("");
+  const priceRows = claudePrices.cards
+    .filter((c) => /haiku|sonnet|opus/.test(c.model))
+    .flatMap((c) =>
+      c.tiers.map(
+        (t) => /* HTML */ `<tr>
+            <th>${e(c.model)}</th>
+            <td>
+              ${t.maxPromptTokens ? "Hasta " + n(t.maxPromptTokens) : c.tiers.length > 1 ? "Más de " + n(c.tiers[0].maxPromptTokens) : "Todos"}
+            </td>
+            <td>${t.input}</td>
+            <td>${t.output}</td>
+            <td>${t.cacheRead}</td>
+            <td>${t.cacheWrite5m} / ${t.cacheWrite1h}<small>5 minutos / 1 hora</small></td>
+          </tr>`,
+      ),
+    )
+    .join("");
+  const openaiRateRows = (openaiPrices?.cards ?? [])
+    .flatMap((c) =>
+      [
+        { tier: c, label: "Contexto corto" },
+        ...(c.longContext
+          ? [
+              {
+                tier: c.longContext,
+                label: "Contexto largo · extremo del intervalo si no se conoce cada petición",
+              },
+            ]
+          : []),
+      ].map(
+        ({ tier: t, label }) => /* HTML */ `<tr>
+            <th>${e(c.model)} (solicitado)</th>
+            <td>${label}</td>
+            <td>${t.input}</td>
+            <td>${t.output}</td>
+            <td>${t.cacheRead}</td>
+            <td>${t.cacheWrite30m} / ${t.cacheWrite12h}<small>30 minutos / 12 horas</small></td>
+          </tr>`,
+      ),
+    )
+    .join("");
+  const campaignPanel = campaign
+    ? /* HTML */ `<section id="finanzas-campaign">
+        <h2>POA · trabajo real en Finanzas</h2>
+        <p>
+          Se preservan los proyectos originales y sus cambios locales. Las mediciones se hacen en
+          copias parciales o completas según cada prueba, sin base de datos real, extractos ni
+          secretos.
+        </p>
+        <div class="table">
+          <table>
+            <thead>
+              <tr>
+                <th>Tarea real</th>
+                <th>Nivel</th>
+                <th>Estado</th>
+                <th>Cómo se evaluará la calidad</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+campaign.tasks
+
+.map(
+                  (t) => /* HTML */ `<tr>
+                      <th>${e(t.id)} · ${e(t.task)}</th>
+                      <td>${e(t.level)}</td>
+                      <td>
+                        ${report.rows.some((r) => r.taskId === t.id) ?
+"Ver ejecuciones y resultados registrados" :
+t.status === "planned-not-executed" ?
+"Planificada; sin medición" :
+"Preparada / en ejecución; sin resultado aún"}
+                      </td>
+                      <td>${e(Array.isArray(t.quality) ?
+t.quality
+.join(" · ") :
+t.quality)}</td>
+                    </tr>`,
+                )
+
+.join("")
+}
+            </tbody>
+          </table>
+        </div>
+        <p>
+          Los riesgos de código detectados son hipótesis hasta reproducirlos. Las tareas
+          planificadas no cuentan como pruebas ejecutadas ni como ahorros.
+        </p>
+      </section>`
+    : "";
+  return {
+    analyses,
+    verdicts,
+    html: renderDashboardDocument({
+      report,
+      summary,
+      orderedTasks,
+      sections,
+      verdicts,
+      armLabel,
+      campaignPanel,
+      profile,
+      configured,
+      comparisonTable,
+      claudePrices,
+      openaiPrices,
+      priceRows,
+      openaiRateRows,
+      routingPanel,
+    }),
+  };
 }

@@ -4,15 +4,15 @@ import {analyzeTask,contextEvidence} from '../tools/lib/benchmark-analysis.mjs';
 import {officialCostBreakdown} from '../tools/lib/official-cost-breakdown.mjs';
 import {readFile} from 'node:fs/promises';
 
-const task={id:'W01',level:'medio'};
-const sample=(arm,status,cost)=>({taskId:'W01',arm,status,acceptanceHash:'same',models:[{model:'haiku'}],totalCost:{min:cost,max:cost},receipt:{completeAccounting:true,timings:{wallMs:1000}}});
+const task={id:'W01',level:'medio',testCount:9};
+const sample=(arm,status,cost)=>({taskId:'W01',arm,status,acceptanceHash:'same',models:[{model:'haiku'}],totalCost:{min:cost,max:cost},receipt:{completeAccounting:true,timings:{wallMs:1000}},checks:{external:{exitCode:0,passed:9}},semanticReview:'passed',qualityReview:{approved:true,findings:[]},minimumStandard:{passed:true,reviewEvidenceValid:true},phases:[{phase:'review',receipt:{terminalReceipt:{success:true}}}]});
 test('lowest cost cannot establish quality: failed, conditional and incompatible cases do not win',()=>{
   const failed=sample('cheap','incomplete',.001), passed=sample('passed','accepted',.1);
   const conditional={...sample('conditional','accepted',.01),models:[{cost:{modelIdentityCaveat:true}}]};
   const result=analyzeTask(task,[failed,passed,conditional]);
   assert.equal(result.cheapestObserved,'passed');
   assert.equal(result.comparativeConfidence,'exploratory');
-  assert.equal(result.strategies[1].independentCodeReview,'not-measured');
+  assert.equal(result.strategies[1].independentCodeReview,'fresh-model-review');
   assert.equal(analyzeTask(task,[passed,{...passed,acceptanceHash:'different'}]).cheapestObserved,null);
   assert.equal(analyzeTask(task,[{...passed,semanticReview:'pending'}]).cheapestObserved,null);
   const reviewed=analyzeTask(task,[{...sample('cheap','accepted',.001),semanticReview:'changes-requested'},{...passed,semanticReview:'reviewed-draft'}]);

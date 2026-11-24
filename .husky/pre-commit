@@ -1,2 +1,4 @@
 NODE_OPTIONS= NODE_PATH= node tools/pre-commit-security.mjs || exit $?
-pnpm check
+NODE_OPTIONS= NODE_PATH= node tools/check-source-size.mts --staged || exit $?
+NODE_OPTIONS= NODE_PATH= node tools/check-import-boundaries.mts --staged || exit $?
+env -u GIT_INDEX_FILE -u GIT_DIR -u GIT_WORK_TREE -u GIT_PREFIX pnpm check

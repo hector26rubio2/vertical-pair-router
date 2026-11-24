@@ -98,3 +98,15 @@ dependencias y checks requeridos.
 - Fuente: plan vigente
 - Fecha: 2026-11-09
 - Owner: VPR
+
+## Workflow routing
+
+Decisión determinista local que elige planner, executor y reviewer de un workflow a
+partir de policy, capacidades observadas y casos comparables, sin llamar a modelos.
+
+- Alias: routing de workflow
+- Evitar: router de adapters, selección de skill
+- Enlaces: ADR-0004, `@vpr/core`
+- Fuente: revisión de arquitectura 2026-11-19
+- Fecha: 2026-11-19
+- Owner: VPR

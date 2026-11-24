@@ -1,4 +1,7 @@
 import {copyFile,mkdir,writeFile} from 'node:fs/promises';
+await mkdir('packages/observability/dist',{recursive:true});
+await copyFile('packages/observability/src/native-session-meter.mjs','packages/observability/dist/native-session-meter.mjs');
+await copyFile('packages/observability/src/native-session-meter.d.mts','packages/observability/dist/native-session-meter.d.mts');
 await mkdir('packages/runtime/dist',{recursive:true});
 await copyFile('packages/runtime/src/usage-ledger.mjs','packages/runtime/dist/usage-ledger.mjs');
 await copyFile('packages/runtime/src/claude-guard-launch.mjs','packages/runtime/dist/claude-guard-launch.mjs');

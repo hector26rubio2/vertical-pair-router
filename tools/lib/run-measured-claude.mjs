@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { StringDecoder } from 'node:string_decoder';
 import { NativeSessionMeter } from './native-session-meter.mjs';
-import {prepareGuardedClaude} from '../../packages/runtime/src/claude-guard-launch.mjs';
+import {prepareGuardedClaude} from '@vpr/runtime';
 
 export async function runMeasuredClaude({ executable, cwd, args, prompt, timeoutMs = 180000, onSnapshot = () => {}, onResult = () => {} }) {
   const meter = new NativeSessionMeter();

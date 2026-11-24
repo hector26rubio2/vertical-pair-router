@@ -1,5 +1,7 @@
 # Execution engine, leases and recovery
 
+> Status: not implemented. A prototype lived in `packages/runtime/src/execution-engine.ts` until commit 6be87f6; recover it with `git show 6be87f6:packages/runtime/src/execution-engine.ts`. The native Run (`packages/runtime/src/native-run.ts`) uses a file lock and manual recovery instead.
+
 The runtime engine records control events through `StorageAdapter`; it does not
 hide Run progress in process memory. A restarted process folds the same project
 event stream before resuming.

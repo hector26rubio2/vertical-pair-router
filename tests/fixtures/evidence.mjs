@@ -1,0 +1,23 @@
+export function fixture(id = 'call-1') {
+  return {schemaVersion: 1, snapshotHash: 'd'.repeat(64), id, granularity: 'call', runId: 'run-1', storyId: null,
+    callId: id, taskId: 'task-1', protocol: 'factorial-v1', acceptanceContractHash: 'a'.repeat(64),
+    recipe: 'sonnet-haiku', phase: 'implement', operation: 'implementar', model: 'haiku',
+    provider: 'claude', modelIdentity: 'confirmed',
+    features: {kind: 'bugfix', role: 'coding', designComplexity: 'complex', executionComplexity: 'simple',
+      risk: 'medium', files: ['src/a.ts'], modules: ['src'], publicApi: false, persistence: true,
+      transactions: true, security: false, money: true, invariants: 1, existingTests: 2,
+      expectedDiffLines: 30, dependencies: []},
+    tokens: {input: 10, output: 20, cacheRead: 100, cacheWrite: 30, cacheWrite5m: 30,
+      cacheWrite1h: 0, contextMax: 140},
+    cost: {inputUsd: .001, outputUsd: .002, cacheReadUsd: .001, cacheWriteUsd: .001,
+      totalMinUsd: .005, totalMaxUsd: .005, complete: true},
+    accepted: true, engineeringQuality: true, checks: {external: true, regression: true, build: true},
+    review: {fresh: true, citationsVerified: true, critical: 0, high: 0, medium: 0, low: 0},
+    wallMs: 1000, checksMs: 10, calls: 1, turns: 1, tools: {Read: 1},
+    files: {readCount: 1, readBytes: 50, readTokens: null, writtenCount: 0, writtenBytes: 0},
+    cacheCondition: 'unknown', promptPrefixHash: null, handoffHash: null, failureReason: null,
+    triageEscalated: null, escalationRequired: null, shadowRecipe: null,
+    source: {path: 'test-receipt.json', sha256: 'b'.repeat(64), pointer: '/calls/0'},
+    unavailable: {'files.readTokens': 'Provider does not attribute tokens to individual files'},
+  };
+}

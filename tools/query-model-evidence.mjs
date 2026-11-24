@@ -1,6 +1,6 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
-import { retrieveCapabilities } from '../packages/knowledge/dist/index.js';
+import { retrieveCapabilities } from '@vpr/knowledge';
 const args = process.argv.slice(2);
 const at = args.indexOf('--query');
 if (at < 0 || !args[at + 1]) throw new Error('--query requires task tags or text');

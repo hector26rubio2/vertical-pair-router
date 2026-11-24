@@ -1,4 +1,6 @@
 export const schemaVersion = 1 as const;
+export * from './experiment-contracts.js';
+export * from './evidence-cohort.js';
 
 export type IdPrefix = "project" | "story" | "task" | "run" | "evt" | "evd";
 export type EntityId = `${IdPrefix}_${string}`;

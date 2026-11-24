@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { verifyModelReceipt } from '../../packages/observability/dist/index.js';
+import { verifyModelReceipt } from '@vpr/observability';
 
 export async function probeClaude({ executable, cwd, model, effort, prompt }) {
   const started = performance.now();

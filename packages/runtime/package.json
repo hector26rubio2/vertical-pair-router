@@ -10,7 +10,8 @@
   "dependencies": {
     "@microsoft/copilot-sdk": "2.0.1",
     "@vpr/contracts": "workspace:*",
-    "@vpr/core": "workspace:*"
+    "@vpr/core": "workspace:*",
+    "@vpr/observability": "workspace:*"
   },
   "devDependencies": {
     "@vpr/storage-sqlite": "workspace:*"

@@ -1,19 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
-import {
-  copyFile,
-  mkdir,
-  readFile,
-  rename,
-  readdir,
-  rm,
-  stat,
-  writeFile
-} from "node:fs/promises";
+import { copyFile, mkdir, readFile, rename, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 
 import type { EntityId, PolicyRules } from "@vpr/contracts";
-import type { AgentRoutingPolicy } from '@vpr/core';
-import { parseProjectProfile } from './profile-policy.js';
+import type { AgentRoutingPolicy } from "@vpr/core";
+import { parseProjectProfile } from "./profile-policy.js";
 
 export interface CheckCommand {
   readonly program: string;
@@ -30,10 +21,18 @@ export interface ProjectProfileV1 {
   readonly glossaryPath: string;
   readonly policy: PolicyRules;
   readonly orchestration?: AgentRoutingPolicy;
-  readonly subscriptions?: readonly { readonly provider: 'claude' | 'codex' | 'copilot'; readonly planId: string; readonly source: 'user_reported' | 'provider_reported' }[];
+  readonly subscriptions?: readonly {
+    readonly provider: "claude" | "codex" | "copilot";
+    readonly planId: string;
+    readonly source: "user_reported" | "provider_reported";
+  }[];
   readonly setup?: {
     readonly technologies: readonly string[];
-    readonly integrations: { readonly husky: boolean; readonly graphify: boolean; readonly archify: boolean };
+    readonly integrations: {
+      readonly husky: boolean;
+      readonly graphify: boolean;
+      readonly archify: boolean;
+    };
   };
 }
 
@@ -56,19 +55,35 @@ export async function proposeProjectProfile(rootInput: string): Promise<ProjectP
   const root = resolve(rootInput);
   const packageJsonPath = join(root, "package.json");
   const packageJson = await readJsonObject(packageJsonPath);
-  const entries=await readdir(root);
-  const dependencies={...(isRecord(packageJson.dependencies)?packageJson.dependencies:{}),...(isRecord(packageJson.devDependencies)?packageJson.devDependencies:{})};
-  const technologies=[...(Object.keys(packageJson).length?['Node.js']:[]),...(dependencies.typescript||entries.includes('tsconfig.json')?['TypeScript']:[]),...(dependencies['@angular/core']?['Angular']:[]),...(dependencies.react?['React']:[]),...(entries.some(path=>/\.(?:csproj|sln|slnx)$/iu.test(path))?['.NET']:[]),...(entries.some(path=>['pyproject.toml','requirements.txt','Pipfile'].includes(path))?['Python']:[]),...(entries.includes('Cargo.toml')?['Rust']:[]),...(entries.includes('go.mod')?['Go']:[])];
+  const entries = await readdir(root);
+  const dependencies = {
+    ...(isRecord(packageJson.dependencies) ? packageJson.dependencies : {}),
+    ...(isRecord(packageJson.devDependencies) ? packageJson.devDependencies : {}),
+  };
+  const technologies = [
+    ...(Object.keys(packageJson).length ? ["Node.js"] : []),
+    ...(dependencies.typescript || entries.includes("tsconfig.json") ? ["TypeScript"] : []),
+    ...(dependencies["@angular/core"] ? ["Angular"] : []),
+    ...(dependencies.react ? ["React"] : []),
+    ...(entries.some((path) => /\.(?:csproj|sln|slnx)$/iu.test(path)) ? [".NET"] : []),
+    ...(entries.some((path) => ["pyproject.toml", "requirements.txt", "Pipfile"].includes(path))
+      ? ["Python"]
+      : []),
+    ...(entries.includes("Cargo.toml") ? ["Rust"] : []),
+    ...(entries.includes("go.mod") ? ["Go"] : []),
+  ];
   const scripts = isRecord(packageJson.scripts) ? packageJson.scripts : {};
-  const packageManager = await detectPackageManager(root,packageJson.packageManager);
+  const packageManager = await detectPackageManager(root, packageJson.packageManager);
   const checks = Object.fromEntries(
     ["build", "lint", "test", "typecheck"]
-      .filter(
-        (name) => packageManager !== "unknown" && typeof scripts[name] === "string"
-      )
-      .map((name) => [name, { program: packageManager, args: [name] }])
+      .filter((name) => packageManager !== "unknown" && typeof scripts[name] === "string")
+      .map((name) => [name, { program: packageManager, args: [name] }]),
   ) as Readonly<Record<string, CheckCommand>>;
-  const effectiveChecks=Object.keys(checks).length?checks:technologies.includes('.NET')?{build:{program:'dotnet',args:['build']}}:checks;
+  const effectiveChecks = Object.keys(checks).length
+    ? checks
+    : technologies.includes(".NET")
+      ? { build: { program: "dotnet", args: ["build"] } }
+      : checks;
   const projectName =
     typeof packageJson.name === "string" && packageJson.name.length > 0
       ? packageJson.name
@@ -78,19 +93,20 @@ export async function proposeProjectProfile(rootInput: string): Promise<ProjectP
     projectId: `project_${sha256(root).slice(0, 20)}`,
     name: projectName,
     packageManager,
-    checks:effectiveChecks,
-    setup:{technologies,integrations:{husky:false,graphify:false,archify:false}},
+    checks: effectiveChecks,
+    setup: { technologies, integrations: { husky: false, graphify: false, archify: false } },
     glossaryPath: "GLOSSARY.md",
     policy: {
       allowShell: false,
       allowNetworkTelemetry: false,
       allowedProviders: ["local"],
-      maxOutputBytes: 1_048_576
-    }
+      maxOutputBytes: 1_048_576,
+    },
   };
   const target = join(root, ".vpr", "profile.json");
   const current = await readOptional(target);
-  const effectiveProfile = current === null ? parseProjectProfile(profile) : parseProjectProfile(JSON.parse(current));
+  const effectiveProfile =
+    current === null ? parseProjectProfile(profile) : parseProjectProfile(JSON.parse(current));
   const content = `${JSON.stringify(effectiveProfile, null, 2)}\n`;
 
   return {
@@ -98,7 +114,7 @@ export async function proposeProjectProfile(rootInput: string): Promise<ProjectP
     target,
     beforeHash: current === null ? null : sha256(current),
     profile: effectiveProfile,
-    content
+    content,
   };
 }
 
@@ -127,20 +143,27 @@ export async function applyProjectProfile(proposal: ProjectProfileProposal): Pro
 }
 
 async function detectPackageManager(
-  root: string,declared?:unknown
+  root: string,
+  declared?: unknown,
 ): Promise<ProjectProfileV1["packageManager"]> {
   if (await exists(join(root, "pnpm-lock.yaml"))) return "pnpm";
   if (await exists(join(root, "package-lock.json"))) return "npm";
   if (await exists(join(root, "yarn.lock"))) return "yarn";
-  if(typeof declared==='string'){
-    const manager=declared.split('@')[0];
-    if(manager==='pnpm'||manager==='npm'||manager==='yarn')return manager;
+  if (typeof declared === "string") {
+    const manager = declared.split("@")[0];
+    if (manager === "pnpm" || manager === "npm" || manager === "yarn") return manager;
   }
   return "unknown";
 }
 
 async function readJsonObject(path: string): Promise<Record<string, unknown>> {
-  let content:string;try{content=await readFile(path,'utf8');}catch(error){if(isNodeError(error)&&error.code==='ENOENT')return {};throw error;}
+  let content: string;
+  try {
+    content = await readFile(path, "utf8");
+  } catch (error) {
+    if (isNodeError(error) && error.code === "ENOENT") return {};
+    throw error;
+  }
   const parsed: unknown = JSON.parse(content);
   if (!isRecord(parsed)) {
     throw new TypeError(`Expected a JSON object at ${path}`);
@@ -178,4 +201,3 @@ function isNodeError(error: unknown): error is NodeJS.ErrnoException {
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
-
