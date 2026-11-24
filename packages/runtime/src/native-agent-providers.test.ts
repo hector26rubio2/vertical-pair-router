@@ -201,7 +201,7 @@ test("claude read-only run reports answer, usage, arguments and scrubbed environ
     },
     modelSettings: { "claude-haiku-5-5": { autoCompactWindow: 100000 } },
   });
-  assert.equal(realpathSync(call.cwd), realpathSync(input.cwd));
+  assert.equal(realpathSync.native(call.cwd), realpathSync.native(input.cwd));
   assert.equal(
     call.stdin,
     "Task phase: implement. READ ONLY. Do not modify files. Work only inside the project. Do not access credentials, network, install tools, commit, publish or start more agents. Do not claim unexecuted tests passed.\ndo the work",

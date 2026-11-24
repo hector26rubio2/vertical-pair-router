@@ -14,6 +14,9 @@ await build({
   target: "node24",
   outfile: join(output, "bin", "vpr.mjs"),
   external: ["node:*", "@microsoft/copilot-sdk"],
+  banner: {
+    js: 'import { createRequire as createBundleRequire } from "node:module"; const require = createBundleRequire(import.meta.url);',
+  },
 });
 for (const directory of [".claude-plugin", "hooks", "skills"]) {
   await cp(resolve(directory), join(output, "plugin", directory), { recursive: true });
